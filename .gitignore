@@ -1,0 +1,12 @@
+# Python / test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.env
+
+# Generated optimization outputs (written by run_optimize during tests / real runs)
+*.optimized.md
+*.report.json
