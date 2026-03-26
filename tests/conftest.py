@@ -24,15 +24,25 @@ class _PromptTemplate:
 class _APO:
     """Minimal APO stub whose behaviour tests can override per-test."""
 
+    # Class-level knob: controls how many candidates _Trainer.fit() produces.
+    # Tests that need to exercise the multi-candidate path can monkeypatch this
+    # value (e.g. ``monkeypatch.setattr(agl.APO, "_num_candidates", 3)``).
+    # Defaults to 1 to exercise the single-candidate → variant fallback path.
+    _num_candidates: int = 1
+
     def __init__(self, client, *, beam_rounds=3, beam_width=4, branch_factor=4,
                  gradient_batch_size=4, val_batch_size=16):
         self.beam_rounds = beam_rounds
         self.beam_width = beam_width
         self.branch_factor = branch_factor
         self._best_prompt: _PromptTemplate | None = None
+        self._candidates: list[_PromptTemplate] = []
 
     def get_best_prompt(self) -> _PromptTemplate | None:
         return self._best_prompt
+
+    def get_candidates(self) -> list[_PromptTemplate]:
+        return self._candidates
 
 
 class _Trainer:
@@ -48,14 +58,25 @@ class _Trainer:
 
     def fit(self, *, agent, train_dataset, val_dataset):
         self._fit_called = True
-        # Simulate a successful optimisation: append a marker so tests can
-        # verify the output file contains the "optimized" result.
+        # Simulate a successful optimisation: produce _num_candidates candidates.
+        # The first/best has the "<!-- optimized -->" marker; additional candidates
+        # are labelled so tests can assert which path was taken.
         if isinstance(self.algorithm, _APO):
             seed = list(self.initial_resources.values())[0]
-            self.algorithm._best_prompt = _PromptTemplate(
-                template=seed.template + "\n<!-- optimized -->",
-                engine=seed.engine,
-            )
+            n = self.algorithm._num_candidates
+            candidates = [
+                _PromptTemplate(
+                    template=seed.template + "\n<!-- optimized -->" + (
+                        f"\n<!-- candidate {i} -->" if i > 0 else ""
+                    ),
+                    engine=seed.engine,
+                )
+                for i in range(n)
+            ]
+            self.algorithm._candidates = candidates
+            # Simulate a successful optimisation: append a marker so tests can
+            # verify the output file contains the "optimized" result.
+            self.algorithm._best_prompt = candidates[0]
 
 
 class _OtelTracer:

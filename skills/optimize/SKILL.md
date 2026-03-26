@@ -33,11 +33,12 @@ Required arguments:
 Optional arguments:
 - `iterations` (default `3`) — number of APO beam rounds
 - `algorithm` (default `apo`) — `apo` (recommended) or `verl` (advanced, not default)
-- `output` — where to write the optimized markdown (default: `<stem>.optimized.md`)
+- `output` — backup copy path for the optimized markdown (the original prompt file is always replaced in-place)
 - `report` — where to write the JSON optimization report (default: `<stem>.report.json`)
 - `beam_width` (default `4`)
 - `branch_factor` (default `4`)
 - `n_runners` (default `4`)
+- `n_variants` (default `4`) — when APO yields only one candidate, generate this many variant paraphrases and elect the leader via top-k scoring
 - `judge_mode` (default `deterministic`) — `deterministic`, `custom`, or `llm_judge`
 - `judge_prompt_file` — only used when `judge_mode=llm_judge`
 - `debug_only` — run a smoke-test pass only, do not write output files
@@ -58,6 +59,15 @@ Optional arguments:
 - Only suggest `verl` when the user explicitly asks for RL-based or model-path optimization. Treat it as advanced and not the default path.
 - Prefer `judge_mode=deterministic` when tasks have exact or rule-based expected outputs.
 - Only use `judge_mode=llm_judge` when deterministic scoring is genuinely not possible.
+
+## Leader election
+
+After APO completes, the leader is selected as follows:
+
+- **Multiple candidates** (normal case): APO's built-in best-prompt selection is used directly.
+- **Single candidate** (fallback): `n_variants` paraphrases of the sole candidate are generated, scored against the training dataset, and the highest-scoring variant becomes the leader.
+
+The leader content **replaces the original `prompt_file` in-place**. An optional backup copy is written to `output` if provided.
 
 ## Dataset format
 
@@ -103,6 +113,7 @@ python scripts/run_optimize.py \
   [--beam-width 4] \
   [--branch-factor 4] \
   [--n-runners 4] \
+  [--n-variants 4] \
   [--judge-mode deterministic] \
   [--debug-only]
 ```

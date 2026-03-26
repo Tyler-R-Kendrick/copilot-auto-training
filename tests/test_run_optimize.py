@@ -322,3 +322,128 @@ class TestLeaderReplacesTargetPrompt:
         )
 
         assert prompt_path.read_text(encoding="utf-8") == original_content
+
+
+# ---------------------------------------------------------------------------
+# Single-candidate fallback: generate variants + topk leader election
+# ---------------------------------------------------------------------------
+
+class TestSingleCandidateFallback:
+    """
+    When APO yields exactly one candidate the skill must fall back to generating
+    n_variants paraphrases of that candidate and electing the leader via topk.
+    The default stub produces 1 candidate, so no monkeypatching is needed here.
+    """
+
+    @pytest.mark.asyncio
+    async def test_single_candidate_leader_written_to_prompt_file(self, tmp_path):
+        """prompt_file is replaced with the topk winner (a generated variant)."""
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            n_variants=3,
+        )
+
+        content = prompt_path.read_text(encoding="utf-8")
+        # The stub candidate has "<!-- optimized -->" and the best variant must
+        # be derived from that candidate (so it also contains the marker).
+        assert "<!-- optimized -->" in content
+
+    @pytest.mark.asyncio
+    async def test_single_candidate_variant_marker_present(self, tmp_path):
+        """The elected leader is one of the generated variants, not the raw candidate."""
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            n_variants=3,
+        )
+
+        content = prompt_path.read_text(encoding="utf-8")
+        # Stub generate_variants appends "<!-- variant N -->" markers.
+        assert "<!-- variant" in content
+
+    @pytest.mark.asyncio
+    async def test_multi_candidate_does_not_generate_variants(self, tmp_path, monkeypatch):
+        """When APO returns > 1 candidate, the variant generation path is NOT taken."""
+        import sys
+        agl = sys.modules["agentlightning"]
+        monkeypatch.setattr(agl.APO, "_num_candidates", 3)
+
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            n_variants=3,
+        )
+
+        content = prompt_path.read_text(encoding="utf-8")
+        # Multi-candidate path uses get_best_prompt() directly (no variant markers).
+        assert "<!-- variant" not in content
+        assert "<!-- optimized -->" in content
+
+    @pytest.mark.asyncio
+    async def test_n_variants_parameter_controls_variant_count(self, tmp_path, monkeypatch):
+        """n_variants controls how many variants are generated in the fallback path."""
+        generated: list[list[str]] = []
+
+        import run_optimize as ro
+        original_generate = ro.generate_variants
+
+        def capturing_generate(prompt_text: str, n: int) -> list[str]:
+            result = original_generate(prompt_text, n)
+            generated.append(result)
+            return result
+
+        monkeypatch.setattr(ro, "generate_variants", capturing_generate)
+
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            n_variants=5,
+        )
+
+        assert generated, "generate_variants was not called"
+        assert len(generated[0]) == 5
+
+    @pytest.mark.asyncio
+    async def test_report_ok_true_on_single_candidate_path(self, tmp_path):
+        """The JSON report still reports ok=True even via the variant path."""
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+        report_path = tmp_path / "report.json"
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            n_variants=2,
+            report_file=str(report_path),
+        )
+
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        assert report["ok"] is True

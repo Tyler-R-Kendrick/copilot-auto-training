@@ -1,6 +1,7 @@
 """
 Tests for pure utility functions in optimize/scripts/run_optimize.py:
-  extract_placeholders, flatten_keys, validate_template_against_task, load_jsonl
+  extract_placeholders, flatten_keys, validate_template_against_task, load_jsonl,
+  generate_variants, topk_select
 """
 from __future__ import annotations
 
@@ -13,10 +14,11 @@ import pytest
 from run_optimize import (
     extract_placeholders,
     flatten_keys,
+    generate_variants,
     load_jsonl,
+    topk_select,
     validate_template_against_task,
 )
-
 
 class TestExtractPlaceholders:
     def test_single_placeholder(self):
@@ -145,3 +147,80 @@ class TestLoadJsonl:
         path = self._write_temp([json.dumps(row)])
         rows = load_jsonl(path)
         assert rows[0]["input"]["question"] == "Q?"
+
+
+class TestGenerateVariants:
+    def test_returns_n_variants(self):
+        variants = generate_variants("Hello {input}", n=4)
+        assert len(variants) == 4
+
+    def test_returns_one_variant_when_n_is_1(self):
+        variants = generate_variants("Hello {input}", n=1)
+        assert len(variants) == 1
+
+    def test_each_variant_contains_original_text(self):
+        original = "My prompt {input}"
+        for v in generate_variants(original, n=3):
+            assert original in v
+
+    def test_variants_are_pairwise_distinct(self):
+        variants = generate_variants("Hello {input}", n=4)
+        assert len(set(variants)) == 4, "All variants must be unique"
+
+    def test_zero_variants_returns_empty_list(self):
+        assert generate_variants("Hello {input}", n=0) == []
+
+
+class TestTopkSelect:
+    # Dataset where expected=="pong" so "pong" scores 1.0 and anything else 0.0.
+    DATASET = [{"input": "ping", "expected": "pong"}]
+
+    @pytest.mark.asyncio
+    async def test_returns_k_items(self):
+        variants = ["pong", "hello", "world", "foo"]
+        result = await topk_select(variants, self.DATASET, judge_mode="deterministic", k=2)
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_k1_returns_single_best(self):
+        # "pong" is the exact match → score 1.0; others score 0.0
+        variants = ["other", "pong", "another"]
+        result = await topk_select(variants, self.DATASET, judge_mode="deterministic", k=1)
+        assert len(result) == 1
+        assert result[0] == "pong"
+
+    @pytest.mark.asyncio
+    async def test_highest_scoring_variant_is_first(self):
+        variants = ["no_match", "pong", "also_wrong"]
+        result = await topk_select(variants, self.DATASET, judge_mode="deterministic", k=2)
+        # The best scorer must appear first
+        assert result[0] == "pong"
+
+    @pytest.mark.asyncio
+    async def test_all_zero_scores_still_returns_k(self):
+        variants = ["a", "b", "c"]
+        result = await topk_select(variants, self.DATASET, judge_mode="deterministic", k=2)
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_k_larger_than_variants_returns_all(self):
+        variants = ["a", "b"]
+        result = await topk_select(variants, self.DATASET, judge_mode="deterministic", k=10)
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_empty_variants_returns_empty(self):
+        result = await topk_select([], self.DATASET, judge_mode="deterministic", k=1)
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_multi_task_dataset_scores_averaged(self):
+        # Two tasks: "pong" matches task 1 (score 1.0) but not task 2 (score 0.0) → mean 0.5
+        # "bar" matches neither → mean 0.0
+        dataset = [
+            {"input": "ping", "expected": "pong"},
+            {"input": "foo", "expected": "baz"},
+        ]
+        variants = ["pong", "bar"]
+        result = await topk_select(variants, dataset, judge_mode="deterministic", k=1)
+        assert result[0] == "pong"

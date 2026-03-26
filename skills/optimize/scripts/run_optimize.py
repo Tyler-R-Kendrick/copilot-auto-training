@@ -91,14 +91,14 @@ async def run_candidate(prompt_text: str, task: dict[str, Any]) -> str:
     Execute the prompt against a task and return the model output as a string.
 
     Current implementation is an intentional stub for testing — it returns the
-    raw input so APO can run without a live LLM. Replace with a real async LLM
-    call before production use, e.g.:
+    prompt text directly, acting as an echo model so ``topk_select`` and APO can
+    run without a live LLM and produce deterministic, variant-dependent scores.
+    Replace with a real async LLM call in production, e.g.:
         rendered = prompt_text.format(**task)
         response = await llm_client.complete(rendered)
         return response
     """
-    rendered_input = task.get("input", task)
-    return str(rendered_input)
+    return prompt_text
 
 
 async def evaluate_output(
@@ -134,8 +134,54 @@ async def evaluate_output(
 
 
 # ---------------------------------------------------------------------------
-# Rollout (injected into AGL Trainer)
+# Variant generation + top-k leader election (single-candidate fallback)
 # ---------------------------------------------------------------------------
+
+def generate_variants(prompt_text: str, n: int) -> list[str]:
+    """
+    Generate *n* variant paraphrases of *prompt_text*.
+
+    Current implementation is an intentional stub for testing — it appends a
+    unique numeric marker to each copy so the elected leader is identifiable in
+    tests and the caller can verify this path was taken.
+
+    TODO (production): replace with an async LLM paraphrase call, e.g.:
+        return [await llm_client.paraphrase(prompt_text) for _ in range(n)]
+    """
+    return [f"{prompt_text}\n<!-- variant {i + 1} -->" for i in range(n)]
+
+
+async def topk_select(
+    variants: list[str],
+    dataset: list[dict[str, Any]],
+    judge_mode: str = "deterministic",
+    k: int = 1,
+) -> list[str]:
+    """
+    Score every variant against *dataset* and return the top-*k* by mean score.
+
+    Each variant is executed via ``run_candidate`` and scored via
+    ``evaluate_output``.  Variants are ranked by their mean score over all tasks;
+    ties are broken by original order (stable sort).  If *k* exceeds the number
+    of variants, all variants are returned.
+    """
+    if not variants:
+        return []
+
+    scored: list[tuple[str, float]] = []
+    for variant in variants:
+        total = 0.0
+        for task in dataset:
+            output = await run_candidate(variant, task)
+            total += await evaluate_output(task, output, judge_mode=judge_mode)
+        mean = total / len(dataset) if dataset else 0.0
+        scored.append((variant, mean))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [v for v, _ in scored[:k]]
+
+
+
 
 def _make_rollout(judge_mode: str):
     """Return an @agl.rollout-decorated function bound to the given judge_mode."""
@@ -170,14 +216,19 @@ async def run_optimize(
     judge_mode: Literal["deterministic", "custom", "llm_judge"] = "deterministic",
     judge_prompt_file: str | None = None,
     debug_only: bool = False,
+    n_variants: int = 4,
 ) -> str:
     """
     Optimize a markdown prompt file with Agent Lightning APO.
 
     Returns a JSON string describing the outcome.
     Writes two files on success (unless debug_only=True):
-      - optimized markdown prompt
+      - optimized markdown prompt (the original prompt_file is replaced in-place)
       - JSON report
+
+    When APO produces exactly one candidate, ``n_variants`` paraphrases of that
+    candidate are generated and the best one is elected leader via top-k scoring
+    against the training dataset.
     """
     # Guard: VERL is not the default for markdown prompt optimization
     if algorithm != "apo":
@@ -243,10 +294,23 @@ async def run_optimize(
         val_dataset=val_dataset,
     )
 
-    best_result = algo.get_best_prompt()
-    if best_result is None:
+    candidates = algo.get_candidates()
+    if not candidates:
         raise RuntimeError("Optimization produced no valid prompt candidates.")
-    best_prompt = best_result.template
+
+    if len(candidates) == 1:
+        # Single-candidate fallback: generate n_variants paraphrases of the sole
+        # APO candidate, score each against the training dataset, and elect the
+        # highest-scoring variant as the leader via top-k selection.
+        variants = generate_variants(candidates[0].template, n_variants)
+        top = await topk_select(variants, train_dataset, judge_mode=judge_mode, k=1)
+        best_prompt = top[0]
+    else:
+        # Multiple candidates: use the best prompt selected by APO directly.
+        best_result = algo.get_best_prompt()
+        if best_result is None:
+            raise RuntimeError("Optimization produced no valid prompt candidates.")
+        best_prompt = best_result.template
 
     # The winning (leader) prompt replaces the original prompt file in-place.
     prompt_path = Path(prompt_file)
@@ -303,6 +367,11 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Path to judge prompt file (only for llm_judge mode)")
     parser.add_argument("--debug-only", action="store_true",
                         help="Run a smoke-test pass only; do not write output files")
+    parser.add_argument("--n-variants", type=int, default=4,
+                        help=(
+                            "Number of variants to generate when APO returns only "
+                            "one candidate (default: 4)"
+                        ))
     return parser
 
 
@@ -324,6 +393,7 @@ def main(argv: list[str] | None = None) -> int:
         judge_mode=args.judge_mode,
         judge_prompt_file=args.judge_prompt_file,
         debug_only=args.debug_only,
+        n_variants=args.n_variants,
     ))
     print(result)
     parsed = json.loads(result)
