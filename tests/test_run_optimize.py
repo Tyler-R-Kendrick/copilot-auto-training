@@ -1,5 +1,6 @@
 """
-Tests for run_optimize — the core skill script.
+Tests for run_optimize() — the core optimization function in
+optimize/scripts/run_optimize.py.
 
 The AGL Trainer and APO are provided by conftest stubs so no real LLM calls happen.
 """
@@ -12,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from optimize_skill import run_optimize
+from run_optimize import run_optimize
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +90,6 @@ class TestRunOptimizeInputValidation:
 
     @pytest.mark.asyncio
     async def test_invalid_placeholder_raises(self):
-        # Template uses {missing} but task has no such key
         prompt = _write_file("Answer {missing_field}\n")
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)

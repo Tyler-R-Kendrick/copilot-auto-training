@@ -1,16 +1,12 @@
 """
-Tests for the evaluate_output function (all judge modes).
+Tests for the evaluate_output function (all judge modes) in run_optimize.py.
 """
 from __future__ import annotations
 
 import pytest
 
-from optimize_skill import evaluate_output
+from run_optimize import evaluate_output
 
-
-# ---------------------------------------------------------------------------
-# deterministic mode
-# ---------------------------------------------------------------------------
 
 class TestEvaluateOutputDeterministic:
     @pytest.mark.asyncio
@@ -33,7 +29,7 @@ class TestEvaluateOutputDeterministic:
 
     @pytest.mark.asyncio
     async def test_missing_expected_raises(self):
-        task = {"input": "x"}  # no 'expected' key
+        task = {"input": "x"}
         with pytest.raises(ValueError, match="expected"):
             await evaluate_output(task, "anything", judge_mode="deterministic")
 
@@ -44,10 +40,6 @@ class TestEvaluateOutputDeterministic:
         assert score == 1.0
 
 
-# ---------------------------------------------------------------------------
-# custom mode
-# ---------------------------------------------------------------------------
-
 class TestEvaluateOutputCustom:
     @pytest.mark.asyncio
     async def test_custom_mode_raises_not_implemented(self):
@@ -56,10 +48,6 @@ class TestEvaluateOutputCustom:
             await evaluate_output(task, "y", judge_mode="custom")
 
 
-# ---------------------------------------------------------------------------
-# llm_judge mode
-# ---------------------------------------------------------------------------
-
 class TestEvaluateOutputLlmJudge:
     @pytest.mark.asyncio
     async def test_llm_judge_mode_raises_not_implemented(self):
@@ -67,10 +55,6 @@ class TestEvaluateOutputLlmJudge:
         with pytest.raises(NotImplementedError):
             await evaluate_output(task, "y", judge_mode="llm_judge")
 
-
-# ---------------------------------------------------------------------------
-# unknown mode
-# ---------------------------------------------------------------------------
 
 class TestEvaluateOutputUnknownMode:
     @pytest.mark.asyncio

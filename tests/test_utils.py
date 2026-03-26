@@ -1,5 +1,5 @@
 """
-Tests for pure utility functions:
+Tests for pure utility functions in optimize/scripts/run_optimize.py:
   extract_placeholders, flatten_keys, validate_template_against_task, load_jsonl
 """
 from __future__ import annotations
@@ -10,17 +10,13 @@ import tempfile
 
 import pytest
 
-from optimize_skill import (
+from run_optimize import (
     extract_placeholders,
     flatten_keys,
     load_jsonl,
     validate_template_against_task,
 )
 
-
-# ---------------------------------------------------------------------------
-# extract_placeholders
-# ---------------------------------------------------------------------------
 
 class TestExtractPlaceholders:
     def test_single_placeholder(self):
@@ -52,10 +48,6 @@ class TestExtractPlaceholders:
         assert extract_placeholders("{_private}") == {"_private"}
 
 
-# ---------------------------------------------------------------------------
-# flatten_keys
-# ---------------------------------------------------------------------------
-
 class TestFlattenKeys:
     def test_flat_dict(self):
         assert flatten_keys({"a": 1, "b": 2}) == {"a", "b"}
@@ -83,13 +75,8 @@ class TestFlattenKeys:
         assert "outer.x" in result
 
 
-# ---------------------------------------------------------------------------
-# validate_template_against_task
-# ---------------------------------------------------------------------------
-
 class TestValidateTemplateAgainstTask:
     def test_valid_top_level_key(self):
-        # Should not raise
         validate_template_against_task("Answer: {input}", {"input": "hi", "expected": "hello"})
 
     def test_valid_multiple_keys(self):
@@ -110,16 +97,11 @@ class TestValidateTemplateAgainstTask:
         assert "b" in msg
 
     def test_double_braces_not_validated(self):
-        # {{escaped}} is not a placeholder — should not raise
         validate_template_against_task("{{escaped}}", {"input": "x"})
 
     def test_no_placeholders_always_valid(self):
         validate_template_against_task("No placeholders here.", {"input": "x"})
 
-
-# ---------------------------------------------------------------------------
-# load_jsonl
-# ---------------------------------------------------------------------------
 
 class TestLoadJsonl:
     def _write_temp(self, lines: list[str]) -> str:

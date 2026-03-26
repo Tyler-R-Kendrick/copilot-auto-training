@@ -1,14 +1,12 @@
 """
 conftest.py — install lightweight stubs for external packages
-(agentlightning, agent_framework, openai) before any test module
-imports optimize_skill or app.
+(agentlightning, openai) before any test module imports run_optimize.
 """
 from __future__ import annotations
 
 import sys
 import types
 from pathlib import Path
-from unittest.mock import MagicMock
 
 # ---------------------------------------------------------------------------
 # agentlightning stub
@@ -50,7 +48,8 @@ class _Trainer:
 
     def fit(self, *, agent, train_dataset, val_dataset):
         self._fit_called = True
-        # Simulate a successful optimisation: give the algorithm a best prompt.
+        # Simulate a successful optimisation: append a marker so tests can
+        # verify the output file contains the "optimized" result.
         if isinstance(self.algorithm, _APO):
             seed = list(self.initial_resources.values())[0]
             self.algorithm._best_prompt = _PromptTemplate(
@@ -82,41 +81,6 @@ _agl.rollout = _rollout
 sys.modules["agentlightning"] = _agl
 
 # ---------------------------------------------------------------------------
-# agent_framework stub
-# ---------------------------------------------------------------------------
-
-_af = types.ModuleType("agent_framework")
-
-
-class _Skill:
-    def __init__(self, *, name: str, description: str, content: str):
-        self.name = name
-        self.description = description
-        self.content = content
-
-    def script(self, name: str | None = None, description: str | None = None):
-        """Passthrough decorator — the decorated function is returned unchanged."""
-        def decorator(fn):
-            return fn
-        return decorator
-
-
-class _SkillsProvider:
-    def __init__(self, *, skills, require_script_approval, instruction_template):
-        self.skills = skills
-        self.require_script_approval = require_script_approval
-        self.instruction_template = instruction_template
-
-    def run(self):  # pragma: no cover
-        pass
-
-
-_af.Skill = _Skill
-_af.SkillsProvider = _SkillsProvider
-
-sys.modules["agent_framework"] = _af
-
-# ---------------------------------------------------------------------------
 # openai stub
 # ---------------------------------------------------------------------------
 
@@ -132,9 +96,9 @@ _openai.AsyncOpenAI = _AsyncOpenAI
 sys.modules["openai"] = _openai
 
 # ---------------------------------------------------------------------------
-# Make app/ importable as a package from tests/
+# Make optimize/scripts/ importable from tests/
 # ---------------------------------------------------------------------------
 
-_app_dir = Path(__file__).resolve().parent.parent / "app"
-if str(_app_dir) not in sys.path:
-    sys.path.insert(0, str(_app_dir))
+_scripts_dir = Path(__file__).resolve().parent.parent / "optimize" / "scripts"
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
