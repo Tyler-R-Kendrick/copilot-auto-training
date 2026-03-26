@@ -96,9 +96,9 @@ _openai.AsyncOpenAI = _AsyncOpenAI
 sys.modules["openai"] = _openai
 
 # ---------------------------------------------------------------------------
-# Make optimize/scripts/ importable from tests/
+# Make skills/optimize/scripts/ importable from tests/
 # ---------------------------------------------------------------------------
 
-_scripts_dir = Path(__file__).resolve().parent.parent / "optimize" / "scripts"
+_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "optimize" / "scripts"
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))

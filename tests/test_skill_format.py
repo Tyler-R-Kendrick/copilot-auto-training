@@ -1,7 +1,8 @@
 """
-Validate optimize/SKILL.md against the Anthropic Agent Skills specification.
+Validate skills/optimize/SKILL.md against the Anthropic Agent Skills specification.
 
 Spec constraints:
+  - The skill must exist inside a `skills/` directory
   - SKILL.md must exist at the root of the skill directory
   - Must have YAML frontmatter (between --- delimiters)
   - `name` field: required, 1-64 chars, lowercase letters/numbers/hyphens only,
@@ -18,7 +19,8 @@ from pathlib import Path
 
 import pytest
 
-SKILL_ROOT = Path(__file__).resolve().parent.parent / "optimize"
+SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+SKILL_ROOT = SKILLS_DIR / "optimize"
 SKILL_MD = SKILL_ROOT / "SKILL.md"
 
 
@@ -48,6 +50,14 @@ def _parse_yaml_simple(raw: str) -> dict:
 
 
 class TestSkillFileExists:
+    def test_skills_dir_exists(self):
+        assert SKILLS_DIR.is_dir(), f"skills/ directory not found: {SKILLS_DIR}"
+
+    def test_skill_dir_inside_skills(self):
+        assert SKILL_ROOT.parent == SKILLS_DIR, (
+            f"Skill must live inside skills/ directory, not {SKILL_ROOT.parent}"
+        )
+
     def test_skill_dir_exists(self):
         assert SKILL_ROOT.is_dir(), f"Skill directory not found: {SKILL_ROOT}"
 

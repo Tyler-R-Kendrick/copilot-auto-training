@@ -248,16 +248,21 @@ async def run_optimize(
         raise RuntimeError("Optimization produced no valid prompt candidates.")
     best_prompt = best_result.template
 
-    output_path = Path(output_file or f"{Path(prompt_file).stem}.optimized.md")
-    report_path = Path(report_file or f"{Path(prompt_file).stem}.report.json")
+    # The winning (leader) prompt replaces the original prompt file in-place.
+    prompt_path = Path(prompt_file)
+    prompt_path.write_text(best_prompt, encoding="utf-8")
 
-    output_path.write_text(best_prompt, encoding="utf-8")
+    # If a separate output_file path was requested, also write there as a backup copy.
+    if output_file and Path(output_file) != prompt_path:
+        Path(output_file).write_text(best_prompt, encoding="utf-8")
+
+    report_path = Path(report_file or f"{prompt_path.stem}.report.json")
 
     report = {
         "ok": True,
         "algorithm": "apo",
         "prompt_file": prompt_file,
-        "output_file": str(output_path),
+        "output_file": output_file if output_file else str(prompt_path),
         "iterations": iterations,
         "train_size": len(train_dataset),
         "val_size": len(val_dataset),
@@ -286,7 +291,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--iterations", type=int, default=3, help="APO beam rounds (default: 3)")
     parser.add_argument("--algorithm", default="apo", choices=["apo", "verl"],
                         help="Optimization algorithm (default: apo)")
-    parser.add_argument("--output-file", default=None, help="Output markdown path")
+    parser.add_argument("--output-file", default=None,
+                        help="Optional backup path; the winner is always written back to --prompt-file")
     parser.add_argument("--report-file", default=None, help="Output JSON report path")
     parser.add_argument("--beam-width", type=int, default=4)
     parser.add_argument("--branch-factor", type=int, default=4)

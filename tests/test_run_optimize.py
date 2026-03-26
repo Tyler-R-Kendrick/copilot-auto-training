@@ -198,7 +198,8 @@ class TestRunOptimizeNormalRun:
         assert report["val_size"] == 2
 
     @pytest.mark.asyncio
-    async def test_default_output_path_derived_from_prompt_filename(self, tmp_path):
+    async def test_default_output_path_is_prompt_file_itself(self, tmp_path):
+        """When no output_file is given the report's output_file is the prompt_file."""
         prompt_path = str(tmp_path / "support.md")
         Path(prompt_path).write_text(SIMPLE_TEMPLATE, encoding="utf-8")
         train = _write_jsonl(SIMPLE_TRAIN)
@@ -208,8 +209,7 @@ class TestRunOptimizeNormalRun:
             train_file=train,
             val_file=val,
         ))
-        assert "support" in result["output_file"]
-        assert result["output_file"].endswith(".md")
+        assert result["output_file"] == prompt_path
 
     @pytest.mark.asyncio
     async def test_returns_json_string(self, tmp_path):
@@ -224,3 +224,101 @@ class TestRunOptimizeNormalRun:
         assert isinstance(result_raw, str)
         parsed = json.loads(result_raw)
         assert parsed["ok"] is True
+
+
+# ---------------------------------------------------------------------------
+# Leader replaces target prompt (core new behaviour)
+# ---------------------------------------------------------------------------
+
+class TestLeaderReplacesTargetPrompt:
+    @pytest.mark.asyncio
+    async def test_leader_replaces_prompt_file(self, tmp_path):
+        """After a successful run the original prompt_file is overwritten with the best prompt."""
+        prompt_path = tmp_path / "my_prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+        )
+
+        updated = prompt_path.read_text(encoding="utf-8")
+        # The stub Trainer appends "<!-- optimized -->" to signal the winner was applied.
+        assert "<!-- optimized -->" in updated
+
+    @pytest.mark.asyncio
+    async def test_prompt_file_content_differs_from_original_after_run(self, tmp_path):
+        """The prompt_file content changes after optimization (it was replaced by the leader)."""
+        prompt_path = tmp_path / "my_prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        original_content = prompt_path.read_text(encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+        )
+
+        updated = prompt_path.read_text(encoding="utf-8")
+        assert updated != original_content, (
+            "prompt_file should be updated in-place with the winning prompt"
+        )
+
+    @pytest.mark.asyncio
+    async def test_report_output_file_points_to_prompt_file_when_no_output_given(self, tmp_path):
+        """When no output_file is specified, report['output_file'] == prompt_file."""
+        prompt_path = tmp_path / "my_prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        result = json.loads(await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+        ))
+
+        assert result["output_file"] == str(prompt_path)
+
+    @pytest.mark.asyncio
+    async def test_explicit_output_file_also_written_with_leader_content(self, tmp_path):
+        """When output_file is specified, that path also gets the winning content."""
+        prompt_path = tmp_path / "my_prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        out_path = tmp_path / "backup.md"
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            output_file=str(out_path),
+        )
+
+        # The backup copy also contains the winning prompt
+        assert out_path.exists()
+        assert "<!-- optimized -->" in out_path.read_text(encoding="utf-8")
+
+    @pytest.mark.asyncio
+    async def test_prompt_file_unchanged_on_debug_only(self, tmp_path):
+        """debug_only mode must NOT modify the prompt_file."""
+        prompt_path = tmp_path / "my_prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        original_content = prompt_path.read_text(encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+            debug_only=True,
+        )
+
+        assert prompt_path.read_text(encoding="utf-8") == original_content
