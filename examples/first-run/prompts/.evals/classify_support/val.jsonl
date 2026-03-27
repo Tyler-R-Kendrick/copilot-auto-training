@@ -1,0 +1,2 @@
+{"input": "How do I reset the password for my login?", "expected": "reset_password", "scoring": "exact_match"}
+{"input": "I need a refund for the duplicate charge on my card.", "expected": "refund_request", "scoring": "exact_match"}

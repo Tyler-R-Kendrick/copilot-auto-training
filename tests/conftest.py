@@ -21,8 +21,8 @@ class _PromptTemplate:
         self.engine = engine
 
 
-class _APO:
-    """Minimal APO stub whose behaviour tests can override per-test."""
+class _BaseAlgorithm:
+    """Minimal algorithm stub whose behaviour tests can override per-test."""
 
     # Class-level knob: controls how many candidates _Trainer.fit() produces.
     # Tests that need to exercise the multi-candidate path can monkeypatch this
@@ -31,10 +31,14 @@ class _APO:
     _num_candidates: int = 1
 
     def __init__(self, client, *, beam_rounds=3, beam_width=4, branch_factor=4,
-                 gradient_batch_size=4, val_batch_size=16):
+                 gradient_batch_size=4, val_batch_size=16, gradient_model=None,
+                 apply_edit_model=None, **kwargs):
         self.beam_rounds = beam_rounds
         self.beam_width = beam_width
         self.branch_factor = branch_factor
+        self.gradient_model = gradient_model
+        self.apply_edit_model = apply_edit_model
+        self.extra_kwargs = kwargs
         self._best_prompt: _PromptTemplate | None = None
         self._candidates: list[_PromptTemplate] = []
 
@@ -43,6 +47,14 @@ class _APO:
 
     def get_candidates(self) -> list[_PromptTemplate]:
         return self._candidates
+
+
+class _APO(_BaseAlgorithm):
+    pass
+
+
+class _VERL(_BaseAlgorithm):
+    pass
 
 
 class _Trainer:
@@ -61,12 +73,13 @@ class _Trainer:
         # Simulate a successful optimisation: produce _num_candidates candidates.
         # The first/best has the "<!-- optimized -->" marker; additional candidates
         # are labelled so tests can assert which path was taken.
-        if isinstance(self.algorithm, _APO):
+        if isinstance(self.algorithm, (_APO, _VERL)):
             seed = list(self.initial_resources.values())[0]
             n = self.algorithm._num_candidates
+            algo_name = self.algorithm.__class__.__name__.lower()
             candidates = [
                 _PromptTemplate(
-                    template=seed.template + "\n<!-- optimized -->" + (
+                    template=seed.template + "\n<!-- optimized -->" + f"\n<!-- algorithm:{algo_name} -->" + (
                         f"\n<!-- candidate {i} -->" if i > 0 else ""
                     ),
                     engine=seed.engine,
@@ -94,6 +107,7 @@ def _rollout(fn):
 
 _agl.PromptTemplate = _PromptTemplate
 _agl.APO = _APO
+_agl.VERL = _VERL
 _agl.Trainer = _Trainer
 _agl.OtelTracer = _OtelTracer
 _agl.TraceToMessages = _TraceToMessages
@@ -109,7 +123,14 @@ _openai = types.ModuleType("openai")
 
 
 class _AsyncOpenAI:
-    pass
+    last_init_kwargs: dict[str, object] = {}
+
+    def __init__(self, **kwargs):
+        self.init_kwargs = kwargs
+        type(self).last_init_kwargs = dict(kwargs)
+
+    async def judge_score(self, rendered_prompt: str) -> float:
+        return 0.5
 
 
 _openai.AsyncOpenAI = _AsyncOpenAI

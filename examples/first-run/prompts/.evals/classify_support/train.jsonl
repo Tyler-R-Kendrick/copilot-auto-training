@@ -1,0 +1,3 @@
+{"input": "I forgot my password and need to get back into my account.", "expected": "reset_password", "scoring": "exact_match"}
+{"input": "Please change the email on my account to my work address.", "expected": "update_email", "scoring": "exact_match"}
+{"input": "My order arrived damaged and I want my money back.", "expected": "refund_request", "scoring": "exact_match"}

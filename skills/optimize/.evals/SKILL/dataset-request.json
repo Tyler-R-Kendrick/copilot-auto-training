@@ -1,0 +1,16 @@
+{
+  "prompt_file": "skills/optimize/SKILL.md",
+  "missing_files": [
+    "skills/optimize/.evals/SKILL/train.jsonl",
+    "skills/optimize/.evals/SKILL/val.jsonl"
+  ],
+  "placeholders": [
+    "input"
+  ],
+  "required_info": [
+    "A small set of representative examples or a CSV file to turn into train.jsonl and val.jsonl.",
+    "Values for every prompt placeholder: input.",
+    "The expected answer format or scoring rule for each example."
+  ],
+  "suggested_next_step": "Use scripts/generate_jsonl.py after collecting the minimum required information."
+}

@@ -1,2 +1,5 @@
 agentlightning>=0.1.0
 openai>=1.0.0
+poml>=0.0.6
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
