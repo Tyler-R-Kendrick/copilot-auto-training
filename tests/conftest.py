@@ -138,9 +138,21 @@ _openai.AsyncOpenAI = _AsyncOpenAI
 sys.modules["openai"] = _openai
 
 # ---------------------------------------------------------------------------
-# Make skills/optimize/scripts/ importable from tests/
+# Make trainer-prefixed skill scripts importable from tests/
 # ---------------------------------------------------------------------------
 
-_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "optimize" / "scripts"
+_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-optimize" / "scripts"
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
+
+_election_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-election" / "scripts"
+if str(_election_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_election_scripts_dir))
+
+_research_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-research" / "scripts"
+if str(_research_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_research_scripts_dir))
+
+_synthesize_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-synthesize" / "scripts"
+if str(_synthesize_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_synthesize_scripts_dir))

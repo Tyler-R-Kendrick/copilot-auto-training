@@ -14,8 +14,8 @@ The dashboard is mounted at the server root rather than under `/v1/`.
 Start an optimization run in one terminal:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
-  --prompt-file skills/optimize/SKILL.md
+python skills/trainer-optimize/scripts/run_optimize.py \
+  --prompt-file skills/trainer-optimize/SKILL.md
 ```
 
 Open the dashboard from the dev container:

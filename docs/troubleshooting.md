@@ -11,7 +11,7 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 ## Dataset Issues
 
 - If the optimizer cannot resolve dataset files, verify that `train.jsonl` and `val.jsonl` exist under `.evals/<prompt-name>/` next to the prompt file.
-- If you only have CSV input, generate prompt-local datasets with [skills/optimize/scripts/generate_jsonl.py](../skills/optimize/scripts/generate_jsonl.py).
+- If you only have CSV input, generate prompt-local datasets with [skills/trainer-optimize/scripts/generate_jsonl.py](../skills/trainer-optimize/scripts/generate_jsonl.py).
 - If placeholder validation fails, compare the markdown template placeholders with the dataset row keys and keep evaluator-only fields out of the prompt rendering path.
 
 ## Runtime Issues
@@ -32,4 +32,4 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 
 - [docs/getting-started.md](getting-started.md)
 - [docs/dashboard.md](dashboard.md)
-- [skills/optimize/references/dataset-format.md](../skills/optimize/references/dataset-format.md)
+- [skills/trainer-optimize/references/dataset-format.md](../skills/trainer-optimize/references/dataset-format.md)

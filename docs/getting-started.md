@@ -46,7 +46,7 @@ The smallest runnable example in this repository is documented in [examples/firs
 Smoke test:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
+python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
   --debug-only
 ```
@@ -54,7 +54,7 @@ python skills/optimize/scripts/run_optimize.py \
 Small full run:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
+python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
   --iterations 2 \
   --beam-width 2 \
@@ -65,25 +65,25 @@ While the full run is active, open the dashboard described in [docs/dashboard.md
 
 ## Using the Repository Prompt
 
-The main project prompt is [skills/optimize/SKILL.md](../skills/optimize/SKILL.md).
+The main project prompt is [skills/trainer-optimize/SKILL.md](../skills/trainer-optimize/SKILL.md).
 
 Its prompt-adjacent datasets are already present:
 
-- [skills/optimize/.evals/SKILL/train.jsonl](../skills/optimize/.evals/SKILL/train.jsonl)
-- [skills/optimize/.evals/SKILL/val.jsonl](../skills/optimize/.evals/SKILL/val.jsonl)
+- [skills/trainer-optimize/.evals/SKILL/train.jsonl](../skills/trainer-optimize/.evals/SKILL/train.jsonl)
+- [skills/trainer-optimize/.evals/SKILL/val.jsonl](../skills/trainer-optimize/.evals/SKILL/val.jsonl)
 
 Run optimization from the repository root:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
-  --prompt-file skills/optimize/SKILL.md
+python skills/trainer-optimize/scripts/run_optimize.py \
+  --prompt-file skills/trainer-optimize/SKILL.md
 ```
 
 You can pass options explicitly when you want to override defaults:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
-  --prompt-file skills/optimize/SKILL.md \
+python skills/trainer-optimize/scripts/run_optimize.py \
+  --prompt-file skills/trainer-optimize/SKILL.md \
   --algorithm apo \
   --iterations 3 \
   --judge-mode deterministic
@@ -101,12 +101,12 @@ Prompt-local datasets live under this layout:
 If you are starting from CSV input, bootstrap prompt-local datasets with:
 
 ```bash
-python skills/optimize/scripts/generate_jsonl.py \
-  --prompt-file skills/optimize/SKILL.md \
+python skills/trainer-optimize/scripts/generate_jsonl.py \
+  --prompt-file skills/trainer-optimize/SKILL.md \
   --csv-file examples.csv
 ```
 
-For the full dataset contract, see [skills/optimize/references/dataset-format.md](../skills/optimize/references/dataset-format.md).
+For the full dataset contract, see [skills/trainer-optimize/references/dataset-format.md](../skills/trainer-optimize/references/dataset-format.md).
 
 ## Outputs and Artifacts
 
@@ -118,8 +118,8 @@ Successful optimization runs write:
 
 For the repository prompt, useful artifact locations include:
 
-- [skills/optimize/.evals/SKILL/datasets.json](../skills/optimize/.evals/SKILL/datasets.json)
-- [skills/optimize/.evals/SKILL/README.md](../skills/optimize/.evals/SKILL/README.md)
+- [skills/trainer-optimize/.evals/SKILL/datasets.json](../skills/trainer-optimize/.evals/SKILL/datasets.json)
+- [skills/trainer-optimize/.evals/SKILL/README.md](../skills/trainer-optimize/.evals/SKILL/README.md)
 
 The `.tmp/` directory is gitignored and keeps per-run summaries, candidate snapshots, and steering notes.
 

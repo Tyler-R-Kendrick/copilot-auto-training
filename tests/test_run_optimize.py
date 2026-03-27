@@ -405,6 +405,13 @@ class TestEvalsScaffolding:
         assert result["evals_dir"] == str(eval_dir)
         assert result["dataset_request_file"] == str(request_path)
         assert len(result["required_info"]) == 3
+        assert result["recommended_user_interaction"] == "dialog"
+        assert result["input_dialog"]["title"] == "Collect optimization datasets"
+        assert [field["key"] for field in result["input_dialog"]["fields"][:3]] == [
+            "train_file",
+            "val_file",
+            "csv_file",
+        ]
         assert eval_dir.is_dir()
         assert readme_path.is_file()
         assert request_path.is_file()
@@ -434,6 +441,64 @@ class TestEvalsScaffolding:
             "The expected answer format or scoring rule for each example.",
         ]
         assert "Generate prompt-adjacent datasets" in result["message"]
+        dialog_fields = {field["key"]: field for field in result["input_dialog"]["fields"]}
+        assert dialog_fields["placeholder_values"]["required"] is True
+        assert "context, question" in dialog_fields["placeholder_values"]["description"]
+
+
+class TestElectionDelegation:
+    @pytest.mark.asyncio
+    async def test_run_optimize_delegates_search_and_leader_election(self, tmp_path, monkeypatch):
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        async def fake_election_search(**kwargs):
+            assert kwargs["prompt_text"] == SIMPLE_TEMPLATE
+            assert kwargs["iterations"] == 3
+            return {
+                "best_prompt": SIMPLE_TEMPLATE + "\n<!-- election winner -->",
+                "persisted_candidates": [
+                    {
+                        "template": SIMPLE_TEMPLATE,
+                        "score": 0.0,
+                        "raw_score": 0.0,
+                        "penalty": 0.0,
+                        "source": "baseline",
+                        "is_baseline": True,
+                        "is_winner": False,
+                        "risks": [],
+                        "improvements": [],
+                        "steering_hits": [],
+                    },
+                    {
+                        "template": SIMPLE_TEMPLATE + "\n<!-- election winner -->",
+                        "score": 1.0,
+                        "raw_score": 1.0,
+                        "penalty": 0.0,
+                        "source": "election_candidate_1",
+                        "is_baseline": False,
+                        "is_winner": True,
+                        "risks": [],
+                        "improvements": [],
+                        "steering_hits": [],
+                    },
+                ],
+                "steering_applied": False,
+            }
+
+        monkeypatch.setattr(ro, "run_election_search", fake_election_search)
+
+        result = json.loads(await run_optimize(
+            prompt_file=str(prompt_path),
+            train_file=train,
+            val_file=val,
+        ))
+
+        assert result["ok"] is True
+        assert any(candidate["source"] == "baseline" for candidate in result["candidates"])
+        assert "<!-- election winner -->" in prompt_path.read_text(encoding="utf-8")
 
     @pytest.mark.asyncio
     async def test_successful_run_writes_dataset_manifest_under_evals_dir(self, tmp_path):

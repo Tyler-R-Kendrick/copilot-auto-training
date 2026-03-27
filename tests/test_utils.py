@@ -11,14 +11,8 @@ import tempfile
 
 import pytest
 
-from run_optimize import (
-    extract_placeholders,
-    flatten_keys,
-    generate_variants,
-    load_jsonl,
-    topk_select,
-    validate_template_against_task,
-)
+from run_election import generate_variants, topk_select
+from run_optimize import extract_placeholders, flatten_keys, load_jsonl, validate_template_against_task
 
 class TestExtractPlaceholders:
     def test_single_placeholder(self):

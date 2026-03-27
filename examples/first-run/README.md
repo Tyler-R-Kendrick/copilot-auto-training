@@ -13,7 +13,7 @@ Files:
 Smoke test:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
+python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
   --debug-only
 ```
@@ -21,7 +21,7 @@ python skills/optimize/scripts/run_optimize.py \
 Small full optimization run:
 
 ```bash
-python skills/optimize/scripts/run_optimize.py \
+python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
   --iterations 2 \
   --beam-width 2 \

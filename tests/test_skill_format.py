@@ -1,17 +1,4 @@
-"""
-Validate skills/optimize/SKILL.md against the Anthropic Agent Skills specification.
-
-Spec constraints:
-  - The skill must exist inside a `skills/` directory
-  - SKILL.md must exist at the root of the skill directory
-  - Must have YAML frontmatter (between --- delimiters)
-  - `name` field: required, 1-64 chars, lowercase letters/numbers/hyphens only,
-    must not start or end with a hyphen, no consecutive hyphens,
-    must match the containing directory name
-  - `description` field: required, 1-1024 chars, non-empty
-  - Body (after frontmatter) must be non-empty
-  - Optional fields (license, compatibility, metadata, allowed-tools) may be present
-"""
+"""Validate all skill directories against the Anthropic Agent Skills specification."""
 from __future__ import annotations
 
 import re
@@ -20,8 +7,14 @@ from pathlib import Path
 import pytest
 
 SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
-SKILL_ROOT = SKILLS_DIR / "optimize"
-SKILL_MD = SKILL_ROOT / "SKILL.md"
+
+
+def _skill_dirs() -> list[Path]:
+    return sorted(path for path in SKILLS_DIR.iterdir() if path.is_dir())
+
+
+def _skill_md(skill_root: Path) -> Path:
+    return skill_root / "SKILL.md"
 
 
 def _parse_frontmatter(text: str) -> tuple[str, str]:
@@ -53,96 +46,130 @@ class TestSkillFileExists:
     def test_skills_dir_exists(self):
         assert SKILLS_DIR.is_dir(), f"skills/ directory not found: {SKILLS_DIR}"
 
-    def test_skill_dir_inside_skills(self):
-        assert SKILL_ROOT.parent == SKILLS_DIR, (
-            f"Skill must live inside skills/ directory, not {SKILL_ROOT.parent}"
+    def test_expected_skills_exist(self):
+        names = {path.name for path in _skill_dirs()}
+        assert {"trainer-optimize", "trainer-election", "trainer-research", "trainer-synthesize"} <= names
+
+    def test_old_unprefixed_skill_dirs_are_absent(self):
+        names = {path.name for path in _skill_dirs()}
+        assert {"optimize", "election", "research", "synthesize"}.isdisjoint(names)
+
+    @pytest.mark.parametrize("skill_root", _skill_dirs())
+    def test_skill_dir_inside_skills(self, skill_root: Path):
+        assert skill_root.parent == SKILLS_DIR, (
+            f"Skill must live inside skills/ directory, not {skill_root.parent}"
         )
 
-    def test_skill_dir_exists(self):
-        assert SKILL_ROOT.is_dir(), f"Skill directory not found: {SKILL_ROOT}"
+    @pytest.mark.parametrize("skill_root", _skill_dirs())
+    def test_skill_md_exists(self, skill_root: Path):
+        skill_md = _skill_md(skill_root)
+        assert skill_md.is_file(), f"SKILL.md not found: {skill_md}"
 
-    def test_skill_md_exists(self):
-        assert SKILL_MD.is_file(), f"SKILL.md not found: {SKILL_MD}"
-
-    def test_skill_md_is_not_empty(self):
-        assert SKILL_MD.stat().st_size > 0
+    @pytest.mark.parametrize("skill_root", _skill_dirs())
+    def test_skill_md_is_not_empty(self, skill_root: Path):
+        assert _skill_md(skill_root).stat().st_size > 0
 
 
 class TestSkillFrontmatter:
-    @pytest.fixture(autouse=True)
-    def load(self):
-        self.text = SKILL_MD.read_text(encoding="utf-8")
-        self.raw_yaml, self.body = _parse_frontmatter(self.text)
-        self.fields = _parse_yaml_simple(self.raw_yaml)
+    @pytest.fixture(params=_skill_dirs(), ids=lambda path: path.name)
+    def loaded_skill(self, request):
+        skill_root = request.param
+        text = _skill_md(skill_root).read_text(encoding="utf-8")
+        raw_yaml, body = _parse_frontmatter(text)
+        fields = _parse_yaml_simple(raw_yaml)
+        return skill_root, text, fields, body
 
-    def test_has_frontmatter_delimiters(self):
-        assert self.text.startswith("---"), "Must start with ---"
-        assert "---" in self.text[3:], "Must have closing ---"
+    def test_has_frontmatter_delimiters(self, loaded_skill):
+        _, text, _, _ = loaded_skill
+        assert text.startswith("---"), "Must start with ---"
+        assert "---" in text[3:], "Must have closing ---"
 
-    def test_name_field_present(self):
-        assert "name" in self.fields, "frontmatter must have a 'name' field"
+    def test_name_field_present(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert "name" in fields, "frontmatter must have a 'name' field"
 
-    def test_description_field_present(self):
-        assert "description" in self.fields, "frontmatter must have a 'description' field"
+    def test_description_field_present(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert "description" in fields, "frontmatter must have a 'description' field"
 
-    def test_name_not_empty(self):
-        assert self.fields.get("name", "").strip() != ""
+    def test_name_not_empty(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert fields.get("name", "").strip() != ""
 
-    def test_description_not_empty(self):
-        assert self.fields.get("description", "").strip() != ""
+    def test_description_not_empty(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert fields.get("description", "").strip() != ""
 
-    def test_name_max_64_chars(self):
-        assert len(self.fields["name"]) <= 64
+    def test_name_max_64_chars(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert len(fields["name"]) <= 64
 
-    def test_description_max_1024_chars(self):
-        assert len(self.fields["description"]) <= 1024
+    def test_description_max_1024_chars(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert len(fields["description"]) <= 1024
 
-    def test_name_lowercase_alphanumeric_hyphens_only(self):
-        name = self.fields["name"]
+    def test_name_lowercase_alphanumeric_hyphens_only(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        name = fields["name"]
         assert re.fullmatch(r"[a-z0-9][a-z0-9\-]*[a-z0-9]|[a-z0-9]", name), (
             f"name '{name}' must contain only lowercase letters, digits, and hyphens"
         )
 
-    def test_name_does_not_start_with_hyphen(self):
-        assert not self.fields["name"].startswith("-")
+    def test_name_does_not_start_with_hyphen(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert not fields["name"].startswith("-")
 
-    def test_name_does_not_end_with_hyphen(self):
-        assert not self.fields["name"].endswith("-")
+    def test_name_does_not_end_with_hyphen(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert not fields["name"].endswith("-")
 
-    def test_name_no_consecutive_hyphens(self):
-        assert "--" not in self.fields["name"]
+    def test_name_no_consecutive_hyphens(self, loaded_skill):
+        _, _, fields, _ = loaded_skill
+        assert "--" not in fields["name"]
 
-    def test_name_matches_directory_name(self):
-        assert self.fields["name"] == SKILL_ROOT.name, (
-            f"name '{self.fields['name']}' must match directory name '{SKILL_ROOT.name}'"
+    def test_name_matches_directory_name(self, loaded_skill):
+        skill_root, _, fields, _ = loaded_skill
+        assert fields["name"] == skill_root.name, (
+            f"name '{fields['name']}' must match directory name '{skill_root.name}'"
         )
 
 
 class TestSkillBody:
-    @pytest.fixture(autouse=True)
-    def load(self):
-        text = SKILL_MD.read_text(encoding="utf-8")
-        _, self.body = _parse_frontmatter(text)
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_body_is_not_empty(self, skill_root: Path):
+        _, body = _parse_frontmatter(_skill_md(skill_root).read_text(encoding="utf-8"))
+        assert body.strip() != "", "SKILL.md body (after frontmatter) must not be empty"
 
-    def test_body_is_not_empty(self):
-        assert self.body.strip() != "", "SKILL.md body (after frontmatter) must not be empty"
-
-    def test_body_has_instructions(self):
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_body_has_instructions(self, skill_root: Path):
         # Body should contain at least one heading or bullet point
-        assert any(line.startswith(("#", "-", "*", "1.")) for line in self.body.splitlines()), (
+        _, body = _parse_frontmatter(_skill_md(skill_root).read_text(encoding="utf-8"))
+        assert any(line.startswith(("#", "-", "*", "1.")) for line in body.splitlines()), (
             "SKILL.md body should contain instructions (headings or list items)"
         )
 
 
 class TestSkillOptionalFiles:
-    def test_scripts_dir_exists(self):
-        assert (SKILL_ROOT / "scripts").is_dir()
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_scripts_dir_exists(self, skill_root: Path):
+        assert (skill_root / "scripts").is_dir()
 
-    def test_run_optimize_script_exists(self):
-        assert (SKILL_ROOT / "scripts" / "run_optimize.py").is_file()
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_assets_dir_exists(self, skill_root: Path):
+        assert (skill_root / "assets").is_dir()
 
-    def test_assets_dir_exists(self):
-        assert (SKILL_ROOT / "assets").is_dir()
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_references_dir_exists(self, skill_root: Path):
+        assert (skill_root / "references").is_dir()
 
-    def test_references_dir_exists(self):
-        assert (SKILL_ROOT / "references").is_dir()
+    def test_optimize_runtime_exists(self):
+        assert (SKILLS_DIR / "trainer-optimize" / "scripts" / "run_optimize.py").is_file()
+
+    def test_election_runtime_exists(self):
+        assert (SKILLS_DIR / "trainer-election" / "scripts" / "run_election.py").is_file()
+
+    def test_research_runtime_exists(self):
+        assert (SKILLS_DIR / "trainer-research" / "scripts" / "run_research.py").is_file()
+
+    def test_synthesize_runtime_exists(self):
+        assert (SKILLS_DIR / "trainer-synthesize" / "scripts" / "run_synthesize.py").is_file()
