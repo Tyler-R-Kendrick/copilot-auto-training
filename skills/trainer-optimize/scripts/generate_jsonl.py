@@ -1,4 +1,4 @@
-"""Utilities for building prompt-adjacent JSONL datasets under `.evals/`."""
+"""Utilities for building explicit JSONL datasets for APO runs."""
 from __future__ import annotations
 
 import argparse
@@ -8,9 +8,11 @@ from pathlib import Path
 from typing import Any
 
 
-def derive_evals_dir(prompt_file: str) -> Path:
+def derive_dataset_dir(prompt_file: str) -> Path:
     prompt_path = Path(prompt_file)
-    return prompt_path.parent / ".evals" / prompt_path.stem
+    if prompt_path.parent.name == "prompts":
+        return prompt_path.parent.parent / "datasets"
+    return prompt_path.parent / "datasets"
 
 
 def rows_from_csv(
@@ -54,10 +56,10 @@ def generate_datasets(
     rows: list[dict[str, Any]],
     train_ratio: float = 0.8,
 ) -> dict[str, str]:
-    evals_dir = derive_evals_dir(prompt_file)
+    dataset_dir = derive_dataset_dir(prompt_file)
     train_rows, val_rows = split_rows(rows, train_ratio=train_ratio)
-    train_file = write_jsonl(evals_dir / "train.jsonl", train_rows)
-    val_file = write_jsonl(evals_dir / "val.jsonl", val_rows)
+    train_file = write_jsonl(dataset_dir / "train.jsonl", train_rows)
+    val_file = write_jsonl(dataset_dir / "val.jsonl", val_rows)
     return {
         "train_file": train_file,
         "val_file": val_file,
@@ -67,7 +69,7 @@ def generate_datasets(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="generate_jsonl.py",
-        description="Generate prompt-adjacent train.jsonl and val.jsonl files under .evals/.",
+        description="Generate explicit train.jsonl and val.jsonl files under the modern datasets/ layout.",
     )
     parser.add_argument("--prompt-file", required=True, help="Path to the target markdown prompt file")
     parser.add_argument("--csv-file", required=True, help="CSV file with input and expected columns")

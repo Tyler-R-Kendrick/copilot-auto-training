@@ -1,26 +1,23 @@
 # Dataset Format Reference
 
-The `trainer-optimize` skill uses JSONL (JSON Lines) files for training and validation datasets.
+The `trainer-optimize` skill uses JSONL (JSON Lines) files for training and validation datasets, while authored skill eval cases live in `evals/evals.json`.
 
-By default, datasets are stored next to the prompt under a prompt-adjacent `.evals/` folder:
-
-```text
-<prompt-dir>/.evals/<prompt-name>/train.jsonl
-<prompt-dir>/.evals/<prompt-name>/val.jsonl
-<prompt-dir>/.evals/<prompt-name>/test.jsonl
-```
-
-The optimizer also scaffolds the `.evals/<prompt-name>/` folder itself with:
+Authored skill eval cases follow the official Agent Skills structure:
 
 ```text
-<prompt-dir>/.evals/<prompt-name>/README.md
-<prompt-dir>/.evals/<prompt-name>/datasets.json
-<prompt-dir>/.evals/<prompt-name>/dataset-request.json
-<prompt-dir>/.evals/<prompt-name>/report.json
+<prompt-dir>/evals/evals.json
+<prompt-dir>/evals/files/
+<prompt-dir>/<prompt-name>-workspace/iteration-N/
 ```
 
-`datasets.json` records the latest resolved or requested dataset paths so the layout is visible even when train and val files are provided from another location. `report.json` is also prompt-adjacent by default so generated optimization outputs stay next to the prompt rather than landing in the workspace root.
-If datasets are missing, `dataset-request.json` records the minimum information needed to generate `train.jsonl` and `val.jsonl`: representative examples or a CSV source, values for all prompt placeholders, and the expected answer format or scoring rule.
+The optimizer itself works with explicit JSONL datasets such as:
+
+```text
+<prompt-dir>/datasets/train.jsonl
+<prompt-dir>/datasets/val.jsonl
+```
+
+Use `evals/evals.json` to author realistic prompts, expected outputs, optional file inputs, and assertions. Use explicit JSONL files only when you need APO training and validation splits.
 
 ## Model configuration
 
@@ -35,12 +32,13 @@ GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
 GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
 ```
 
-Optimization run artifacts are stored under a prompt-adjacent temp directory that should stay gitignored:
+Optimization run artifacts are stored under a dedicated workspace directory that should stay gitignored:
 
 ```text
-<prompt-dir>/.evals/<prompt-name>/.tmp/
+<prompt-dir>/<prompt-name>-workspace/
+	benchmark.json
 	steering.md
-	run-<timestamp>-<id>/
+	iteration-001/
 		report.json
 		summary.md
 		candidates/
@@ -133,9 +131,9 @@ Work backward from the task the prompt is supposed to solve.
 3. Build representative tasks for the same input type your prompt expects.
 4. Add hidden scoring fields without leaking them into the prompt input path.
 5. Split into `train.jsonl` and `val.jsonl`, and optionally `test.jsonl`.
-6. Review `.tmp/steering.md` and the latest run `summary.md` before another optimization pass so the next iteration carries forward the prior learnings.
+6. Review workspace `steering.md` and the latest iteration `summary.md` before another optimization pass so the next iteration carries forward the prior learnings.
 
-Use `scripts/generate_jsonl.py` to bootstrap prompt-adjacent `.evals` datasets from CSV input.
+Use `scripts/generate_jsonl.py` to bootstrap explicit JSONL datasets from CSV input.
 
 ## JSON Schema
 

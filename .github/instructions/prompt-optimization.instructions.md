@@ -5,9 +5,10 @@ applyTo: "**/{*.prompt.md,*.prompty,*.instructions.md,SKILL.md,AGENTS.md,*.agent
 # Prompt Optimization Guidance
 
 - Preserve prompt placeholders unless the task explicitly changes the prompt interface.
-- Keep prompt-adjacent datasets under `.evals/<prompt-name>/` and prefer `train.jsonl` plus `val.jsonl` over ad hoc formats.
+- Keep authored skill eval cases under `evals/evals.json` and supporting assets under `evals/files/`.
+- When the optimizer runtime needs JSONL data, use explicit dataset paths and avoid hidden runtime conventions.
 - Use the `trainer-optimize` skill for optimization, `trainer-election` for leader selection, `trainer-research` for public-source discovery, and `trainer-synthesize` for conversion or simulated dataset generation.
 - Keep evaluator-only fields such as `expected`, `expected_json`, `reference`, `criteria`, and `scoring` out of prompt-visible render paths.
 - Treat the original prompt as a baseline candidate when comparing revisions.
-- Apply the dataset-specific `.evals` guidance when editing prompt-adjacent JSONL files.
+- Apply the eval-manifest guidance when editing `evals/evals.json` files.
 - Re-run the relevant validation command after meaningful edits to prompt-like files.

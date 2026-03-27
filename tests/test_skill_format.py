@@ -1,6 +1,7 @@
 """Validate all skill directories against the Anthropic Agent Skills specification."""
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -173,3 +174,34 @@ class TestSkillOptionalFiles:
 
     def test_synthesize_runtime_exists(self):
         assert (SKILLS_DIR / "trainer-synthesize" / "scripts" / "run_synthesize.py").is_file()
+
+
+class TestOfficialEvalFixtures:
+    def test_trainer_optimize_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "trainer-optimize" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "trainer-optimize"
+        assert len(payload["evals"]) >= 2
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+
+    def test_first_run_example_official_eval_manifest_exists(self):
+        manifest_path = (
+            Path(__file__).resolve().parent.parent
+            / "examples"
+            / "first-run"
+            / "prompts"
+            / "evals"
+            / "evals.json"
+        )
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "classify-support-example"
+        assert len(payload["evals"]) >= 2
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+
+    def test_repo_does_not_ship_legacy_evals_directories(self):
+        legacy_paths = list(Path(__file__).resolve().parent.parent.glob("**/.evals"))
+        assert legacy_paths == []

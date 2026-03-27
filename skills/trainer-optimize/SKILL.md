@@ -11,7 +11,7 @@ metadata:
 
 # Prompt Optimization with Agent Lightning
 
-Use this skill to improve a single markdown prompt file by running Agent Lightning prompt optimization against JSONL train and validation datasets.
+Use this skill to improve a single markdown prompt file by running Agent Lightning prompt optimization against explicit JSONL train and validation datasets, while keeping authored eval cases in the official `evals/evals.json` layout.
 
 ## When to use this skill
 
@@ -23,18 +23,11 @@ Do not use this skill for general code optimization or non-markdown prompts.
 
 ## Required inputs
 
-The skill always needs a prompt path. It also needs train and validation datasets, either explicitly or via prompt-adjacent `.evals` auto-discovery.
+The skill always needs a prompt path. It also needs train and validation datasets. In this repository, authored eval cases live under `evals/evals.json`, while APO datasets are passed explicitly.
 
 - `prompt`: path to the markdown prompt file to optimize
 - `train`: path to the JSONL training dataset
 - `val`: path to the JSONL validation dataset
-
-If `train` or `val` is missing, first look for prompt-adjacent defaults:
-
-```text
-<prompt-dir>/.evals/<prompt-name>/train.jsonl
-<prompt-dir>/.evals/<prompt-name>/val.jsonl
-```
 
 If those files do not exist, ask the user for the missing path instead of guessing.
 If the files do not exist anywhere, return a dialog-shaped request for the bare minimum information needed to generate them: representative examples or a CSV source, values for every prompt placeholder, and the expected answer format or scoring rule.
@@ -47,14 +40,14 @@ If the files do not exist anywhere, return a dialog-shaped request for the bare 
 
 Required arguments:
 - `prompt` — path to the markdown prompt file to optimize
-- `train` — optional if prompt-adjacent `.evals/<prompt-name>/train.jsonl` exists
-- `val` — optional if prompt-adjacent `.evals/<prompt-name>/val.jsonl` exists
+- `train` — path to the JSONL training dataset
+- `val` — path to the JSONL validation dataset
 
 Optional arguments:
 - `iterations` (default `3`) — number of APO beam rounds
 - `algorithm` (default `apo`) — supported values are `apo` and `verl`
 - `output` — backup copy path for the optimized markdown (the original prompt file is always replaced in-place)
-- `report` — where to write the JSON optimization report (default: `<prompt-dir>/.evals/<prompt-name>/report.json`)
+- `report` — where to write the JSON optimization report
 - `beam_width` (default `4`)
 - `branch_factor` (default `4`)
 - `n_runners` (default `4`)
@@ -73,19 +66,19 @@ Optional arguments:
 - Require at least one row in both `train` and `val`.
 - The final selection pool always includes the original prompt as a baseline candidate to guard against regression.
 - Candidate scores are persisted into the JSON report.
-- The prompt-adjacent `.evals/<prompt-name>/` folder is scaffolded automatically with a `README.md` and `datasets.json` manifest so the layout is visible even before datasets are populated.
-- If datasets are missing, the optimizer writes `.evals/<prompt-name>/dataset-request.json` and returns a structured dialog request for the minimum information needed to generate `train.jsonl` and `val.jsonl`.
-- Each run also writes prompt-adjacent temp artifacts under `.evals/<prompt-name>/.tmp/`, including per-run candidate files, a `summary.md`, and a rolling `steering.md`.
+- The repository's authored skill eval cases live under `evals/evals.json` next to the prompt or skill.
+- If datasets are missing, the optimizer returns a structured dialog request for the minimum information needed to generate `train.jsonl` and `val.jsonl`.
+- Each run also writes runtime artifacts under `<prompt-dir>/<prompt-name>-workspace/`, including a workspace `benchmark.json`, a rolling `steering.md`, and per-iteration candidate summaries.
 - Steering from previous runs is reused during later selections so failed patterns can be penalized instead of repeated.
-- The generator utility `scripts/generate_jsonl.py` can create prompt-adjacent `train.jsonl` and `val.jsonl` files under `.evals/` from CSV input.
+- The generator utility `scripts/generate_jsonl.py` can create explicit `train.jsonl` and `val.jsonl` files from CSV input.
 - The final search-and-election stage is delegated to [skills/trainer-election/SKILL.md](../trainer-election/SKILL.md).
 - When datasets are missing, use the dialog response to collect inputs, hand public-source discovery to [skills/trainer-research/SKILL.md](../trainer-research/SKILL.md), and then hand dataset generation to [skills/trainer-synthesize/SKILL.md](../trainer-synthesize/SKILL.md).
 
 ## Process
 
 1. Parse the `/trainer-optimize` arguments from the user's message.
-2. If `train` or `val` is missing, try prompt-adjacent `.evals` auto-discovery first.
-3. If datasets still do not exist, return a dialog request for only the minimum information needed to generate them and point the user at `.evals/<prompt-name>/dataset-request.json`.
+2. Resolve explicit `train` and `val` dataset paths.
+3. If datasets still do not exist, return a dialog request for only the minimum information needed to generate them.
 4. Validate that all resolved file paths exist and are readable.
 5. Read the prompt file and inspect a sample row from the training dataset.
 6. Verify the train and validation files each contain at least one JSON object row.
@@ -94,7 +87,7 @@ Optional arguments:
 9. If the prompt or dataset shape is incompatible, stop and explain the mismatch clearly.
 10. Run `scripts/run_optimize.py` with the resolved arguments.
 11. Delegate the search-and-election stage to the `trainer-election` skill runtime.
-12. Inspect `.evals/<prompt-name>/.tmp/steering.md` before later runs so repeated failures can be avoided.
+12. Inspect the runtime steering file before later runs so repeated failures can be avoided.
 13. Report the optimized prompt path, report path, winner details, temp run directory, and persisted candidate summary from the JSON result.
 
 ## Algorithm guidance
@@ -123,41 +116,39 @@ Recommended form:
 {"input": "user request", "expected": "ideal answer", "scoring": "exact_match"}
 ```
 
-Prompt-adjacent storage convention:
+Repository-authored eval convention:
 
 ```text
-prompts/
-  support.md
-  .evals/
-    support/
-      train.jsonl
-      val.jsonl
-      test.jsonl
+skills/
+  trainer-optimize/
+    SKILL.md
+    evals/
+      evals.json
+      files/
 ```
 
-Use `scripts/generate_jsonl.py` to bootstrap `train.jsonl` and `val.jsonl` under `.evals/` from CSV input, then refine the rows by working backward from the task the prompt must solve.
+For APO runs, keep `train.jsonl` and `val.jsonl` as explicit dataset files and pass them on the command line.
 
 Temp run artifacts:
 
 ```text
 prompts/
   support.md
-  .evals/
-    support/
-      train.jsonl
-      val.jsonl
-      .tmp/
-        steering.md
-        run-<timestamp>-<id>/
-          report.json
-          summary.md
-          candidates/
+datasets/
+  train.jsonl
+  val.jsonl
+support-workspace/
+  benchmark.json
+  steering.md
+  iteration-001/
+    report.json
+    summary.md
+    candidates/
 ```
 
-Use `.tmp/summary.md` to review why the winner beat the field, what caused low-scoring candidates to fail, and what should change next. Use `.tmp/steering.md` as the rolling summary of prior runs so future iterations do not repeat the same failures, reward hacking, or verbose and redundant output patterns.
+Use each iteration `summary.md` to review why the winner beat the field, what caused low-scoring candidates to fail, and what should change next. Use workspace `steering.md` as the rolling summary of prior runs so future iterations do not repeat the same failures, reward hacking, or verbose and redundant output patterns.
 
-The `.evals/<prompt-name>/datasets.json` manifest records the resolved dataset paths for the latest run or attempted run, which makes the prompt-adjacent layout visible even when train and val files live elsewhere.
-If datasets are missing, `.evals/<prompt-name>/dataset-request.json` records exactly what to ask the user for so `train.jsonl` and `val.jsonl` can be generated with the minimum back-and-forth.
+Use `evals/evals.json` for authored evaluation cases, and keep runtime-only optimization artifacts separate from the published eval manifest.
 
 ## Outputs
 
@@ -165,12 +156,13 @@ After a successful run, two files are written:
 1. **Optimized prompt** — the improved markdown file
 2. **Report JSON** — contains `algorithm`, resolved dataset paths, `output_file`, optimization settings, `ok`, and a persisted `candidates` list with scores, baseline markers, and winner markers
 
-Prompt-adjacent temp artifacts are also written under `.evals/<prompt-name>/.tmp/`:
+Runtime artifacts are also written under `<prompt-dir>/<prompt-name>-workspace/`:
+- `benchmark.json` — the default top-level report path when `report` is not passed explicitly
 - `steering.md` — rolling cross-run lessons and failure patterns to avoid
-- `run-.../summary.md` — run-specific markdown summary of winner, failures, and next improvements
-- `run-.../candidates/*.md` — candidate-specific notes and content snapshots
+- `iteration-.../summary.md` — run-specific markdown summary of winner, failures, and next improvements
+- `iteration-.../candidates/*.md` — candidate-specific notes and content snapshots
 
-By default, the report JSON is written to `.evals/<prompt-name>/report.json`, not the workspace root.
+By default, the runtime writes the top-level report to `<prompt-dir>/<prompt-name>-workspace/benchmark.json` unless you pass `report` explicitly.
 
 ## Dashboard
 
@@ -190,8 +182,8 @@ Template placeholders such as `{input}` must match keys the optimizer can valida
 - Missing or unreadable files → report the specific path and stop
 - Empty train or val dataset → require at least one task row in each
 - Placeholder mismatch → list the unmatched placeholders and the actual dataset fields
-- Missing `.evals` defaults and no explicit dataset paths → report the missing resolved paths and stop
-- Missing `.evals` defaults and no explicit dataset paths → create `.evals/<prompt-name>/dataset-request.json` and return a dialog request for only the minimum information needed to generate the files
+- Missing dataset paths → report the missing resolved paths and stop
+- Missing dataset paths → return a dialog request for only the minimum information needed to generate the files
 - Unsupported judge mode → explain the supported modes: `deterministic`, `custom`, and `llm_judge`
 - Unsupported algorithm → explain the supported algorithms: `apo` and `verl`
 

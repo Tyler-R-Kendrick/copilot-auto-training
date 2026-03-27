@@ -326,7 +326,7 @@ class TestRunOptimizeNormalRun:
         assert result["output_file"] == prompt_path
 
     @pytest.mark.asyncio
-    async def test_default_report_path_is_prompt_adjacent_evals_dir(self, tmp_path, monkeypatch):
+    async def test_default_report_path_is_workspace_benchmark(self, tmp_path, monkeypatch):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "support.md"
@@ -342,10 +342,10 @@ class TestRunOptimizeNormalRun:
             val_file=val,
         ))
 
-        expected_report = prompt_dir / ".evals" / "support" / "report.json"
+        expected_report = prompt_dir / "support-workspace" / "benchmark.json"
         assert Path(result["report_file"]) == expected_report
         assert expected_report.is_file()
-        assert not (tmp_path / "support.report.json").exists()
+        assert result["workspace_dir"] == str(prompt_dir / "support-workspace")
 
     @pytest.mark.asyncio
     async def test_returns_json_string(self, tmp_path):
@@ -362,33 +362,29 @@ class TestRunOptimizeNormalRun:
         assert parsed["ok"] is True
 
 
-class TestPromptAdjacentEvalsDiscovery:
+class TestExplicitDatasetResolution:
     @pytest.mark.asyncio
-    async def test_discovers_prompt_adjacent_evals_files(self, tmp_path):
+    async def test_missing_explicit_datasets_returns_modern_request(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
-        eval_dir = prompt_dir / ".evals" / "support"
-        eval_dir.mkdir(parents=True)
-
+        prompt_dir.mkdir(parents=True)
         prompt_path = prompt_dir / "support.md"
         prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
-        (eval_dir / "train.jsonl").write_text(
-            "\n".join(json.dumps(row) for row in SIMPLE_TRAIN),
-            encoding="utf-8",
-        )
-        (eval_dir / "val.jsonl").write_text(
-            "\n".join(json.dumps(row) for row in SIMPLE_VAL),
-            encoding="utf-8",
-        )
 
         result = json.loads(await run_optimize(prompt_file=str(prompt_path)))
-        assert result["ok"] is True
-        assert result["train_file"] == str(eval_dir / "train.jsonl")
-        assert result["val_file"] == str(eval_dir / "val.jsonl")
+
+        assert result["ok"] is False
+        assert result["needs_user_input"] is True
+        assert result["suggested_train_file"] == str(tmp_path / "datasets" / "train.jsonl")
+        assert result["suggested_val_file"] == str(tmp_path / "datasets" / "val.jsonl")
+        assert result["workspace_dir"] == str(prompt_dir / "support-workspace")
+        assert result["benchmark_file"] == str(prompt_dir / "support-workspace" / "benchmark.json")
+        assert not (prompt_dir / ".evals").exists()
+        assert not (prompt_dir / "support-workspace").exists()
 
 
-class TestEvalsScaffolding:
+class TestMissingDatasetRequests:
     @pytest.mark.asyncio
-    async def test_missing_datasets_return_generation_request_and_scaffold_evals_dir(self, tmp_path):
+    async def test_missing_datasets_return_generation_request_without_legacy_scaffold(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "support.md"
@@ -396,14 +392,8 @@ class TestEvalsScaffolding:
 
         result = json.loads(await run_optimize(prompt_file=str(prompt_path)))
 
-        eval_dir = prompt_dir / ".evals" / "support"
-        readme_path = eval_dir / "README.md"
-        request_path = eval_dir / "dataset-request.json"
-
         assert result["ok"] is False
         assert result["needs_user_input"] is True
-        assert result["evals_dir"] == str(eval_dir)
-        assert result["dataset_request_file"] == str(request_path)
         assert len(result["required_info"]) == 3
         assert result["recommended_user_interaction"] == "dialog"
         assert result["input_dialog"]["title"] == "Collect optimization datasets"
@@ -412,22 +402,15 @@ class TestEvalsScaffolding:
             "val_file",
             "csv_file",
         ]
-        assert eval_dir.is_dir()
-        assert readme_path.is_file()
-        assert request_path.is_file()
-        readme = readme_path.read_text(encoding="utf-8")
-        request = json.loads(request_path.read_text(encoding="utf-8"))
-        assert "train.jsonl" in readme
-        assert "val.jsonl" in readme
-        assert request["prompt_file"] == str(prompt_path)
-        assert request["missing_files"] == [
-            str(eval_dir / "train.jsonl"),
-            str(eval_dir / "val.jsonl"),
+        assert result["prompt_file"] == str(prompt_path)
+        assert result["missing_files"] == [
+            str(tmp_path / "datasets" / "train.jsonl"),
+            str(tmp_path / "datasets" / "val.jsonl"),
         ]
-        assert request["placeholders"] == ["input"]
+        assert not (prompt_dir / ".evals").exists()
 
     @pytest.mark.asyncio
-    async def test_missing_datasets_request_includes_minimum_generation_questions(self, tmp_path):
+    async def test_missing_datasets_request_includes_modern_targets_and_questions(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "qa.md"
@@ -440,7 +423,10 @@ class TestEvalsScaffolding:
             "Values for every prompt placeholder: context, question.",
             "The expected answer format or scoring rule for each example.",
         ]
-        assert "Generate prompt-adjacent datasets" in result["message"]
+        assert "Provide explicit train and validation datasets" in result["message"]
+        assert result["suggested_train_file"] == str(tmp_path / "datasets" / "train.jsonl")
+        assert result["suggested_val_file"] == str(tmp_path / "datasets" / "val.jsonl")
+        assert result["benchmark_file"] == str(prompt_dir / "qa-workspace" / "benchmark.json")
         dialog_fields = {field["key"]: field for field in result["input_dialog"]["fields"]}
         assert dialog_fields["placeholder_values"]["required"] is True
         assert "context, question" in dialog_fields["placeholder_values"]["description"]
@@ -501,7 +487,7 @@ class TestElectionDelegation:
         assert "<!-- election winner -->" in prompt_path.read_text(encoding="utf-8")
 
     @pytest.mark.asyncio
-    async def test_successful_run_writes_dataset_manifest_under_evals_dir(self, tmp_path):
+    async def test_successful_run_writes_benchmark_report_under_workspace(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "support.md"
@@ -515,15 +501,16 @@ class TestElectionDelegation:
             val_file=val,
         )
 
-        manifest_path = prompt_dir / ".evals" / "support" / "datasets.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        benchmark_path = prompt_dir / "support-workspace" / "benchmark.json"
+        manifest = json.loads(benchmark_path.read_text(encoding="utf-8"))
 
         assert manifest["prompt_file"] == str(prompt_path)
         assert manifest["train_file"] == train
         assert manifest["val_file"] == val
+        assert manifest["workspace_dir"] == str(prompt_dir / "support-workspace")
 
     @pytest.mark.asyncio
-    async def test_report_file_manifest_points_to_prompt_adjacent_default_report(self, tmp_path):
+    async def test_default_report_file_points_to_workspace_benchmark(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "support.md"
@@ -537,10 +524,10 @@ class TestElectionDelegation:
             val_file=val,
         )
 
-        manifest_path = prompt_dir / ".evals" / "support" / "datasets.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        benchmark_path = prompt_dir / "support-workspace" / "benchmark.json"
+        manifest = json.loads(benchmark_path.read_text(encoding="utf-8"))
 
-        assert manifest["default_report_file"] == str(prompt_dir / ".evals" / "support" / "report.json")
+        assert manifest["report_file"] == str(benchmark_path)
 
 
 # ---------------------------------------------------------------------------
@@ -860,10 +847,10 @@ class TestRunArtifactsAndSteering:
             debug_only=True,
         )
 
-        assert not (prompt_dir / ".evals" / "support" / ".tmp").exists()
+        assert not (prompt_dir / "support-workspace").exists()
 
     @pytest.mark.asyncio
-    async def test_writes_temp_run_artifacts_under_prompt_adjacent_tmp(self, tmp_path):
+    async def test_writes_temp_run_artifacts_under_workspace_iterations(self, tmp_path):
         prompt_dir = tmp_path / "prompts"
         prompt_dir.mkdir()
         prompt_path = prompt_dir / "support.md"
@@ -877,19 +864,20 @@ class TestRunArtifactsAndSteering:
             val_file=val,
         ))
 
-        tmp_root = prompt_dir / ".evals" / "support" / ".tmp"
-        run_dirs = sorted(path for path in tmp_root.iterdir() if path.is_dir())
+        workspace_dir = prompt_dir / "support-workspace"
+        run_dirs = sorted(path for path in workspace_dir.iterdir() if path.is_dir())
 
-        assert tmp_root.exists()
-        assert (tmp_root / "steering.md").exists()
+        assert workspace_dir.exists()
+        assert (workspace_dir / "steering.md").exists()
         assert len(run_dirs) == 1
+        assert run_dirs[0].name == "iteration-001"
         assert (run_dirs[0] / "summary.md").exists()
         assert (run_dirs[0] / "report.json").exists()
         assert (run_dirs[0] / "candidates").is_dir()
         assert list((run_dirs[0] / "candidates").glob("*.md"))
         assert result["run_id"].startswith("run-")
         assert result["run_dir"] == str(run_dirs[0])
-        assert result["steering_file"] == str(tmp_root / "steering.md")
+        assert result["steering_file"] == str(workspace_dir / "steering.md")
 
     @pytest.mark.asyncio
     async def test_report_persists_artifact_paths_and_candidate_metadata(self, tmp_path):
@@ -986,8 +974,8 @@ class TestRunArtifactsAndSteering:
             n_variants=2,
         )
 
-        tmp_root = prompt_dir / ".evals" / "support" / ".tmp"
-        run_dir = next(path for path in tmp_root.iterdir() if path.is_dir())
+        workspace_dir = prompt_dir / "support-workspace"
+        run_dir = next(path for path in workspace_dir.iterdir() if path.is_dir())
         summary = (run_dir / "summary.md").read_text(encoding="utf-8")
 
         assert "## Winner" in summary
@@ -1018,8 +1006,8 @@ class TestRunArtifactsAndSteering:
             n_variants=2,
         )
 
-        tmp_root = prompt_dir / ".evals" / "support" / ".tmp"
-        steering_file = tmp_root / "steering.md"
+        workspace_dir = prompt_dir / "support-workspace"
+        steering_file = workspace_dir / "steering.md"
         steering_file.write_text(
             steering_file.read_text(encoding="utf-8")
             + "\n- Avoid pattern: <!-- optimized -->\n",
@@ -1045,4 +1033,4 @@ class TestRunArtifactsAndSteering:
 class TestGitignoreCoverage:
     def test_gitignore_ignores_prompt_adjacent_tmp_dirs(self):
         gitignore = Path(".gitignore").read_text(encoding="utf-8")
-        assert ".evals/**/.tmp/" in gitignore or "**/.evals/**/.tmp/" in gitignore
+        assert "**/*-workspace/" in gitignore

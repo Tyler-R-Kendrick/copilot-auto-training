@@ -229,38 +229,25 @@ def validate_template_against_task(template: str, sample_task: dict[str, Any]) -
         )
 
 
-def derive_evals_paths(prompt_file: str) -> tuple[str, str, str]:
-    """Return default prompt-adjacent train/val/test dataset paths."""
+def derive_dataset_dir(prompt_file: str) -> Path:
+    """Return the modern dataset directory for a prompt or skill file."""
     prompt_path = Path(prompt_file)
-    eval_dir = prompt_path.parent / ".evals" / prompt_path.stem
-    return tuple(str(eval_dir / name) for name in ("train.jsonl", "val.jsonl", "test.jsonl"))
+    if prompt_path.parent.name == "prompts":
+        return prompt_path.parent.parent / "datasets"
+    return prompt_path.parent / "datasets"
 
 
-def derive_artifact_paths(prompt_file: str) -> tuple[Path, Path, Path]:
-    """Return the eval dir, temp artifact dir, and steering file for a prompt."""
+def derive_dataset_paths(prompt_file: str) -> tuple[str, str]:
+    """Return suggested train/val dataset paths for the prompt."""
+    dataset_dir = derive_dataset_dir(prompt_file)
+    return str(dataset_dir / "train.jsonl"), str(dataset_dir / "val.jsonl")
+
+
+def derive_workspace_paths(prompt_file: str) -> tuple[Path, Path, Path]:
+    """Return the workspace dir, benchmark file, and steering file for a prompt."""
     prompt_path = Path(prompt_file)
-    eval_dir = prompt_path.parent / ".evals" / prompt_path.stem
-    tmp_dir = eval_dir / ".tmp"
-    return eval_dir, tmp_dir, tmp_dir / "steering.md"
-
-
-def _default_evals_readme(prompt_file: str) -> str:
-    prompt_path = Path(prompt_file)
-    return "\n".join(
-        [
-            f"# Eval Assets For {prompt_path.stem}",
-            "",
-            "This folder stores prompt-adjacent optimization datasets and run artifacts.",
-            "",
-            "Expected dataset files:",
-            "- train.jsonl",
-            "- val.jsonl",
-            "- test.jsonl (optional)",
-            "",
-            "Temporary run artifacts are written under .tmp/ and are gitignored.",
-            "",
-        ]
-    )
+    workspace_dir = prompt_path.parent / f"{prompt_path.stem}-workspace"
+    return workspace_dir, workspace_dir / "benchmark.json", workspace_dir / "steering.md"
 
 
 def _minimal_required_info(placeholders: list[str]) -> list[str]:
@@ -276,7 +263,7 @@ def _missing_dataset_dialog(placeholders: list[str]) -> dict[str, Any]:
     placeholder_text = ", ".join(placeholders) if placeholders else "input"
     return {
         "title": "Collect optimization datasets",
-        "description": "Provide existing dataset files or enough information to generate prompt-adjacent datasets.",
+        "description": "Provide explicit dataset files or enough information to generate train.jsonl and val.jsonl.",
         "fields": [
             {
                 "key": "train_file",
@@ -297,7 +284,7 @@ def _missing_dataset_dialog(placeholders: list[str]) -> dict[str, Any]:
                 "label": "CSV source path",
                 "type": "file",
                 "required": False,
-                "description": "Optional CSV source to bootstrap prompt-adjacent train.jsonl and val.jsonl.",
+                "description": "Optional CSV source to bootstrap train.jsonl and val.jsonl.",
             },
             {
                 "key": "placeholder_values",
@@ -319,14 +306,18 @@ def _missing_dataset_dialog(placeholders: list[str]) -> dict[str, Any]:
 
 def build_missing_dataset_request(prompt_file: str) -> dict[str, Any]:
     prompt_path = Path(prompt_file)
-    eval_dir, _, _ = derive_artifact_paths(prompt_file)
-    default_train, default_val, _ = derive_evals_paths(prompt_file)
+    workspace_dir, benchmark_file, _ = derive_workspace_paths(prompt_file)
+    default_train, default_val = derive_dataset_paths(prompt_file)
     prompt_text = prompt_path.read_text(encoding="utf-8")
     placeholders = sorted(extract_placeholders(prompt_text))
 
-    request = {
+    return {
         "prompt_file": str(prompt_path),
         "missing_files": [default_train, default_val],
+        "suggested_train_file": default_train,
+        "suggested_val_file": default_val,
+        "workspace_dir": str(workspace_dir),
+        "benchmark_file": str(benchmark_file),
         "placeholders": placeholders,
         "required_info": _minimal_required_info(placeholders),
         "recommended_user_interaction": "dialog",
@@ -335,38 +326,6 @@ def build_missing_dataset_request(prompt_file: str) -> dict[str, Any]:
             "Use scripts/generate_jsonl.py after collecting the minimum required information."
         ),
     }
-    request_path = eval_dir / "dataset-request.json"
-    request_path.write_text(json.dumps(request, indent=2), encoding="utf-8")
-    return request
-
-
-def ensure_evals_scaffold(
-    prompt_file: str,
-    train_file: str | None = None,
-    val_file: str | None = None,
-    report_file: str | None = None,
-) -> dict[str, str]:
-    """Create a visible prompt-adjacent .evals scaffold and persist dataset hints."""
-    eval_dir, _, _ = derive_artifact_paths(prompt_file)
-    eval_dir.mkdir(parents=True, exist_ok=True)
-
-    readme_path = eval_dir / "README.md"
-    if not readme_path.exists():
-        readme_path.write_text(_default_evals_readme(prompt_file), encoding="utf-8")
-
-    manifest_path = eval_dir / "datasets.json"
-    manifest = {
-        "prompt_file": str(Path(prompt_file)),
-        "train_file": train_file,
-        "val_file": val_file,
-        "default_train_file": str(eval_dir / "train.jsonl"),
-        "default_val_file": str(eval_dir / "val.jsonl"),
-        "default_test_file": str(eval_dir / "test.jsonl"),
-        "default_report_file": str(eval_dir / "report.json"),
-        "report_file": report_file or str(eval_dir / "report.json"),
-    }
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    return manifest
 
 
 def resolve_dataset_paths(
@@ -374,18 +333,19 @@ def resolve_dataset_paths(
     train_file: str | None,
     val_file: str | None,
 ) -> tuple[str, str]:
-    """Resolve explicit dataset paths or prompt-adjacent `.evals` defaults."""
-    default_train, default_val, _ = derive_evals_paths(prompt_file)
+    """Resolve explicit dataset paths only; hidden legacy defaults are not supported."""
+    default_train, default_val = derive_dataset_paths(prompt_file)
     resolved_train = train_file or default_train
     resolved_val = val_file or default_val
 
-    missing_paths = [
-        path for path in (resolved_train, resolved_val)
-        if not Path(path).is_file()
-    ]
+    missing_paths = []
+    if train_file is None or not Path(resolved_train).is_file():
+        missing_paths.append(resolved_train)
+    if val_file is None or not Path(resolved_val).is_file():
+        missing_paths.append(resolved_val)
     if missing_paths:
         raise ValueError(
-            "Could not resolve required dataset files: "
+            "Could not resolve required explicit dataset files: "
             + ", ".join(missing_paths)
         )
 
@@ -607,8 +567,8 @@ def _persist_run_artifacts(
     report: dict[str, Any],
     candidates: list[dict[str, Any]],
 ) -> tuple[str, str]:
-    _, tmp_dir, steering_file = derive_artifact_paths(prompt_file)
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    workspace_dir, _, steering_file = derive_workspace_paths(prompt_file)
+    workspace_dir.mkdir(parents=True, exist_ok=True)
 
     existing_steering = _load_existing_steering(steering_file)
     if not existing_steering:
@@ -616,7 +576,16 @@ def _persist_run_artifacts(
         existing_steering = _default_steering_body()
 
     run_id = report["run_id"]
-    run_dir = tmp_dir / run_id
+    existing_indexes = []
+    for child in workspace_dir.iterdir():
+        if not child.is_dir() or not child.name.startswith("iteration-"):
+            continue
+        try:
+            existing_indexes.append(int(child.name.split("-", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    next_index = max(existing_indexes, default=0) + 1
+    run_dir = workspace_dir / f"iteration-{next_index:03d}"
     candidates_dir = run_dir / "candidates"
     candidates_dir.mkdir(parents=True, exist_ok=True)
 
@@ -934,20 +903,20 @@ async def run_optimize(
     scoring against the validation dataset, with the original prompt included as
     a baseline candidate.
     """
-    ensure_evals_scaffold(prompt_file, train_file=train_file, val_file=val_file, report_file=report_file)
     try:
         train_file, val_file = resolve_dataset_paths(prompt_file, train_file, val_file)
     except ValueError:
-        eval_dir, _, _ = derive_artifact_paths(prompt_file)
         dataset_request = build_missing_dataset_request(prompt_file)
         return json.dumps(
             {
                 "ok": False,
                 "needs_user_input": True,
-                "message": "Generate prompt-adjacent datasets by collecting the minimum required information from the user.",
+                "message": "Provide explicit train and validation datasets or generate them at the suggested modern dataset paths.",
                 "prompt_file": prompt_file,
-                "evals_dir": str(eval_dir),
-                "dataset_request_file": str(eval_dir / "dataset-request.json"),
+                "workspace_dir": dataset_request["workspace_dir"],
+                "benchmark_file": dataset_request["benchmark_file"],
+                "suggested_train_file": dataset_request["suggested_train_file"],
+                "suggested_val_file": dataset_request["suggested_val_file"],
                 "required_info": dataset_request["required_info"],
                 "missing_files": dataset_request["missing_files"],
                 "recommended_user_interaction": dataset_request["recommended_user_interaction"],
@@ -955,7 +924,6 @@ async def run_optimize(
             },
             indent=2,
         )
-    ensure_evals_scaffold(prompt_file, train_file=train_file, val_file=val_file, report_file=report_file)
 
     openai_client, model_settings = create_openai_client(prompt_file)
 
@@ -1017,8 +985,8 @@ async def run_optimize(
         )
         return json.dumps({"ok": True, "mode": "debug", "message": "Dry run complete"}, indent=2)
 
-    _, tmp_dir, steering_file = derive_artifact_paths(prompt_file)
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    workspace_dir, benchmark_file, steering_file = derive_workspace_paths(prompt_file)
+    workspace_dir.mkdir(parents=True, exist_ok=True)
     steering_text = _load_existing_steering(steering_file)
 
     election_result = await run_election_search(
@@ -1049,8 +1017,7 @@ async def run_optimize(
     if output_file and Path(output_file) != prompt_path:
         Path(output_file).write_text(best_prompt, encoding="utf-8")
 
-    eval_dir, _, _ = derive_artifact_paths(prompt_file)
-    report_path = Path(report_file) if report_file else eval_dir / "report.json"
+    report_path = Path(report_file) if report_file else benchmark_file
     run_id = "run-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
 
     report = {
@@ -1062,6 +1029,7 @@ async def run_optimize(
         "val_file": val_file,
         "output_file": output_file if output_file else str(prompt_path),
         "report_file": str(report_path),
+        "workspace_dir": str(workspace_dir),
         "model_provider": model_settings["provider"],
         "model_endpoint": model_settings["base_url"],
         "gradient_model": model_settings["gradient_model"],
@@ -1079,7 +1047,6 @@ async def run_optimize(
     run_dir, steering_path = _persist_run_artifacts(prompt_file, report, persisted_candidates)
     report["run_dir"] = run_dir
     report["steering_file"] = steering_path
-    ensure_evals_scaffold(prompt_file, train_file=train_file, val_file=val_file, report_file=str(report_path))
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     Path(run_dir, "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 

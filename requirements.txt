@@ -1,5 +1,8 @@
 agentlightning>=0.1.0
+mcp[cli]>=1.8.0
 openai>=1.0.0
 poml>=0.0.6
+pyyaml>=6.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+pytest-cov>=6.0.0

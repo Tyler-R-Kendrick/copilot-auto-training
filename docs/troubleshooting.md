@@ -10,14 +10,15 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 
 ## Dataset Issues
 
-- If the optimizer cannot resolve dataset files, verify that `train.jsonl` and `val.jsonl` exist under `.evals/<prompt-name>/` next to the prompt file.
-- If you only have CSV input, generate prompt-local datasets with [skills/trainer-optimize/scripts/generate_jsonl.py](../skills/trainer-optimize/scripts/generate_jsonl.py).
+- If you are authoring skill eval cases, verify that `evals/evals.json` exists next to the prompt or skill and that any referenced assets live under `evals/files/`.
+- If the optimizer cannot resolve dataset files, pass explicit `--train-file` and `--val-file` paths and verify the files actually exist.
+- If you only have CSV input, generate explicit datasets with [skills/trainer-optimize/scripts/generate_jsonl.py](../skills/trainer-optimize/scripts/generate_jsonl.py).
 - If placeholder validation fails, compare the markdown template placeholders with the dataset row keys and keep evaluator-only fields out of the prompt rendering path.
 
 ## Runtime Issues
 
 - If the optimizer appears stuck during startup, wait for the local Uvicorn server to finish booting before refreshing the dashboard.
-- If the run completes but prompt-local artifacts are missing, check `.evals/<prompt-name>/report.json` and `.evals/<prompt-name>/.tmp/` next to the prompt.
+- If the run completes but optimizer artifacts are missing, check the explicit report path you passed or the default `<prompt-dir>/<prompt-name>-workspace/benchmark.json` location.
 - If you used `--debug-only`, the optimizer intentionally skips writing the optimized prompt and temporary run artifacts.
 
 ## Dashboard Issues

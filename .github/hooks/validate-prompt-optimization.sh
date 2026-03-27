@@ -3,7 +3,7 @@ set -euo pipefail
 
 payload="$(cat || true)"
 
-if [[ "$payload" != *".prompt.md"* ]] && [[ "$payload" != *".prompty"* ]] && [[ "$payload" != *".instructions.md"* ]] && [[ "$payload" != *"SKILL.md"* ]] && [[ "$payload" != *"AGENTS.md"* ]] && [[ "$payload" != *".agent.md"* ]] && [[ "$payload" != *".evals/"* ]] && [[ "$payload" != *".jsonl"* ]]; then
+if [[ "$payload" != *".prompt.md"* ]] && [[ "$payload" != *".prompty"* ]] && [[ "$payload" != *".instructions.md"* ]] && [[ "$payload" != *"SKILL.md"* ]] && [[ "$payload" != *"AGENTS.md"* ]] && [[ "$payload" != *".agent.md"* ]] && [[ "$payload" != *"/evals/"* ]] && [[ "$payload" != *".jsonl"* ]]; then
   printf '%s\n' '{"continue": true}'
   exit 0
 fi

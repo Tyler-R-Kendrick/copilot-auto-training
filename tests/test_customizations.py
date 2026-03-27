@@ -61,9 +61,9 @@ class TestInstructionCustomization:
         instructions_path = REPO_ROOT / ".github" / "instructions" / "evals-dataset.instructions.md"
         text = _read(instructions_path)
 
-        assert 'applyTo: "**/.evals/**/*.jsonl"' in text
-        assert 'Keep each line as a standalone JSON object.' in text
-        assert 'Treat `train.jsonl` and `val.jsonl` as separate roles' in text
+        assert 'applyTo: "**/evals/evals.json"' in text
+        assert 'Keep the manifest root as a JSON object with `skill_name` and an `evals` array.' in text
+        assert 'Keep `files` paths relative and prefer assets under `evals/files/`.' in text
 
 
 class TestHookCustomization:
@@ -80,5 +80,5 @@ class TestHookCustomization:
         text = _read(script_path)
 
         assert text.startswith("#!/usr/bin/env bash")
-        assert ".evals/" in text
+        assert "/evals/" in text
         assert "python -m pytest -q" in text

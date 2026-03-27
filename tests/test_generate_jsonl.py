@@ -4,16 +4,16 @@ import csv
 import json
 from pathlib import Path
 
-from generate_jsonl import derive_evals_dir, generate_datasets, rows_from_csv, split_rows
+from generate_jsonl import derive_dataset_dir, generate_datasets, rows_from_csv, split_rows
 
 
-def test_derive_evals_dir_uses_prompt_adjacent_layout(tmp_path):
+def test_derive_dataset_dir_uses_modern_layout(tmp_path):
     prompt_path = tmp_path / "prompts" / "support.md"
     prompt_path.parent.mkdir(parents=True)
     prompt_path.write_text("Question: {input}\n", encoding="utf-8")
 
-    evals_dir = derive_evals_dir(str(prompt_path))
-    assert evals_dir == prompt_path.parent / ".evals" / "support"
+    dataset_dir = derive_dataset_dir(str(prompt_path))
+    assert dataset_dir == tmp_path / "datasets"
 
 
 def test_rows_from_csv_builds_exact_match_rows(tmp_path):
@@ -34,7 +34,7 @@ def test_split_rows_uses_train_ratio():
     assert len(val_rows) == 2
 
 
-def test_generate_datasets_writes_prompt_adjacent_train_and_val(tmp_path):
+def test_generate_datasets_writes_modern_train_and_val(tmp_path):
     prompt_path = tmp_path / "prompts" / "support.md"
     prompt_path.parent.mkdir(parents=True)
     prompt_path.write_text("Question: {input}\n", encoding="utf-8")

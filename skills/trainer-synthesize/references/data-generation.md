@@ -1,6 +1,6 @@
 # Data Generation Reference
 
-Use this skill to build prompt-adjacent datasets from:
+Use this skill to build explicit APO datasets from:
 
 - user-provided CSV or example rows
 - research notes or source shortlists from the `trainer-research` skill

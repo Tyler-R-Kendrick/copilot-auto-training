@@ -7,14 +7,17 @@ It uses a classification prompt instead of open-ended text generation, which kee
 Files:
 
 - `prompts/classify_support.md`
-- `prompts/.evals/classify_support/train.jsonl`
-- `prompts/.evals/classify_support/val.jsonl`
+- `prompts/evals/evals.json`
+- `datasets/train.jsonl`
+- `datasets/val.jsonl`
 
 Smoke test:
 
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
   --debug-only
 ```
 
@@ -23,6 +26,8 @@ Small full optimization run:
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
   --iterations 2 \
   --beam-width 2 \
   --branch-factor 2

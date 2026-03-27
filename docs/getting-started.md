@@ -48,6 +48,8 @@ Smoke test:
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
   --debug-only
 ```
 
@@ -56,6 +58,8 @@ Small full run:
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
   --iterations 2 \
   --beam-width 2 \
   --branch-factor 2
@@ -63,20 +67,21 @@ python skills/trainer-optimize/scripts/run_optimize.py \
 
 While the full run is active, open the dashboard described in [docs/dashboard.md](dashboard.md).
 
-## Using the Repository Prompt
+## Using The Repository Prompt
 
 The main project prompt is [skills/trainer-optimize/SKILL.md](../skills/trainer-optimize/SKILL.md).
 
-Its prompt-adjacent datasets are already present:
+Its authored eval manifest already follows the official structure:
 
-- [skills/trainer-optimize/.evals/SKILL/train.jsonl](../skills/trainer-optimize/.evals/SKILL/train.jsonl)
-- [skills/trainer-optimize/.evals/SKILL/val.jsonl](../skills/trainer-optimize/.evals/SKILL/val.jsonl)
+- [skills/trainer-optimize/evals/evals.json](../skills/trainer-optimize/evals/evals.json)
 
-Run optimization from the repository root:
+When you want to run APO on the repository prompt, use explicit datasets:
 
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
-  --prompt-file skills/trainer-optimize/SKILL.md
+  --prompt-file skills/trainer-optimize/SKILL.md \
+  --train-file skills/trainer-optimize/datasets/train.jsonl \
+  --val-file skills/trainer-optimize/datasets/val.jsonl
 ```
 
 You can pass options explicitly when you want to override defaults:
@@ -84,21 +89,24 @@ You can pass options explicitly when you want to override defaults:
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file skills/trainer-optimize/SKILL.md \
+  --train-file skills/trainer-optimize/datasets/train.jsonl \
+  --val-file skills/trainer-optimize/datasets/val.jsonl \
   --algorithm apo \
   --iterations 3 \
   --judge-mode deterministic
 ```
 
-## Dataset Convention
+## Eval Convention
 
-Prompt-local datasets live under this layout:
+Authored skill evals follow the Agent Skills article layout:
 
 ```text
-<prompt-dir>/.evals/<prompt-name>/train.jsonl
-<prompt-dir>/.evals/<prompt-name>/val.jsonl
+<prompt-dir>/evals/evals.json
+<prompt-dir>/evals/files/
+<prompt-dir>/<prompt-name>-workspace/iteration-N/
 ```
 
-If you are starting from CSV input, bootstrap prompt-local datasets with:
+If you are starting from CSV input for APO, bootstrap explicit datasets with:
 
 ```bash
 python skills/trainer-optimize/scripts/generate_jsonl.py \
@@ -113,15 +121,14 @@ For the full dataset contract, see [skills/trainer-optimize/references/dataset-f
 Successful optimization runs write:
 
 - the winning prompt back to the original markdown file
-- a prompt-local report at `.evals/<prompt-name>/report.json`
-- run artifacts under `.evals/<prompt-name>/.tmp/`
+- a report at the explicit `--report-file` path or the runtime default
+- runtime artifacts under `<prompt-dir>/<prompt-name>-workspace/`
 
-For the repository prompt, useful artifact locations include:
+For authored skill evaluation, the key file is:
 
-- [skills/trainer-optimize/.evals/SKILL/datasets.json](../skills/trainer-optimize/.evals/SKILL/datasets.json)
-- [skills/trainer-optimize/.evals/SKILL/README.md](../skills/trainer-optimize/.evals/SKILL/README.md)
+- [skills/trainer-optimize/evals/evals.json](../skills/trainer-optimize/evals/evals.json)
 
-The `.tmp/` directory is gitignored and keeps per-run summaries, candidate snapshots, and steering notes.
+The optimizer workspace directory is gitignored and keeps `benchmark.json`, per-run summaries, candidate snapshots, and steering notes.
 
 ## Next Reading
 

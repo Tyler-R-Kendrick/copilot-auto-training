@@ -9,5 +9,4 @@ build/
 
 # Generated optimization outputs (written by run_optimize during tests / real runs)
 *.optimized.md
-*.report.json
-**/.evals/**/.tmp/
+**/*-workspace/

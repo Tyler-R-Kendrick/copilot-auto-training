@@ -3,6 +3,7 @@
 	"features": {
 		"ghcr.io/devcontainers-extra/features/uv:1": {}
 	},
+	"postStartCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/post-start.sh",
 	"customizations": {
 		"vscode": {
 			"extensions": [

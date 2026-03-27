@@ -1,0 +1,33 @@
+{
+  "skill_name": "trainer-optimize",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Optimize this markdown prompt, but keep every placeholder and the overall workflow intact.",
+      "expected_output": "The response improves the prompt wording without dropping placeholders, changing the task shape, or rewriting the workflow contract.",
+      "assertions": [
+        "The response explicitly preserves placeholders.",
+        "The response keeps the workflow scope focused on prompt optimization.",
+        "The response does not introduce unrelated code changes."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Improve this skill prompt and compare the result against the baseline rather than assuming the new version is better.",
+      "expected_output": "The response keeps the original prompt as a baseline candidate and explains the winner using observable quality differences.",
+      "assertions": [
+        "The response mentions baseline comparison.",
+        "The response favors concrete quality signals over vague praise."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Tighten this prompt so it avoids verbose, repetitive output and reward-hacking behavior.",
+      "expected_output": "The response reduces verbosity and removes any language that optimizes for the evaluator instead of the real task.",
+      "assertions": [
+        "The response discourages verbose or redundant output.",
+        "The response avoids evaluator-gaming language."
+      ]
+    }
+  ]
+}

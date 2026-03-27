@@ -1,7 +1,7 @@
 ---
 name: "trainer"
 description: "Use when iteratively optimizing prompt and instruction files such as *.prompt.md, *.prompty, *.instructions.md, SKILL.md, AGENTS.md, and related prompt-like markdown. Orchestrates trainer-optimize, trainer-election, trainer-research, and trainer-synthesize skills in loops with test-first validation."
-tools: [read, edit, search, execute, todo, agent, agent/runSubagent]
+tools: [read, edit, search, execute, todo, agent, agent/runSubagent, 'agent-skills/*']
 agents: ["Prompt Evaluator", "Regression Review"]
 argument-hint: "Target file, optimization goal, constraints, and any dataset or evaluation requirements."
 user-invocable: true
@@ -23,9 +23,9 @@ Your job is to orchestrate repeated loops across the `trainer-optimize`, `traine
 
 ## Approach
 1. Inspect the target file and identify placeholders, task shape, and success criteria.
-2. Check whether prompt-adjacent datasets already exist.
+2. Check whether explicit APO datasets already exist.
 3. If datasets are missing or weak, use the trainer-research skill flow to identify public sources and schema notes.
-4. Use the trainer-synthesize skill flow to convert known source material and simulated edge cases into prompt-adjacent `train.jsonl` and `val.jsonl`.
+4. Use the trainer-synthesize skill flow to convert known source material and simulated edge cases into official `evals/evals.json` cases plus any supporting `evals/files/` assets.
 5. Run the trainer-optimize skill flow against the target prompt.
 6. Use the trainer-election skill flow to select or confirm the leader when optimization yields multiple candidates or fallback variants.
 7. Invoke the `Prompt Evaluator` subagent to score candidate quality and write concise summaries when a comparison needs explanation.

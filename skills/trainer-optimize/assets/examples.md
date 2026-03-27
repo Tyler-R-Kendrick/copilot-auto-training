@@ -38,9 +38,9 @@ You are a helpful support agent. Answer the following user question concisely.
 Question: {input}
 ```
 
-**Dataset row (`prompts/.evals/support/train.jsonl`):**
+**Authored eval manifest (`prompts/evals/evals.json`):**
 ```json
-{"input": "How do I reset my password?", "expected": "Visit the account settings page and click 'Forgot password'.", "scoring": "exact_match"}
+{"skill_name": "support-skill", "evals": [{"id": 1, "prompt": "How do I reset my password?", "expected_output": "A support answer that explains the password reset steps clearly.", "assertions": ["The answer mentions the reset flow."]}]}
 ```
 
 **Invocation:**
@@ -60,9 +60,9 @@ Context: {context}
 Question: {question}
 ```
 
-**Dataset row (`prompts/.evals/qa/train.jsonl`):**
+**Authored eval manifest (`prompts/evals/evals.json`):**
 ```json
-{"input": {"question": "What is the capital of France?", "context": "Geography facts."}, "expected": "Paris", "scoring": "normalized_match"}
+{"skill_name": "qa-skill", "evals": [{"id": 1, "prompt": "Given geography facts, what is the capital of France?", "expected_output": "A direct answer that says Paris.", "assertions": ["The answer names Paris."]}]}
 ```
 
 **Invocation:**
@@ -100,9 +100,9 @@ Use `algorithm=verl` when you explicitly want the alternate optimization path.
 
 ---
 
-## Example 5: Generate prompt-adjacent JSONL files from CSV
+## Example 5: Generate explicit JSONL files from CSV
 
-If you already have a CSV with `input` and `expected` columns, generate `.evals` datasets next to the prompt:
+If you already have a CSV with `input` and `expected` columns, generate explicit datasets for APO:
 
 ```bash
 python scripts/generate_jsonl.py \
@@ -110,12 +110,7 @@ python scripts/generate_jsonl.py \
   --csv-file examples.csv
 ```
 
-This writes:
-
-```text
-prompts/.evals/support/train.jsonl
-prompts/.evals/support/val.jsonl
-```
+This writes JSONL dataset files that you can pass explicitly to `run_optimize.py`.
 
 ---
 
