@@ -1,5 +1,5 @@
 ---
-name: "Prompt Evaluator"
+name: "judge"
 description: "Use when scoring prompt candidates, comparing prompt revisions, or writing concise candidate summaries during prompt optimization loops."
 tools: [read, edit, search]
 argument-hint: "Candidate prompts, evaluation goal, scoring criteria, and output location for the summary."

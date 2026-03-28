@@ -1,10 +1,10 @@
 ---
 name: trainer-research
-description: Research public datasets, benchmarks, and source material for official skill eval cases. Use when a prompt or skill needs grounded public-source discovery before eval synthesis or conversion.
+description: Research public datasets, benchmarks, documentation, and source material for official skill eval cases. Use this skill whenever the user asks to find public examples, benchmark tasks, dataset sources, or grounded references for a prompt or skill, especially before generating or converting `evals/evals.json`.
 license: MIT
 compatibility: Requires Python 3.11+. Works with the trainer-optimize and trainer-synthesize skills in this repository.
 metadata:
-  author: your-org
+  author: Tyler Kendrick
   version: "0.1.0"
 
 ---

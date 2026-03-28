@@ -23,30 +23,78 @@ class TestAgentCustomizations:
         assert 'execute' in text
         assert 'todo' in text
         assert 'agent' in text
-        assert 'agents: ["Prompt Evaluator", "Regression Review"]' in text
+        assert 'agent-skills/*' in text
+        assert 'agents: ["judge", "conservator"]' in text
         assert 'name: "trainer"' in text
         assert 'orchestrate repeated loops across the `trainer-optimize`, `trainer-election`, `trainer-research`, and `trainer-synthesize` skills' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
+        assert 'Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.' in text
+        assert 'Call `load_agent_skill` before first use of a discovered skill' in text
+        assert 'Call `run_agent_skill` to execute the discovered skill runtime' in text
+        assert 'the default loop order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize` -> `trainer-election`.' in text
+        assert 'you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.' in text
+        assert 'Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.' in text
+        assert 'If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.' in text
+        assert 'Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present.' in text
+        assert 'You MUST run `trainer-election` on the generated candidates plus the current prompt as a baseline candidate, elect the leader using the validation dataset and available eval artifacts, and apply the elected leader to the target file before finalizing.' in text
+        assert 'Run the `trainer-election` skill through MCP on the resulting candidate set plus the current prompt as a baseline candidate, using the validation dataset as the primary election input and authored evals as supporting validation when available.' in text
+
+    def test_trainer_agent_declares_mcp_tool_sequence_and_loop_order(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
+        text = _read(agent_path)
+
+        find_idx = text.index('Call `find_agent_skill`')
+        load_idx = text.index('Call `load_agent_skill`')
+        run_idx = text.index('Call `run_agent_skill`')
+        research_idx = text.index('`trainer-research` -> `trainer-synthesize` -> `trainer-optimize` -> `trainer-election`')
+
+        assert find_idx < load_idx < run_idx < research_idx
+
+    def test_trainer_agent_baseline_rule_matches_optimize_contract(self):
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
+        optimize_text = _read(REPO_ROOT / "skills" / "trainer-optimize" / "SKILL.md")
+
+        assert 'plus the current prompt as a baseline candidate' in agent_text
+        assert 'includes the original prompt as a baseline' in optimize_text
+
+    def test_trainer_agent_missing_data_flow_uses_all_trainer_skills(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
+
+        research_idx = text.index('run the `trainer-research` skill through MCP')
+        synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
+        optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
+        election_idx = text.index('Run the `trainer-election` skill through MCP')
+
+        assert research_idx < synth_idx < optimize_idx < election_idx
 
     def test_old_loop_agent_file_is_absent(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "prompt-optimization-loop.agent.md"
         assert not agent_path.exists()
 
-    def test_prompt_evaluator_agent_exists_and_is_subagent_only(self):
-        agent_path = REPO_ROOT / ".github" / "agents" / "prompt-evaluator.agent.md"
+    def test_judge_agent_exists_and_is_subagent_only(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "judge.agent.md"
         text = _read(agent_path)
 
-        assert 'name: "Prompt Evaluator"' in text
+        assert 'name: "judge"' in text
         assert 'user-invocable: false' in text
         assert 'description: "Use when scoring prompt candidates' in text
         assert 'write concise candidate summaries' in text
 
-    def test_regression_review_agent_exists_and_is_subagent_only(self):
-        agent_path = REPO_ROOT / ".github" / "agents" / "regression-review.agent.md"
+    def test_conservator_agent_exists_and_is_subagent_only(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "conservator.agent.md"
         text = _read(agent_path)
 
         assert 'user-invocable: false' in text
-        assert 'name: "Regression Review"' in text
+        assert 'name: "conservator"' in text
         assert 'Use when reviewing prompt, dataset, or evaluator changes for likely regressions' in text
+        assert 'required MCP skill-routing' in text
+        assert 'baseline-candidate preservation during leader election' in text
+        assert 'find_agent_skill' in text
+        assert 'load_agent_skill' in text
+        assert 'run_agent_skill' in text
+        assert 'current prompt as a baseline candidate' in text
+        assert 'what authored eval manifests support' in text
+        assert 'explicit `train.jsonl` or `val.jsonl` inputs are blurred together with authored `evals/evals.json` artifacts' in text
 
 
 class TestInstructionCustomization:
