@@ -33,17 +33,20 @@ def build_research_brief(
     targets = derive_dataset_targets(prompt_file)
     placeholders = ", ".join(targets["placeholders"]) if targets["placeholders"] else "input"
     research_queries = [
-        f"public dataset {task_description}",
-        f"benchmark dataset {task_description} eval cases",
-        f"open data {task_description} labels {scoring_rule}",
+        f"official benchmark dataset {task_description}",
+        f"primary source dataset {task_description} annotation guidelines",
+        f"official documentation {task_description} labels {scoring_rule}",
+        f"original paper dataset card {task_description}",
         f"examples for prompt placeholders {placeholders}",
     ]
     workflow = [
         "Inspect the prompt interface and derive eval targets for evals/evals.json, evals/files/, and the workspace benchmark.",
-        "Build research queries that match the task, scoring rule, and prompt schema.",
-        "Create a source shortlist from public datasets, benchmarks, or documentation.",
-        "Map promising source fields into realistic user prompts, expected outputs, optional input files, and objective assertions.",
-        "Hand the source shortlist and mapping notes to the synthesize stage for evals/evals.json generation.",
+        "Build primary-source-first research queries that match the task, scoring rule, and prompt schema.",
+        "Collect candidate sources from official maintainers, benchmark owners, dataset cards, annotation guides, standards bodies, and original papers before considering secondary summaries.",
+        "Score each candidate for authority, provenance, task fit, annotation quality, recency, licensing, and leakage risk, then reject weak or derivative sources.",
+        "Assemble a ranked source shortlist with evidence notes and explicit rejection reasons.",
+        "Map approved source fields into realistic user prompts, expected outputs, optional input files, and objective assertions.",
+        "Deliver a standalone research brief that another workflow can use without requiring this skill to call any other skill.",
     ]
     return {
         "skill": "research",
@@ -53,4 +56,19 @@ def build_research_brief(
         "targets": targets,
         "research_queries": research_queries,
         "workflow": workflow,
+        "source_preferences": [
+            "Official primary sources from benchmark owners, dataset maintainers, standards bodies, and original papers.",
+            "High-credibility secondary sources only when they help locate or verify the primary source.",
+            "Reject tertiary summaries, mirrors, and unverifiable aggregators when a primary source exists.",
+        ],
+        "source_quality_rubric": [
+            "Authority: the source has an accountable owner, maintainer, or publisher.",
+            "Provenance: the data origin, collection method, and labeling process are documented.",
+            "Task fit: the source aligns with the prompt task, scoring rule, and expected outputs.",
+            "Annotation quality: label definitions, instructions, and ambiguity handling are clear.",
+            "Stability: version, publication date, and update history are available.",
+            "Licensing: reuse terms are explicit and compatible with authored eval assets.",
+            "Reliability risks: contamination, sampling bias, or derivative copying risks are identified.",
+        ],
+        "deliverable": "Standalone research brief with ranked sources, rejected candidates, and eval-authoring mapping notes.",
     }

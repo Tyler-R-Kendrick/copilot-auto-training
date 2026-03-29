@@ -30,7 +30,11 @@ def test_build_research_brief_includes_public_dataset_queries(tmp_path):
     )
 
     assert brief["skill"] == "research"
-    assert any("public dataset" in query.lower() for query in brief["research_queries"])
+    assert any("official" in query.lower() or "primary source" in query.lower() for query in brief["research_queries"])
     assert any("source shortlist" in step.lower() for step in brief["workflow"])
+    assert any("without requiring this skill to call any other skill" in step.lower() for step in brief["workflow"])
     assert brief["targets"]["manifest_file"].endswith("evals.json")
     assert any("workspace benchmark" in step.lower() for step in brief["workflow"])
+    assert brief["source_preferences"][0].lower().startswith("official primary sources")
+    assert any("authority" in item.lower() for item in brief["source_quality_rubric"])
+    assert any("licensing" in item.lower() for item in brief["source_quality_rubric"])
