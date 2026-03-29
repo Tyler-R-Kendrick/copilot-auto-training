@@ -1,6 +1,6 @@
 ---
 name: trainer-synthesize
-description: Convert grounded source material into official `evals/evals.json` cases for prompts and skills. Use whenever a prompt or skill needs eval data, especially when labels or expected outputs must be computed from raw inputs, derived with map/filter/reduce style transforms, or synthesized through verifier-backed examples after a research pass or user-provided examples.
+description: Build official `evals/evals.json` cases from grounded or computed source data. Use whenever a prompt or skill needs eval data, especially when correct outputs must be derived from raw fields, business rules, or verifier-backed synthetic examples.
 license: MIT
 compatibility: Requires Python 3.11+. Works with the trainer-optimize skill in this repository.
 metadata:
@@ -11,18 +11,18 @@ metadata:
 
 # Synthesize
 
-Use this skill to create official skill eval manifests for optimization and review workflows.
+Use this skill to turn source material into official skill eval manifests.
 
-This skill is compute-first, not prose-first. When the desired labels, expected outputs, or assertions depend on derived values, statistics, rule application, or normalization, plan that computation before writing any eval cases. Synthesis happens only after the ground truth is either provided or derived.
+Work compute-first. If labels, expected outputs, or assertions depend on derived values, plan the computation before writing rows. Synthesize only after the ground truth is provided or derived.
 
 ## When to use this skill
 
 - The workflow needs `evals/evals.json` for a markdown prompt or skill.
-- The user has examples, a CSV file, tables, schemas, business rules, or source notes from the `trainer-research` skill.
+- The user has examples, CSV or JSON data, tables, schemas, business rules, or source notes from the `trainer-research` skill.
 - The agent should convert known source material into high-quality eval cases.
 - The expected outputs are not directly written down and must be derived from raw fields.
-- The agent needs to compute actual values through transformations such as map, filter, reduce, grouping, joins, sorting, normalization, or rule evaluation before authoring eval rows.
-- The agent should simulate representative examples only after grounded or computed examples establish the target task shape.
+- The agent needs explicit transforms such as map, filter, reduce, grouping, joins, sorting, normalization, or rule evaluation before authoring eval rows.
+- The agent should add synthetic rows only after grounded or computed rows establish the target task pattern.
 
 If no credible source material exists yet, use `trainer-research` first instead of guessing.
 
@@ -31,31 +31,31 @@ If no credible source material exists yet, use `trainer-research` first instead 
 - `prompt_file`: target markdown prompt
 - `task_description`: short description of the real task the prompt should solve
 - `scoring_rule`: expected answer format or evaluation rule
-- Optional source material such as `csv_file`, JSON, tables, schemas, rule definitions, existing examples, or structured notes from the `trainer-research` skill
+- Optional source material such as `csv_file`, JSON, tables, schemas, rule definitions, lookup tables, existing examples, or structured notes from the `trainer-research` skill
 
-## Required working inputs
+## Resolve Before Writing
 
-Before authoring eval cases, resolve these inputs explicitly:
+Resolve these inputs before authoring eval cases:
 
-- raw source fields available to the prompt author or end user
-- hidden derived values that must be computed to obtain the correct answer
-- transformation logic needed to compute those values
-- output schema or answer format required by the scoring rule
+- raw source fields
+- derived target values
+- transformation logic
+- output schema or answer format
 - constraints, edge cases, and disallowed shortcuts
 
-If any of these are missing, ask the user for them before synthesizing. Do not invent hidden business rules, thresholds, or labels when they are required to compute the correct answer.
+If any of these are missing, ask for them before synthesizing. Do not invent hidden rules, thresholds, or labels.
 
 ## Output
 
-Produce the work in this order:
+Return, in order:
 
-1. A synthesis plan that identifies the target files, the computation required, and any missing inputs.
-2. A concise elicitation list for any missing fields, rules, or assets that must be supplied.
-3. The final `evals/evals.json` content and any `evals/files/` assets once the computation path is fully specified.
+1. A synthesis plan
+2. Missing-input questions, if any
+3. The final `evals/evals.json` content and any `evals/files/` assets
 
 If the needed inputs are already present, state that the plan is fully satisfied and proceed.
 
-## Compute-first synthesis plan
+## Synthesis Plan
 
 Before writing any eval rows, build a short plan with these sections:
 
@@ -70,9 +70,9 @@ For repeated or error-prone computation, prefer a script or deterministic transf
 
 ## Synthetic-data standard
 
-Synthetic data is only useful here when it is grounded and verified. The recent improvement that makes synthetic data far more valuable than naive hand-written examples is verifier-backed generation: use a capable model or source material to draft candidates, then independently check them with deterministic rules, derived ground truth, or a stricter verifier before keeping them.
+Synthetic data is only acceptable here when it is grounded and verified. Use verifier-backed generation: draft candidate rows, then independently check them with deterministic rules, derived ground truth, or a stricter verifier before keeping them.
 
-Apply that standard here:
+Apply that standard like this:
 
 - Prefer real or research-grounded source rows first.
 - Compute or verify the target answers independently from the generator whenever possible.
@@ -80,23 +80,22 @@ Apply that standard here:
 - Reject candidate rows that cannot be traced back to a clear rule, source, or verification result.
 - Keep generator and verifier roles conceptually separate. A candidate example is not valid just because it sounds plausible.
 
-This is the core best practice: generate, verify, filter, then keep only high-confidence rows. Unverified synthetic data is not acceptable for official eval authoring.
+Core rule: generate, verify, filter, then keep only high-confidence rows.
 
 ## Process
 
 1. Inspect the prompt placeholders and derive the official `evals/evals.json` target path and any `evals/files/` assets.
 2. Build the synthesis plan before authoring any rows. Identify observed fields, derived targets, the computation recipe, and the verification method.
-3. If the computation depends on missing inputs, ask for them directly. Elicit missing schemas, field meanings, thresholds, label definitions, or source files before continuing.
-4. Start from known source material such as user rows, CSV input, tables, or a source shortlist from the `trainer-research` skill.
-5. Compute actual target values from the source material. Use explicit transformations such as map, filter, reduce, grouping, joins, normalization, and rule evaluation where needed.
-6. Prefer grounded examples when they fit the task and licensing allows reuse.
-7. Synthesize additional examples only after the grounded or computed cases establish the correct task pattern.
-8. Apply verifier-backed generation: draft candidate synthetic rows, independently verify the target outputs, and discard anything that does not pass verification.
-9. Fill gaps in coverage deliberately: edge cases, class balance, difficult near-misses, null or missing inputs, malformed inputs, and realistic long-tail cases.
-10. Convert the resulting tasks into official eval cases with realistic `prompt`, `expected_output`, optional `files`, and objective `assertions`.
-11. Produce `evals/evals.json` and any required `evals/files/` assets next to the prompt or skill.
+3. If the computation depends on missing inputs, ask for them before continuing.
+4. Start from grounded source material such as user rows, CSV input, tables, or an approved shortlist from `trainer-research`.
+5. Compute target values with explicit transforms such as map, filter, reduce, grouping, joins, normalization, and rule evaluation.
+6. Keep grounded examples first; add synthetic rows only after the task pattern is established.
+7. Verify every synthetic candidate independently and discard failures.
+8. Fill coverage deliberately: edge cases, class balance, hard near-misses, null or missing inputs, malformed inputs, and realistic long-tail cases.
+9. Convert the resulting tasks into official eval cases with realistic `prompt`, `expected_output`, optional `files`, and objective `assertions`.
+10. Produce `evals/evals.json` and any required `evals/files/` assets next to the prompt or skill.
 
-## Coverage and quality rules
+## Quality Rules
 
 - Keep eval prompts realistic and user-like, not schematic labels.
 - Prefer small, diverse eval sets over large repetitive sets.
@@ -106,7 +105,7 @@ This is the core best practice: generate, verify, filter, then keep only high-co
 - Keep assertions objective and observable. If a property is subjective, leave it for later human review.
 - Never hide unresolved ambiguity by writing overconfident expected outputs.
 
-## Elicitation checklist
+## Elicit If Missing
 
 Ask for the missing items that block correct computation, such as:
 
