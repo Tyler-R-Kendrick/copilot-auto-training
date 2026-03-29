@@ -133,7 +133,7 @@ Authored skill evals follow the Agent Skills article layout:
 ```text
 <prompt-dir>/evals/evals.json
 <prompt-dir>/evals/files/
-<prompt-dir>/.trainer-workspace/<prompt-name>/iteration-N/
+<prompt-dir>/.trainer-workspace/<prompt-name>/iterations/iteration-N/
 ```
 
 If you are starting from CSV input for APO, bootstrap explicit datasets with:

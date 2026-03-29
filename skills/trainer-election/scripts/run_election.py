@@ -45,6 +45,23 @@ def _sort_key(path: Path) -> tuple[int, str]:
     return 10**9, path.name
 
 
+def _workspace_iteration_dirs(workspace_path: Path) -> list[Path]:
+    iteration_dirs: list[Path] = []
+    seen: set[Path] = set()
+    for root in (workspace_path / "iterations", workspace_path):
+        if not root.is_dir():
+            continue
+        for child in root.iterdir():
+            if not child.is_dir() or not child.name.startswith("iteration-"):
+                continue
+            resolved = child.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            iteration_dirs.append(child)
+    return sorted(iteration_dirs, key=_sort_key)
+
+
 def resolve_iteration_dir(workspace_dir: str | Path, iteration: str | int | None = None) -> Path:
     workspace_path = Path(workspace_dir)
     if not workspace_path.exists():
@@ -53,19 +70,24 @@ def resolve_iteration_dir(workspace_dir: str | Path, iteration: str | int | None
     if iteration is None:
         if _is_eval_dir(workspace_path) or any(_is_eval_dir(child) for child in workspace_path.iterdir() if child.is_dir()):
             return workspace_path
-        iteration_dirs = sorted(
-            [child for child in workspace_path.iterdir() if child.is_dir() and child.name.startswith("iteration-")],
-            key=_sort_key,
-        )
+        iteration_dirs = _workspace_iteration_dirs(workspace_path)
         if iteration_dirs:
             return iteration_dirs[-1]
         raise FileNotFoundError(f"No iteration directories or eval directories found under {workspace_path}")
 
     if isinstance(iteration, int) or str(iteration).isdigit():
-        candidate = workspace_path / f"iteration-{iteration}"
+        iteration_name = f"iteration-{iteration}"
+        nested_candidate = workspace_path / "iterations" / iteration_name
+        legacy_candidate = workspace_path / iteration_name
+        candidate = nested_candidate if nested_candidate.exists() else legacy_candidate
     else:
         raw_iteration = Path(str(iteration))
-        candidate = raw_iteration if raw_iteration.is_absolute() else workspace_path / raw_iteration
+        if raw_iteration.is_absolute():
+            candidate = raw_iteration
+        else:
+            nested_candidate = workspace_path / "iterations" / raw_iteration
+            legacy_candidate = workspace_path / raw_iteration
+            candidate = nested_candidate if nested_candidate.exists() else legacy_candidate
 
     if not candidate.exists():
         raise FileNotFoundError(f"Iteration directory not found: {candidate}")
@@ -79,7 +101,7 @@ def resolve_manifest_file(iteration_dir: Path, manifest_file: str | None = None)
             raise FileNotFoundError(f"Eval manifest not found: {candidate}")
         return candidate
 
-    search_roots = [iteration_dir, iteration_dir.parent, iteration_dir.parent.parent]
+    search_roots = [iteration_dir, *iteration_dir.parents[:3]]
     for root in search_roots:
         candidate = root / "evals" / "evals.json"
         if candidate.is_file():

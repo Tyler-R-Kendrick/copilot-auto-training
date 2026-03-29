@@ -370,6 +370,23 @@ def _normalize_argv(argv: list[str] | None) -> list[str]:
     return list(argv)
 
 
+def _resolve_python_executable() -> str:
+    override = os.getenv("AGENT_SKILLS_PYTHON", "").strip()
+    if override:
+        return override
+
+    repo_root = _repository_root()
+    candidates = [
+        repo_root / ".venv" / "bin" / "python",
+        repo_root / ".venv" / "Scripts" / "python.exe",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+
+    return sys.executable
+
+
 def _skill_directory_tree(skill_dir: Path) -> str:
     lines = [f"Skill Directory: {skill_dir}"]
     for path in sorted(skill_dir.rglob("*")):
@@ -454,7 +471,7 @@ def run_agent_skill(name: str, script_path: str = "", argv: list[str] | None = N
     normalized_argv = _normalize_argv(argv)
     result = subprocess.run(
         [
-            sys.executable,
+            _resolve_python_executable(),
             str(entrypoint),
             *normalized_argv,
         ],
@@ -510,6 +527,7 @@ __all__ = [
     "_candidate_skill_roots",
     "_extract_frontmatter",
     "_find_skill_by_name",
+    "_resolve_python_executable",
     "build_mcp",
     "find_agent_skill",
     "load_agent_skill",

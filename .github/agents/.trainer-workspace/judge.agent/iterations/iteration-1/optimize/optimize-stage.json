@@ -1,0 +1,26 @@
+{
+  "target_file": "/workspaces/copilot-apo/.github/agents/judge.agent.md",
+  "train_file": "/workspaces/copilot-apo/.github/agents/.trainer-workspace/judge.agent/iterations/iteration-1/synthesize/datasets/train.jsonl",
+  "val_file": "/workspaces/copilot-apo/.github/agents/.trainer-workspace/judge.agent/iterations/iteration-1/synthesize/datasets/val.jsonl",
+  "judge_mode": "llm_judge",
+  "prompt_has_task_placeholders": false,
+  "prompt_shape_note": "judge.agent.md has no task-input placeholders, so trainer-optimize cannot inject row-specific task content into the rendered prompt.",
+  "execution_result": "blocked",
+  "attempts": [
+    {
+      "algorithm": "apo",
+      "mode": "debug_only",
+      "exit_code": 1,
+      "error_file": "apo-debug.stderr.txt",
+      "summary": "Trainer.dev() in this environment rejects APO because the algorithm is not a FastAlgorithm."
+    },
+    {
+      "algorithm": "verl",
+      "mode": "debug_only",
+      "exit_code": 1,
+      "error_file": "verl-debug.stderr.txt",
+      "summary": "VERL import failed because the hydra dependency is missing from the environment."
+    }
+  ],
+  "decision": "Do not claim a meaningful APO optimization run for this iteration. Keep the manual rewrite, preserve the synthesized llm_judge datasets, and treat full optimize as blocked until an input-aware wrapper or runtime support is added and the environment is fixed."
+}

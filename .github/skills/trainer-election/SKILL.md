@@ -35,8 +35,10 @@ If `manifest_file` is omitted, the runtime searches `evals/evals.json` next to t
 
 The runtime accepts these shapes:
 
-- a workspace root that contains `iteration-N/` directories
-- a direct iteration directory
+- a workspace root that contains `iterations/iteration-N/` directories
+- a direct `iterations/iteration-N/` directory
+- a legacy workspace root that contains `iteration-N/` directories
+- a legacy direct iteration directory
 - a direct eval directory when only one eval folder is available
 - iteration directories that keep evals at the top level or under `runs/`
 

@@ -1,0 +1,35 @@
+{
+  "skill_name": "judge-outcome",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Compare two candidate support replies using only the final responses, a reference answer, and explicit criteria. Pick the stronger outcome, explain the margin, and do not infer process quality that is not evidenced by the final outputs.",
+      "expected_output": "The response locks an outcome-focused rubric, compares the final replies against the same criteria, picks a winner from end-state evidence, and avoids inventing trajectory claims.",
+      "assertions": [
+        "The response uses one shared rubric for both candidates.",
+        "The response bases the verdict on final-output evidence rather than invented trajectory details.",
+        "The response reports the winner and the margin or confidence level."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Judge two extracted JSON outputs for an order-triage task. Use the required schema, completeness, and correctness criteria to choose the stronger result, and call out any narrow-margin uncertainty instead of overclaiming certainty.",
+      "expected_output": "The response evaluates the two final structured outputs against schema and correctness requirements, flags any missing evidence, and calibrates confidence if the difference is small.",
+      "assertions": [
+        "The response checks schema or formatting fidelity as part of the outcome rubric.",
+        "The response mentions confidence or uncertainty when the evidence is narrow or incomplete.",
+        "The response does not treat rhetorical polish as sufficient evidence of correctness."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Pick the better final answer from two benchmark-style candidate responses to an open-ended policy question. Use a locked rubric, watch for order bias, and preserve any benchmark caveat that should lower confidence in the selection.",
+      "expected_output": "The response uses a locked outcome rubric, performs an order-robust comparison, and preserves benchmark-related uncertainty instead of presenting the winner as unquestionably correct.",
+      "assertions": [
+        "The response mentions or implies an order-robustness check.",
+        "The response preserves benchmark caveats or uncertainty in close calls.",
+        "The response explains the main failure mode of the rejected candidate."
+      ]
+    }
+  ]
+}

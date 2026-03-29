@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 430, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 409, in main
+    result = run_optimize_sync(
+             ^^^^^^^^^^^^^^^^^^
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 280, in run_optimize_sync
+    algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/copilot-apo/.venv/lib/python3.12/site-packages/agentlightning/algorithm/__init__.py", line 27, in VERL
+    from .verl import VERL as VERLImplementation
+  File "/workspaces/copilot-apo/.venv/lib/python3.12/site-packages/agentlightning/algorithm/verl/__init__.py", line 3, in <module>
+    from .interface import VERL
+  File "/workspaces/copilot-apo/.venv/lib/python3.12/site-packages/agentlightning/algorithm/verl/interface.py", line 7, in <module>
+    from hydra import compose, initialize
+ModuleNotFoundError: No module named 'hydra'

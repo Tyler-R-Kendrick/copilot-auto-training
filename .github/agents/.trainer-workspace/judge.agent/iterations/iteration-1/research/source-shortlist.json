@@ -1,0 +1,69 @@
+{
+  "approved_sources": [
+    {
+      "name": "RULERS",
+      "citation": "arXiv:2601.08654",
+      "focus": [
+        "locked rubric",
+        "evidence-anchored scoring",
+        "explicit score boundaries"
+      ]
+    },
+    {
+      "name": "Agent-as-a-Judge survey",
+      "citation": "arXiv:2601.05111",
+      "focus": [
+        "trajectory judging",
+        "tool traces",
+        "verifier-backed evidence"
+      ]
+    },
+    {
+      "name": "JudgeBench",
+      "citation": "arXiv:2410.12784",
+      "focus": [
+        "judge brittleness",
+        "evidence-first comparison",
+        "skepticism toward fluent summaries"
+      ]
+    },
+    {
+      "name": "AdaRubric",
+      "citation": "arXiv:2603.21362",
+      "focus": [
+        "task-adaptive rubric shell",
+        "controlled dimension changes"
+      ]
+    },
+    {
+      "name": "Judgment Distribution",
+      "citation": "arXiv:2503.03064",
+      "focus": [
+        "confidence calibration",
+        "uncertainty handling"
+      ]
+    },
+    {
+      "name": "Gaming the Judge",
+      "citation": "arXiv:2601.14691",
+      "focus": [
+        "chain-of-thought skepticism",
+        "artifact-first evidence"
+      ]
+    }
+  ],
+  "rejected_sources": [
+    {
+      "name": "ContextualJudgeBench as a direct synthesis source",
+      "reason": "The local reference does not pin a single canonical artifact suitable for direct eval authoring."
+    },
+    {
+      "name": "Generic LLM judge blog posts",
+      "reason": "Derivative advice without stable protocol details does not clear the approval bar."
+    },
+    {
+      "name": "RewardBench 2 as the primary routing source",
+      "reason": "Useful background pressure, but less direct than trajectory and rubric sources for this routing problem."
+    }
+  ]
+}

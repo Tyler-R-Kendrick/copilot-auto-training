@@ -83,6 +83,11 @@ Use when exact matching is not appropriate and an LLM judge must score the answe
 {"input": "Draft a support reply for a delayed shipment", "reference": "Reference answer here", "criteria": ["correctness", "policy compliance", "resolution completeness"], "scoring": "llm_judge"}
 ```
 
+Keep the runtime judge prompt, rubric text, and external benchmark notes separate:
+- Put row-level scoring evidence in dataset fields such as `reference`, `criteria`, and `scoring`.
+- Put reusable benchmark and rubric-design guidance next to the judge agent, such as [.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md](../../../.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md).
+- Keep canonical benchmark summaries out of prompt-visible render paths and out of the raw `input` payload unless the task explicitly requires them.
+
 ## Placeholder matching rules
 
 Given a template like:
@@ -106,6 +111,8 @@ Literal brace-heavy examples are allowed in prompt text. A JSON example such as 
 | `deterministic` | Exact or rule-based expected outputs | `expected` field required |
 | `custom` | Normalized string matching, schema comparisons, or a scorer hook | Use row-level `scoring` such as `normalized_match`, `json_schema`, or `custom_python` |
 | `llm_judge` | Open-ended tasks with no exact answer | Optional `judge_prompt_file`; recommended row fields are `reference` and `criteria` |
+
+When `judge_mode=llm_judge` is used to optimize a judge prompt or other rubric-heavy evaluator, consult [.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md](../../../.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md) before changing the scoring prompt. That reference tracks benchmark pressure from JudgeBench, ContextualJudgeBench, RewardBench 2, locked-rubric work such as RULERS, task-adaptive rubric work such as AdaRubric and RubricRAG, and known judge failure modes such as order bias and naive chain-of-thought trust.
 
 ## Minimum dataset size
 

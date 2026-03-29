@@ -92,8 +92,8 @@ class TestBuildSelectionPool:
         write_workspace_run(eval_dir, "with_skill", 0.8, 10.0, 100)
 
         workspace_dir = tmp_path / "workspace"
-        iteration_one = workspace_dir / "iteration-1"
-        iteration_two = workspace_dir / "iteration-2"
+        iteration_one = workspace_dir / "iterations" / "iteration-1"
+        iteration_two = workspace_dir / "iterations" / "iteration-2"
         write_json(iteration_one / "eval-a" / "eval_metadata.json", {"eval_id": 1})
         write_workspace_run(iteration_one / "eval-a", "with_skill", 0.1, 5.0, 50)
         write_json(iteration_two / "eval-b" / "eval_metadata.json", {"eval_id": 2})
@@ -106,11 +106,20 @@ class TestBuildSelectionPool:
 
     def test_resolve_iteration_dir_supports_relative_iteration_name(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        custom_iteration = workspace_dir / "candidate-pass"
+        custom_iteration = workspace_dir / "iterations" / "candidate-pass"
         write_json(custom_iteration / "eval-a" / "eval_metadata.json", {"eval_id": 1})
         write_workspace_run(custom_iteration / "eval-a", "with_skill", 0.3, 4.0, 40)
 
         assert resolve_iteration_dir(workspace_dir, "candidate-pass") == custom_iteration
+
+    def test_resolve_iteration_dir_still_accepts_legacy_workspace_root_iterations(self, tmp_path: Path):
+        workspace_dir = tmp_path / "workspace"
+        legacy_iteration = workspace_dir / "iteration-3"
+        write_json(legacy_iteration / "eval-a" / "eval_metadata.json", {"eval_id": 1})
+        write_workspace_run(legacy_iteration / "eval-a", "with_skill", 0.3, 4.0, 40)
+
+        assert resolve_iteration_dir(workspace_dir) == legacy_iteration
+        assert resolve_iteration_dir(workspace_dir, 3) == legacy_iteration
 
     def test_resolve_iteration_dir_rejects_missing_iteration(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
@@ -120,11 +129,11 @@ class TestBuildSelectionPool:
             resolve_iteration_dir(workspace_dir, 7)
 
     def test_resolve_manifest_file_prefers_explicit_path_and_parent_fallbacks(self, tmp_path: Path):
-        iteration_dir = tmp_path / "workspace" / "iteration-1"
+        iteration_dir = tmp_path / "workspace" / "iterations" / "iteration-1"
         iteration_dir.mkdir(parents=True)
         explicit_manifest = tmp_path / "explicit-evals.json"
-        parent_manifest = iteration_dir.parent / "evals" / "evals.json"
-        grandparent_manifest = iteration_dir.parent.parent / "evals" / "evals.json"
+        parent_manifest = iteration_dir.parent.parent / "evals" / "evals.json"
+        grandparent_manifest = iteration_dir.parent.parent.parent / "evals" / "evals.json"
 
         write_json(explicit_manifest, {"evals": []})
         write_json(parent_manifest, {"evals": [{"id": 1}]})
@@ -188,7 +197,7 @@ class TestBuildSelectionPool:
     def test_prefers_full_eval_coverage_and_reads_prompt_artifacts(self, tmp_path: Path):
         prompt_root = tmp_path / "support"
         workspace_dir = prompt_root / "support-workspace"
-        iteration_dir = workspace_dir / "iteration-2"
+        iteration_dir = workspace_dir / "iterations" / "iteration-2"
         manifest_file = prompt_root / "evals" / "evals.json"
 
         write_json(
@@ -249,7 +258,7 @@ class TestBuildSelectionPool:
 
     def test_supports_runs_subdirectory_and_manifest_free_eval_count(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        iteration_dir = workspace_dir / "iteration-1" / "runs"
+        iteration_dir = workspace_dir / "iterations" / "iteration-1" / "runs"
         eval_dir = iteration_dir / "eval-billing"
 
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
@@ -265,7 +274,7 @@ class TestBuildSelectionPool:
 
     def test_recognizes_suffix_baselines_and_candidate_prompt_artifacts(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-1" / "eval-billing"
 
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
         write_workspace_run(eval_dir, "candidate_new", 0.82, 10.0, 100, run_number=2)
@@ -284,7 +293,7 @@ class TestBuildSelectionPool:
 
     def test_direct_eval_dir_supports_manifest_fallback_and_selection(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-3" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-3" / "eval-billing"
         manifest_path = workspace_dir / "evals" / "evals.json"
 
         write_json(
@@ -311,7 +320,7 @@ class TestBuildSelectionPool:
 
     def test_raises_when_no_scored_candidate_runs_exist(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        iteration_dir = workspace_dir / "iteration-1" / "eval-empty"
+        iteration_dir = workspace_dir / "iterations" / "iteration-1" / "eval-empty"
         iteration_dir.mkdir(parents=True)
         write_json(iteration_dir / "eval_metadata.json", {"eval_id": 1})
 
@@ -323,7 +332,7 @@ class TestRunElectionSearch:
     @pytest.mark.asyncio
     async def test_workspace_result_sets_prompt_fields_and_single_winner(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-1" / "eval-billing"
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
         write_workspace_run(eval_dir, "with_skill", 0.9, 12.0, 100, prompt_text="Winning prompt")
         write_workspace_run(eval_dir, "without_skill", 0.4, 8.0, 50)
@@ -338,7 +347,7 @@ class TestRunElectionSearch:
     @pytest.mark.asyncio
     async def test_uses_benchmark_fallback_when_workspace_runs_are_missing(self, tmp_path: Path):
         workspace_dir = tmp_path / "candidate-workspace"
-        iteration_dir = workspace_dir / "iteration-1"
+        iteration_dir = workspace_dir / "iterations" / "iteration-1"
         write_json(
             iteration_dir / "benchmark.json",
             {
@@ -432,7 +441,7 @@ class TestRunElectionSearch:
 class TestElectionCli:
     def test_main_writes_output_file(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-1" / "eval-billing"
         output_path = tmp_path / "election-result.json"
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
         write_workspace_run(eval_dir, "with_skill", 0.9, 12.0, 100, prompt_text="Winning prompt")
@@ -446,7 +455,7 @@ class TestElectionCli:
 
     def test_main_prints_stdout_when_no_output_file(self, tmp_path: Path, capsys):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-1" / "eval-billing"
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
         write_workspace_run(eval_dir, "with_skill", 0.9, 12.0, 100, prompt_text="Winning prompt")
         write_workspace_run(eval_dir, "without_skill", 0.4, 8.0, 50)
@@ -458,7 +467,7 @@ class TestElectionCli:
 
     def test_module_entrypoint_executes_main(self, tmp_path: Path, monkeypatch, capsys):
         workspace_dir = tmp_path / "workspace"
-        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+        eval_dir = workspace_dir / "iterations" / "iteration-1" / "eval-billing"
         write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
         write_workspace_run(eval_dir, "with_skill", 0.9, 12.0, 100, prompt_text="Winning prompt")
         write_workspace_run(eval_dir, "without_skill", 0.4, 8.0, 50)

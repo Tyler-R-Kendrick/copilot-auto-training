@@ -1,0 +1,58 @@
+{
+  "skill_name": "judge-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use the judge agent to compare two prompt candidates for a trainer loop. The evidence bundle in evals/files/mixed-process-outcome.md includes both tool traces and final outputs. The result should decide which candidate to keep, route through the right judging skills, and stay evidence-first instead of rewarding cleaner prose.",
+      "expected_output": "The result should route mixed evidence through judge-trajectory first and judge-outcome second, keep a locked rubric, separate runtime reliability from end-state quality, and report missing evidence plus calibrated confidence.",
+      "files": [
+        "evals/files/mixed-process-outcome.md"
+      ],
+      "assertions": [
+        "The response routes mixed evidence through judge-trajectory before judge-outcome.",
+        "The response keeps a locked rubric or fixed rubric shell.",
+        "The response treats runtime failure or operational reliability separately from final-output quality.",
+        "The response includes missing evidence or calibrated confidence."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Judge two final-output summaries for a prompt-comparison task using only the final responses and the evaluation notes in evals/files/outcome-only.md. There are no traces or tool logs. Pick the stronger candidate and return a concise decision package.",
+      "expected_output": "The result should route to judge-outcome only, use an outcome-focused locked rubric, avoid inventing trajectory claims, and produce a concise decision package with decisive evidence and confidence.",
+      "files": [
+        "evals/files/outcome-only.md"
+      ],
+      "assertions": [
+        "The response routes to judge-outcome without pretending trajectory evidence exists.",
+        "The response uses outcome-facing evidence such as final outputs, references, criteria, or benchmark notes.",
+        "The response includes decisive evidence and confidence."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Compare two candidate judge prompts using the failure-heavy evidence in evals/files/runtime-failure.md. One candidate ignores a placeholder mismatch and tool-sequencing error. The other candidate reports them explicitly. Return the comparison the trainer should act on.",
+      "expected_output": "The result should route to judge-trajectory, report runtime failures as operational evidence instead of vague quality issues, and explain the concrete failure modes in the rejected candidate.",
+      "files": [
+        "evals/files/runtime-failure.md"
+      ],
+      "assertions": [
+        "The response treats the placeholder mismatch or tool-sequencing error as operational evidence.",
+        "The response reports concrete failure modes in the rejected candidate.",
+        "The response does not collapse runtime failure into generic low quality."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Two prompt candidates are nearly tied and the evidence in evals/files/order-robustness.md suggests the verdict flips when candidate order changes. Use the judge agent to produce the most decision-useful comparison you can without overstating certainty.",
+      "expected_output": "The result should keep a locked rubric, call out order-robustness risk, lower confidence on the close call, and still provide a short decision package the trainer can use.",
+      "files": [
+        "evals/files/order-robustness.md"
+      ],
+      "assertions": [
+        "The response mentions order-robustness, order bias, or presentation bias risk.",
+        "The response lowers confidence or explicitly marks uncertainty.",
+        "The response still provides a concise decision package."
+      ]
+    }
+  ]
+}

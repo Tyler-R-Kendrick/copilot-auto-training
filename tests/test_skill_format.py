@@ -49,7 +49,14 @@ class TestSkillFileExists:
 
     def test_expected_skills_exist(self):
         names = {path.name for path in _skill_dirs()}
-        assert {"trainer-optimize", "trainer-election", "trainer-research", "trainer-synthesize"} <= names
+        assert {
+            "trainer-optimize",
+            "trainer-election",
+            "trainer-research",
+            "trainer-synthesize",
+            "judge-trajectory",
+            "judge-outcome",
+        } <= names
 
     def test_old_unprefixed_skill_dirs_are_absent(self):
         names = {path.name for path in _skill_dirs()}
@@ -233,6 +240,36 @@ class TestOfficialEvalFixtures:
         assert len(payload["evals"]) >= 2
         assert all("prompt" in case for case in payload["evals"])
         assert all("expected_output" in case for case in payload["evals"])
+
+    def test_judge_outcome_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "judge-outcome" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "judge-outcome"
+        assert len(payload["evals"]) >= 3
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "final outputs" in manifest_text or "final-output" in manifest_text
+        assert "confidence" in manifest_text
+        assert "order bias" in manifest_text or "order-robust" in manifest_text
+
+    def test_judge_trajectory_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "judge-trajectory" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "judge-trajectory"
+        assert len(payload["evals"]) >= 3
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "trajectory" in manifest_text or "trace" in manifest_text
+        assert "runtime failures" in manifest_text or "runtime failure" in manifest_text
+        assert "chain-of-thought" in manifest_text
 
     def test_trainer_optimize_training_fixtures_use_local_trainer_workspace_contract(self):
         dataset_dir = SKILLS_DIR / "trainer-optimize" / "datasets"

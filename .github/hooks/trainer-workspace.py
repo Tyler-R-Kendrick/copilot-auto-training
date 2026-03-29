@@ -16,6 +16,7 @@ WORKFLOW_STATES = (
     "complete",
 )
 ITERATION_SUBDIRS = ("research", "synthesize", "optimize", "election", "validation")
+ITERATIONS_DIRNAME = "iterations"
 
 
 def prompt_name_for(path: str | Path) -> str:
@@ -71,7 +72,7 @@ def artifact_defaults(workspace_rel: str, source_snapshot_rel: str) -> dict[str,
         "val_dataset": None,
         "eval_manifest": None,
         "optimize_report": None,
-        "validation_log": f"{workspace_rel}/validation/pytest.txt",
+        "validation_log": None,
         "decision_summary": f"{workspace_rel}/decision.md",
     }
 
@@ -80,7 +81,7 @@ def artifact_contract() -> dict[str, str]:
     return {
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
-        "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iteration-N/.",
+        "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }
 
@@ -96,7 +97,7 @@ def initialize_workspace(repo_root: Path, target_file: str | Path, state: str) -
     workspace_parent = str(target_abs.parent.relative_to(repo_root)) if target_abs.parent != repo_root else "."
 
     (workspace_abs / "engineer-prompt").mkdir(parents=True, exist_ok=True)
-    (workspace_abs / "validation").mkdir(parents=True, exist_ok=True)
+    (workspace_abs / ITERATIONS_DIRNAME).mkdir(parents=True, exist_ok=True)
     source_dir = workspace_abs / "inputs" / "source"
     source_dir.mkdir(parents=True, exist_ok=True)
     source_snapshot_abs = source_dir / target_abs.name
@@ -176,7 +177,7 @@ def update_workspace(
             required[key] = to_repo_relative(repo_root, value)
 
     if iteration is not None:
-        iteration_abs = workspace_abs / iteration
+        iteration_abs = workspace_abs / ITERATIONS_DIRNAME / iteration
         if create_iteration_layout:
             for name in ITERATION_SUBDIRS:
                 (iteration_abs / name).mkdir(parents=True, exist_ok=True)

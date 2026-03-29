@@ -446,6 +446,31 @@ def test_normalize_argv_rejects_non_string_lists(agent_skills_module):
         agent_skills_module._normalize_argv(["ok", 1])
 
 
+def test_resolve_python_executable_prefers_override(agent_skills_module, monkeypatch):
+    monkeypatch.setenv("AGENT_SKILLS_PYTHON", "/custom/python")
+
+    assert agent_skills_module._resolve_python_executable() == "/custom/python"
+
+
+def test_resolve_python_executable_prefers_repo_venv_when_present(tmp_path, monkeypatch, agent_skills_module):
+    python_path = tmp_path / ".venv" / "bin" / "python"
+    python_path.parent.mkdir(parents=True)
+    python_path.write_text("#!/usr/bin/env python\n", encoding="utf-8")
+    monkeypatch.delenv("AGENT_SKILLS_PYTHON", raising=False)
+    monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(tmp_path))
+    monkeypatch.setattr(agent_skills_module.sys, "executable", "/fallback/python")
+
+    assert agent_skills_module._resolve_python_executable() == str(python_path)
+
+
+def test_resolve_python_executable_falls_back_to_current_interpreter(tmp_path, monkeypatch, agent_skills_module):
+    monkeypatch.delenv("AGENT_SKILLS_PYTHON", raising=False)
+    monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(tmp_path))
+    monkeypatch.setattr(agent_skills_module.sys, "executable", "/fallback/python")
+
+    assert agent_skills_module._resolve_python_executable() == "/fallback/python"
+
+
 def test_skill_directory_tree_skips_the_root_entry(tmp_path, monkeypatch, agent_skills_module):
     skill_dir = _write_skill(tmp_path, "tree-skill")
     original_rglob = agent_skills_module.Path.rglob
@@ -517,6 +542,29 @@ def test_run_agent_skill_returns_stderr_and_exit_code(tmp_path, monkeypatch, age
     result = agent_skills_module.run_agent_skill("stderr-skill")
 
     assert result == {"exit_code": 3, "stdout": "", "stderr": "bad\n"}
+
+
+def test_run_agent_skill_uses_resolved_python_executable(tmp_path, monkeypatch, agent_skills_module):
+    _write_skill(
+        tmp_path / "skills",
+        "python-select-skill",
+        extra_files={"scripts/run.py": "print('ok')\n"},
+    )
+    monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(tmp_path))
+    calls: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        calls["command"] = command
+        calls["kwargs"] = kwargs
+        return types.SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
+
+    monkeypatch.setattr(agent_skills_module, "_resolve_python_executable", lambda: "/chosen/python")
+    monkeypatch.setattr(agent_skills_module.subprocess, "run", fake_run)
+
+    result = agent_skills_module.run_agent_skill("python-select-skill")
+
+    assert result == {"exit_code": 0, "stdout": "ok\n", "stderr": ""}
+    assert calls["command"][0] == "/chosen/python"
 
 
 def test_build_mcp_registers_tools_and_resources(monkeypatch, agent_skills_module):
@@ -862,8 +910,8 @@ def test_vscode_mcp_config_contains_agent_skills_server():
     server = config["servers"]["agent-skills"]
 
     assert server["type"] == "stdio"
-    assert server["command"].endswith("/.venv/bin/uv")
-    assert "tools/agent-skills-mcp" in " ".join(server["args"])
+    assert server["command"].endswith("/.venv/bin/python")
+    assert any(arg.endswith("tools/agent-skills-mcp/server.py") for arg in server["args"])
 
 
 def test_devcontainer_post_start_syncs_agent_skills_project():
