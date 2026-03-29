@@ -91,7 +91,7 @@ def test_candidate_skill_roots_preserve_supported_order(tmp_path, monkeypatch, a
 
     roots = agent_skills_module._candidate_skill_roots()
 
-    assert [label for label, _ in roots] == ["skills", ".github/skills", ".agents/skills"]
+    assert [label for label, _ in roots] == ["skills", ".agents/skills", ".github/skills"]
 
 
 def test_repository_root_defaults_to_repo_root_when_env_is_unset(monkeypatch, agent_skills_module):

@@ -24,9 +24,9 @@ LOGGER.propagate = False
 
 SUPPORTED_SKILL_ROOTS = (
     "skills",
+    ".agents/skills",
     ".github/skills",
     ".claude/skills",
-    ".agents/skills",
 )
 TEXT_ASSET_EXTENSIONS = {".md", ".txt", ".json", ".yaml", ".yml", ".py", ".sh"}
 TOKEN_RE = re.compile(r"[a-z0-9]+")

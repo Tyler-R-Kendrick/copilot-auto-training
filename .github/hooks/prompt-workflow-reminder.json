@@ -11,6 +11,11 @@
         "matcher": "Write|Edit|MultiEdit",
         "command": "bash /workspaces/copilot-apo/.github/hooks/prompt-workflow-reminder.sh",
         "timeout": 15
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "command": "bash /workspaces/copilot-apo/.github/hooks/ensure-skill-link-watcher.sh",
+        "timeout": 15
       }
     ]
   }

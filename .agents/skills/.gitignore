@@ -1,0 +1,12 @@
+# Managed by .github/hooks/sync-skill-links.py.
+# Ignore unmanaged local additions while keeping canonical links and in-place source dirs visible.
+*
+!.gitignore
+!engineer-prompt
+!judge-outcome
+!judge-trajectory
+!skill-creator/
+!trainer-election
+!trainer-optimize
+!trainer-research
+!trainer-synthesize

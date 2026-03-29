@@ -102,6 +102,16 @@ Key entry points:
 - [skills/trainer-optimize/scripts/generate_jsonl.py](skills/trainer-optimize/scripts/generate_jsonl.py): CSV-to-JSONL dataset bootstrapper
 - [tests/test_run_optimize.py](tests/test_run_optimize.py): end-to-end behavior coverage
 
+Skill layout:
+
+- `skills/`, `.agents/skills/`, and `.claude/skills/` are the canonical in-repo skill roots.
+- `.agents/skills/` is the managed symlink mirror maintained by [`.github/hooks/sync-skill-links.py`](.github/hooks/sync-skill-links.py) so the repo does not keep copied skill directories.
+- The helper can also link skills from `~/skills` and `~/.agents/skills` into `.agents/skills/` when those home-level roots exist.
+- Local home-skill symlinks created by the watcher are ignored by [`.agents/skills/.gitignore`](.agents/skills/.gitignore) so they do not dirty the repository.
+- Use `python .github/hooks/sync-skill-links.py --check` to verify that `.agents/skills/` exactly matches the discovered skill roots.
+- The launcher at [`.github/hooks/ensure-skill-link-watcher.sh`](.github/hooks/ensure-skill-link-watcher.sh) performs an immediate sync and starts a background watcher so future additions to `~/skills` and `~/.agents/skills` are linked automatically during the session.
+- The write-time hook in [`.github/hooks/prompt-workflow-reminder.json`](.github/hooks/prompt-workflow-reminder.json) starts that launcher automatically after file edits.
+
 The repository currently ships official eval manifests for [skills/trainer-optimize/SKILL.md](skills/trainer-optimize/SKILL.md) and a smaller onboarding example under [examples/first-run](examples/first-run/README.md).
 
 ## License

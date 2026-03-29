@@ -14,6 +14,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
+SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 
 
 def _read(path: Path) -> str:
@@ -48,6 +49,15 @@ def _load_agent_skills_module():
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     sys.modules.setdefault("agent_skills_mcp_customizations", module)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_skill_links_module():
+    spec = importlib.util.spec_from_file_location("sync_skill_links_customizations", SKILL_LINKS_MODULE_PATH)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    sys.modules.setdefault("sync_skill_links_customizations", module)
     spec.loader.exec_module(module)
     return module
 
@@ -170,23 +180,17 @@ class TestAgentCustomizations:
             agent_skills_module.run_agent_skill("engineer-prompt")
 
     def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
+        mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-election"
         canonical_path = REPO_ROOT / "skills" / "trainer-election" / "SKILL.md"
-        mirrored_path = REPO_ROOT / ".github" / "skills" / "trainer-election" / "SKILL.md"
+        mirrored_path = mirrored_root / "SKILL.md"
 
-        canonical = _read(canonical_path).replace(
-            "[skills/trainer-election/references/leader-election.md](./references/leader-election.md)",
-            "[skills/trainer-election/references/leader-election.md](REFERENCE_LINK)",
-        )
-        mirrored = _read(mirrored_path).replace(
-            "[skills/trainer-election/references/leader-election.md](../../../skills/trainer-election/references/leader-election.md)",
-            "[skills/trainer-election/references/leader-election.md](REFERENCE_LINK)",
-        )
-
-        assert canonical == mirrored
+        assert mirrored_root.is_symlink()
+        assert mirrored_path.resolve() == canonical_path.resolve()
+        assert _read(canonical_path) == _read(mirrored_path)
 
     def test_trainer_synthesize_mirror_assets_stay_aligned_with_canonical_contract(self):
         canonical_root = REPO_ROOT / "skills" / "trainer-synthesize"
-        mirrored_root = REPO_ROOT / ".github" / "skills" / "trainer-synthesize"
+        mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-synthesize"
 
         for relative_path in (
             "SKILL.md",
@@ -489,6 +493,147 @@ class TestHookCustomization:
         assert post_tool_use
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
         assert any("prompt-workflow-reminder.sh" in entry["command"] for entry in post_tool_use)
+        assert any("ensure-skill-link-watcher.sh" in entry["command"] for entry in post_tool_use)
+
+    def test_skill_link_watcher_launcher_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "ensure-skill-link-watcher.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert "sync-skill-links.py" in text
+        assert "--watch" in text
+        assert 'pgrep -u "$UID" -f "$sync_helper .*--watch"' in text
+        assert "$HOME/skills" in text
+        assert "$HOME/.agents/skills" in text
+
+    def test_skill_link_sync_helper_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env python3")
+        assert ".agents/skills" in text
+        assert "~/skills" in text
+        assert "--check" in text
+        assert "--watch" in text
+        assert "symlink_to" in text
+
+    def test_skill_link_sync_helper_normalizes_repo_and_external_skill_roots(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            repo_skill = temp_root / "skills" / "repo-skill"
+            repo_skill.mkdir(parents=True)
+            (repo_skill / "SKILL.md").write_text("---\nname: repo-skill\ndescription: repo\n---\n", encoding="utf-8")
+
+            agent_skill = temp_root / ".agents" / "skills" / "agent-skill"
+            agent_skill.mkdir(parents=True)
+            (agent_skill / "SKILL.md").write_text("---\nname: agent-skill\ndescription: agent\n---\n", encoding="utf-8")
+
+            external_root = temp_root / "home-skills"
+            external_skill = external_root / "external-skill"
+            external_skill.mkdir(parents=True)
+            (external_skill / "SKILL.md").write_text("---\nname: external-skill\ndescription: external\n---\n", encoding="utf-8")
+
+            mirror_root = temp_root / ".agents" / "skills"
+            stale_copy = mirror_root / "repo-skill"
+            stale_copy.mkdir(parents=True)
+            (stale_copy / "SKILL.md").write_text("stale copy\n", encoding="utf-8")
+            stale_link = mirror_root / "stale-skill"
+            stale_link.symlink_to(repo_skill, target_is_directory=True)
+
+            result = _run_python_script(
+                helper_path,
+                "--repo-root",
+                str(temp_root),
+                "--mirror-root",
+                str(mirror_root),
+                "--external-root",
+                str(external_root),
+            )
+            payload = json.loads(result.stdout)
+
+            assert "repo-skill" in payload["updated"]
+            assert "agent-skill" in payload["unchanged"]
+            assert "external-skill" in payload["created"]
+            assert "stale-skill" in payload["removed"]
+
+            repo_link = mirror_root / "repo-skill"
+            agent_link = mirror_root / "agent-skill"
+            external_link = mirror_root / "external-skill"
+            assert repo_link.is_symlink()
+            assert not agent_link.is_symlink()
+            assert external_link.is_symlink()
+            assert repo_link.resolve() == repo_skill.resolve()
+            assert agent_link.resolve() == agent_skill.resolve()
+            assert external_link.resolve() == external_skill.resolve()
+            assert os.readlink(repo_link) == "../../skills/repo-skill"
+            assert os.readlink(external_link)
+
+            gitignore_text = _read(mirror_root / ".gitignore")
+            assert "!repo-skill" in gitignore_text
+            assert "!agent-skill/" in gitignore_text
+            assert "!external-skill" not in gitignore_text
+
+    def test_skill_link_sync_helper_check_detects_drift(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            repo_skill = temp_root / "skills" / "repo-skill"
+            repo_skill.mkdir(parents=True)
+            (repo_skill / "SKILL.md").write_text("---\nname: repo-skill\ndescription: repo\n---\n", encoding="utf-8")
+
+            _run_python_script(helper_path, "--repo-root", str(temp_root))
+
+            clean = subprocess.run(
+                [str(REPO_ROOT / ".venv" / "bin" / "python"), str(helper_path), "--repo-root", str(temp_root), "--mirror-root", str(temp_root / ".agents" / "skills"), "--check"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            assert clean.returncode == 0
+            clean_payload = json.loads(clean.stdout)
+            assert clean_payload["status"] == "ok"
+
+            broken_link = temp_root / ".agents" / "skills" / "repo-skill"
+            broken_link.unlink()
+            broken_link.mkdir()
+            (broken_link / "SKILL.md").write_text("stale copy\n", encoding="utf-8")
+
+            drift = subprocess.run(
+                [str(REPO_ROOT / ".venv" / "bin" / "python"), str(helper_path), "--repo-root", str(temp_root), "--mirror-root", str(temp_root / ".agents" / "skills"), "--check"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            assert drift.returncode == 1
+            drift_payload = json.loads(drift.stdout)
+            assert drift_payload["status"] == "drift"
+            assert "repo-skill" in drift_payload["non_symlink"]
+
+    def test_agents_skill_directory_matches_managed_links(self):
+        skill_links_module = _load_skill_links_module()
+        mirror_root = REPO_ROOT / ".agents" / "skills"
+        skill_links = sorted(child for child in mirror_root.iterdir() if not child.name.startswith("."))
+        expected_links, duplicates, _ = skill_links_module.desired_skill_links(REPO_ROOT, [], mirror_root=mirror_root)
+        actual_links = {child.name: child for child in skill_links}
+
+        assert skill_links
+        assert duplicates == {}
+        assert all(child.is_symlink() or child.name == "skill-creator" for child in skill_links)
+        assert all((child.resolve() / "SKILL.md").is_file() for child in skill_links)
+        assert set(expected_links).issubset(actual_links)
+        assert all(actual_links[name].resolve() == target.resolve() for name, target in expected_links.items())
+
+    def test_agents_skill_directory_gitignore_hides_local_external_links(self):
+        gitignore_path = REPO_ROOT / ".agents" / "skills" / ".gitignore"
+        text = _read(gitignore_path)
+
+        assert "Managed by .github/hooks/sync-skill-links.py" in text
+        assert "*" in text
+        assert "!.gitignore" in text
+        assert "!skill-creator/" in text
 
     def test_prompt_workflow_script_injects_engineer_prompt_and_trainer(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.sh"
