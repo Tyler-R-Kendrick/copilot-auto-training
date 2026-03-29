@@ -4,13 +4,17 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+scan_root="${PROMPT_WORKFLOW_SCAN_ROOT:-$repo_root}"
+
 /workspaces/copilot-apo/.venv/bin/python -c '
 import json
+import os
 from pathlib import Path
 
 repo_root = Path(".").resolve()
+scan_root = Path(os.environ.get("PROMPT_WORKFLOW_SCAN_ROOT", str(repo_root))).resolve()
 pending = []
-for status_path in repo_root.glob("**/.trainer-workspace/*/workflow-status.json"):
+for status_path in scan_root.glob("**/.trainer-workspace/*/workflow-status.json"):
     try:
         payload = json.loads(status_path.read_text(encoding="utf-8"))
     except Exception:

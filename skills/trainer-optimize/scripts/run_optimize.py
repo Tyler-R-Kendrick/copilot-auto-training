@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from contextlib import contextmanager
 from datetime import UTC, datetime
 import json
+import os
+import socket
 import sys
 from typing import Any, Literal
 from uuid import uuid4
@@ -22,10 +25,40 @@ from optimize_support import (
     extract_placeholders,
     flatten_keys,
     load_jsonl,
+    render_prompt_text,
     resolve_dataset_paths,
     validate_template_against_task,
 )
 import optimize_support as support
+
+
+def _pick_free_local_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as handle:
+        handle.bind(("127.0.0.1", 0))
+        return int(handle.getsockname()[1])
+
+
+@contextmanager
+def _configure_agentlightning_server() -> Any:
+    original_host = os.getenv("AGL_SERVER_HOST")
+    original_port = os.getenv("AGL_SERVER_PORT")
+
+    host = original_host or "127.0.0.1"
+    port = int(original_port) if original_port else _pick_free_local_port()
+
+    os.environ["AGL_SERVER_HOST"] = host
+    os.environ["AGL_SERVER_PORT"] = str(port)
+    try:
+        yield {"host": host, "port": port, "dashboard_url": f"http://{host}:{port}"}
+    finally:
+        if original_host is None:
+            os.environ.pop("AGL_SERVER_HOST", None)
+        else:
+            os.environ["AGL_SERVER_HOST"] = original_host
+        if original_port is None:
+            os.environ.pop("AGL_SERVER_PORT", None)
+        else:
+            os.environ["AGL_SERVER_PORT"] = original_port
 
 
 def build_trace_case_summary(
@@ -174,7 +207,15 @@ def _make_rollout(judge_mode: str, *, llm_client: Any, model_name: str, judge_pr
 
     @agl.rollout
     async def prompt_optimizer_rollout(task: dict[str, Any], prompt_template: agl.PromptTemplate) -> float:
-        output_text = await support.run_candidate(prompt_template.template, task, llm_client=llm_client, model_name=model_name)
+        try:
+            output_text = await support.run_candidate(
+                prompt_template.template,
+                task,
+                llm_client=llm_client,
+                model_name=model_name,
+            )
+        except support.PromptTemplateValidationError:
+            return 0.0
         return await evaluate_output(
             task,
             output_text,
@@ -187,7 +228,7 @@ def _make_rollout(judge_mode: str, *, llm_client: Any, model_name: str, judge_pr
     return prompt_optimizer_rollout
 
 
-async def run_optimize(
+def run_optimize_sync(
     prompt_file: str,
     train_file: str | None = None,
     val_file: str | None = None,
@@ -233,37 +274,46 @@ async def run_optimize(
     if not debug_only and inference_model is None:
         raise ValueError("Optimization requires GITHUB_MODELS_MODEL or OPENAI_MODEL to execute prompt rollouts.")
 
-    import agentlightning as agl
+    with _configure_agentlightning_server() as server_settings:
+        import agentlightning as agl
 
-    algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
-        openai_client,
-        beam_rounds=iterations,
-        beam_width=beam_width,
-        branch_factor=branch_factor,
-        gradient_batch_size=min(4, len(train_dataset)),
-        val_batch_size=min(16, len(val_dataset)),
-        gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
-        apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-    )
-    trainer = agl.Trainer(
-        algorithm=algo,
-        n_runners=n_runners,
-        tracer=agl.OtelTracer(),
-        initial_resources={"main_prompt": agl.PromptTemplate(template=prompt_text, engine="f-string")},
-        adapter=agl.TraceToMessages(),
-    )
-    rollout_fn = _make_rollout(
-        judge_mode,
-        llm_client=openai_client,
-        model_name=str(inference_model),
-        judge_prompt_file=judge_prompt_file,
-    )
-    if debug_only:
-        await asyncio.to_thread(trainer.dev, agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
-        return json.dumps({"ok": True, "mode": "debug", "message": "Dry run complete"}, indent=2)
-    await asyncio.to_thread(trainer.fit, agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
+        algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
+            openai_client,
+            beam_rounds=iterations,
+            beam_width=beam_width,
+            branch_factor=branch_factor,
+            gradient_batch_size=min(4, len(train_dataset)),
+            val_batch_size=min(16, len(val_dataset)),
+            gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
+            apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
+        )
+        trainer = agl.Trainer(
+            algorithm=algo,
+            n_runners=n_runners,
+            tracer=agl.OtelTracer(),
+            initial_resources={"main_prompt": agl.PromptTemplate(template=prompt_text, engine="f-string")},
+            adapter=agl.TraceToMessages(),
+        )
+        rollout_fn = _make_rollout(
+            judge_mode,
+            llm_client=openai_client,
+            model_name=str(inference_model),
+            judge_prompt_file=judge_prompt_file,
+        )
+        if debug_only:
+            trainer.dev(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
+            return json.dumps(
+                {
+                    "ok": True,
+                    "mode": "debug",
+                    "message": "Dry run complete",
+                    "dashboard_url": server_settings["dashboard_url"],
+                },
+                indent=2,
+            )
+        trainer.fit(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
 
-    optimized_prompt = _extract_best_prompt_template(algo)
+        optimized_prompt = _extract_best_prompt_template(algo)
     prompt_file_updated = False
     if in_place:
         _write_text_if_requested(prompt_file, optimized_prompt)
@@ -280,6 +330,7 @@ async def run_optimize(
         "output_file": written_output_file,
         "report_file": report_file,
         "prompt_file_updated": prompt_file_updated,
+        "dashboard_url": server_settings["dashboard_url"],
         "model_provider": model_settings["provider"],
         "model_endpoint": model_settings["base_url"],
         "inference_model": model_settings["inference_model"],
@@ -297,6 +348,41 @@ async def run_optimize(
     if report_file:
         Path(report_file).write_text(json.dumps(report, indent=2), encoding="utf-8")
     return json.dumps(report, indent=2)
+
+
+async def run_optimize(
+    prompt_file: str,
+    train_file: str | None = None,
+    val_file: str | None = None,
+    iterations: int = 3,
+    algorithm: str = "apo",
+    output_file: str | None = None,
+    report_file: str | None = None,
+    beam_width: int = 4,
+    branch_factor: int = 4,
+    n_runners: int = 4,
+    judge_mode: Literal["deterministic", "custom", "llm_judge"] = "deterministic",
+    judge_prompt_file: str | None = None,
+    debug_only: bool = False,
+    in_place: bool = False,
+) -> str:
+    return await asyncio.to_thread(
+        run_optimize_sync,
+        prompt_file,
+        train_file,
+        val_file,
+        iterations,
+        algorithm,
+        output_file,
+        report_file,
+        beam_width,
+        branch_factor,
+        n_runners,
+        judge_mode,
+        judge_prompt_file,
+        debug_only,
+        in_place,
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -320,23 +406,21 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    result = asyncio.run(
-        run_optimize(
-            prompt_file=args.prompt_file,
-            train_file=args.train_file,
-            val_file=args.val_file,
-            iterations=args.iterations,
-            algorithm=args.algorithm,
-            output_file=args.output_file,
-            report_file=args.report_file,
-            beam_width=args.beam_width,
-            branch_factor=args.branch_factor,
-            n_runners=args.n_runners,
-            judge_mode=args.judge_mode,
-            judge_prompt_file=args.judge_prompt_file,
-            debug_only=args.debug_only,
-            in_place=args.in_place,
-        )
+    result = run_optimize_sync(
+        prompt_file=args.prompt_file,
+        train_file=args.train_file,
+        val_file=args.val_file,
+        iterations=args.iterations,
+        algorithm=args.algorithm,
+        output_file=args.output_file,
+        report_file=args.report_file,
+        beam_width=args.beam_width,
+        branch_factor=args.branch_factor,
+        n_runners=args.n_runners,
+        judge_mode=args.judge_mode,
+        judge_prompt_file=args.judge_prompt_file,
+        debug_only=args.debug_only,
+        in_place=args.in_place,
     )
     print(result)
     return 0 if json.loads(result).get("ok") else 1

@@ -4,10 +4,11 @@ Agent Lightning starts a local dashboard server during active optimization runs.
 
 ## URLs
 
-- Dashboard root: `http://localhost:4747`
-- Health endpoint: `http://localhost:4747/v1/agl/health`
+- Dashboard root: use the `dashboard_url` returned by `run_optimize.py`
+- Health endpoint: `<dashboard_url>/v1/agl/health`
 
 The dashboard is mounted at the server root rather than under `/v1/`.
+Unless `AGL_SERVER_PORT` is already set, the runtime chooses a free local port on `127.0.0.1` for each run.
 
 ## Open the Dashboard
 
@@ -18,32 +19,33 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file skills/trainer-optimize/SKILL.md
 ```
 
-Open the dashboard from the dev container:
+Read the command JSON output or report file, then open the returned `dashboard_url` from the dev container:
 
 ```bash
-$BROWSER http://localhost:4747
+$BROWSER "$(jq -r '.dashboard_url' /path/to/report.json)"
 ```
 
-If you are using VS Code remote development or Codespaces, you can also open the forwarded port from the browser UI.
+If you are using VS Code remote development or Codespaces, you can also open the forwarded port from the browser UI. If you need a stable forwarded port, set `AGL_SERVER_PORT` before starting the run.
 
 ## Recommended Workflow
 
 ```mermaid
 flowchart LR
-  A[Start an optimization run] --> B[Open http://localhost:4747]
-  B --> C[Rollouts]
-  C --> D[Inspect the active rollout]
-  D --> E[Open Traces for span-level detail]
-  D --> F[Open Resources for prompt versions]
-  B --> G[Open Runners to check worker health]
-  B --> H[Open Settings to verify base URL and refresh]
+  A[Start an optimization run] --> B[Read dashboard_url from JSON output or report]
+  B --> C[Open the returned dashboard URL]
+  C --> D[Rollouts]
+  D --> E[Inspect the active rollout]
+  E --> F[Open Traces for span-level detail]
+  E --> G[Open Resources for prompt versions]
+  C --> H[Open Runners to check worker health]
+  C --> I[Open Settings to verify base URL and refresh]
 ```
 
 Use the dashboard in this order:
 
 1. Open `Rollouts` to confirm the run exists and is progressing.
-2. Open `Runners` if the run looks stuck and verify workers are alive.
-3. Open `Traces` to inspect detailed spans for a rollout or attempt.
+2. If a rollout is marked `failed`, treat that as an exception path and inspect `Traces` before describing it as a low-score result.
+3. Open `Runners` if the run looks stuck and verify workers are alive.
 4. Open `Resources` to inspect prompt and resource snapshots tied to the run.
 5. Open `Settings` if the UI shows `Offline` and verify the backend base URL.
 

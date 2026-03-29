@@ -14,20 +14,24 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 - If the optimizer cannot resolve dataset files, pass explicit `--train-file` and `--val-file` paths and verify the files actually exist.
 - If you only have CSV input, generate explicit datasets with [skills/trainer-optimize/scripts/generate_jsonl.py](../skills/trainer-optimize/scripts/generate_jsonl.py).
 - If placeholder validation fails, compare the markdown template placeholders with the dataset row keys and keep evaluator-only fields out of the prompt rendering path.
+- If the prompt contains literal JSON or other brace-heavy examples, keep them literal or escaped. They should not create new placeholders unless they intentionally match the prompt interface.
 
 ## Runtime Issues
 
 - If the optimizer appears stuck during startup, wait for the local Uvicorn server to finish booting before refreshing the dashboard.
-- If the run completes but optimizer artifacts are missing, check the explicit report path you passed or the default `<prompt-dir>/<prompt-name>-workspace/benchmark.json` location.
+- If the run completes but trainer workflow artifacts are missing, check the explicit report path you passed or the local `<prompt-dir>/.trainer-workspace/<prompt-name>/benchmark.json` rollup when that workflow generated benchmark artifacts.
 - If you used `--debug-only`, the optimizer intentionally skips writing the optimized prompt and temporary run artifacts.
+- If a rollout is marked `failed`, treat that as an exception path rather than a poor score. Check CLI stderr, saved `optimize-stderr.txt`, and dashboard traces first.
+- If you see `404 page not found` from `responses.create` on GitHub Models, that is an endpoint/API compatibility problem. Use a runtime version that falls back to chat completions automatically, or verify the configured endpoint.
+- If the dashboard URL changes between runs, use the returned `dashboard_url` from the JSON result or report file. The runtime now chooses a free local port unless `AGL_SERVER_PORT` is set explicitly.
 
 ## Dashboard Issues
 
-- If `http://localhost:4747` does not load, confirm that an optimization run is currently active.
-- If the dashboard loads but shows `Offline`, open `Settings` and verify the backend base URL still points to `http://localhost:4747`.
+- If the dashboard does not load, confirm that an optimization run is currently active and open the current `dashboard_url` returned by the runtime.
+- If the dashboard loads but shows `Offline`, open `Settings` and verify the backend base URL still points to the current `dashboard_url` rather than an older fixed port.
 - If the dashboard is empty, confirm the optimization process is still running in another terminal.
-- If you are in Codespaces or another remote container, verify that port `4747` is forwarded and reachable from your browser session.
-- If the port is already busy, stop the older run before starting a new one.
+- If you are in Codespaces or another remote container, verify that the active dashboard port is forwarded and reachable from your browser session.
+- If the port is already busy because you pinned `AGL_SERVER_PORT`, stop the older run or choose a different port before starting a new one.
 
 ## More Context
 

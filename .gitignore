@@ -10,3 +10,4 @@ build/
 # Generated optimization outputs (written by run_optimize during tests / real runs)
 *.optimized.md
 **/*-workspace/
+**/.trainer-workspace/

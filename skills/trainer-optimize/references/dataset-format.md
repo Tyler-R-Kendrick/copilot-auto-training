@@ -97,6 +97,7 @@ The dataset must have either:
 - A nested path reachable via dot notation (e.g., `input.question` satisfies `{question}`)
 
 Evaluator-only fields such as `expected`, `expected_json`, `reference`, `criteria`, and `scoring` should remain available to the scorer but must not be exposed to the prompt rendering path.
+Literal brace-heavy examples are allowed in prompt text. A JSON example such as `{"input": "user request"}` should stay literal and must not be treated as a placeholder. Use double braces like `{{literal}}` only when you intentionally want literal braces in brace-based prompt syntax.
 
 ## Evaluator modes
 

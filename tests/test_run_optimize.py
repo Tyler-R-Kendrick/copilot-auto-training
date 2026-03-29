@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 import run_optimize as optimize_module
-from run_optimize import run_optimize
+from run_optimize import _make_rollout, run_optimize, run_optimize_sync
 
 
 def _write_file(content: str, suffix: str = ".md") -> str:
@@ -46,6 +46,11 @@ class TestRunOptimizeModuleShape:
         assert "def topk_select(" not in source
         assert "run_election_search(" not in source
         assert "steering" not in source
+
+    def test_main_uses_sync_entry_point_for_live_runs(self):
+        source = Path(optimize_module.__file__).read_text(encoding="utf-8")
+
+        assert "result = run_optimize_sync(" in source
 
     def test_support_module_has_no_dataset_synthesis_helpers(self):
         support_source = Path(optimize_module.__file__).with_name("optimize_support.py").read_text(encoding="utf-8")
@@ -240,6 +245,7 @@ class TestRunOptimizeDebugOnly:
 
         assert result["ok"] is True
         assert result["mode"] == "debug"
+        assert result["dashboard_url"].startswith("http://")
 
     @pytest.mark.asyncio
     async def test_debug_only_does_not_write_files(self, tmp_path):
@@ -265,7 +271,98 @@ class TestRunOptimizeDebugOnly:
         assert not report.exists()
 
 
+class TestRolloutCandidateValidation:
+    @pytest.mark.asyncio
+    async def test_invalid_candidate_placeholder_returns_zero_instead_of_failing(self, monkeypatch):
+        async def explode_if_called(*args, **kwargs):
+            raise AssertionError("evaluate_output should not run for invalid prompt candidates")
+
+        monkeypatch.setattr(optimize_module, "evaluate_output", explode_if_called)
+
+        rollout = _make_rollout(
+            "deterministic",
+            llm_client=object(),
+            model_name="openai/gpt-4.1-mini",
+        )
+
+        score = await rollout(
+            {"input": "ping", "expected": "pong"},
+            sys.modules["agentlightning"].PromptTemplate("Answer: {missing_field}"),
+        )
+
+        assert score == 0.0
+
+
 class TestRunOptimizeNormalRun:
+    def test_sync_entry_point_returns_json_string(self):
+        prompt = _write_file(SIMPLE_TEMPLATE)
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        raw = run_optimize_sync(prompt_file=prompt, train_file=train, val_file=val)
+        parsed = json.loads(raw)
+
+        assert isinstance(raw, str)
+        assert parsed["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_run_uses_isolated_agentlightning_port_when_env_not_set(self, tmp_path, monkeypatch):
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        monkeypatch.delenv("AGL_SERVER_HOST", raising=False)
+        monkeypatch.delenv("AGL_SERVER_PORT", raising=False)
+
+        agl = sys.modules["agentlightning"]
+        original_fit = agl.Trainer.fit
+        observed: dict[str, str | None] = {}
+
+        def fit_with_env_capture(self, *, agent, train_dataset, val_dataset):
+            observed["host"] = os.getenv("AGL_SERVER_HOST")
+            observed["port"] = os.getenv("AGL_SERVER_PORT")
+            return original_fit(self, agent=agent, train_dataset=train_dataset, val_dataset=val_dataset)
+
+        monkeypatch.setattr(agl.Trainer, "fit", fit_with_env_capture)
+
+        result = json.loads(await run_optimize(prompt_file=str(prompt_path), train_file=train, val_file=val))
+
+        assert result["ok"] is True
+        assert observed["host"] == "127.0.0.1"
+        assert observed["port"] is not None
+        assert observed["port"].isdigit()
+        assert result["dashboard_url"] == f"http://127.0.0.1:{observed['port']}"
+        assert os.getenv("AGL_SERVER_HOST") is None
+        assert os.getenv("AGL_SERVER_PORT") is None
+
+    @pytest.mark.asyncio
+    async def test_run_preserves_explicit_agentlightning_endpoint(self, tmp_path, monkeypatch):
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        monkeypatch.setenv("AGL_SERVER_HOST", "localhost")
+        monkeypatch.setenv("AGL_SERVER_PORT", "48123")
+
+        agl = sys.modules["agentlightning"]
+        original_fit = agl.Trainer.fit
+        observed: dict[str, str | None] = {}
+
+        def fit_with_env_capture(self, *, agent, train_dataset, val_dataset):
+            observed["host"] = os.getenv("AGL_SERVER_HOST")
+            observed["port"] = os.getenv("AGL_SERVER_PORT")
+            return original_fit(self, agent=agent, train_dataset=train_dataset, val_dataset=val_dataset)
+
+        monkeypatch.setattr(agl.Trainer, "fit", fit_with_env_capture)
+
+        result = json.loads(await run_optimize(prompt_file=str(prompt_path), train_file=train, val_file=val))
+
+        assert result["ok"] is True
+        assert observed == {"host": "localhost", "port": "48123"}
+        assert result["dashboard_url"] == "http://localhost:48123"
+
     @pytest.mark.asyncio
     async def test_trainer_fit_can_call_asyncio_run_without_nested_loop_failure(self, tmp_path, monkeypatch):
         agl = sys.modules["agentlightning"]
@@ -319,6 +416,7 @@ class TestRunOptimizeNormalRun:
         assert result["prompt_file_updated"] is False
         assert prompt_path.read_text(encoding="utf-8") == SIMPLE_TEMPLATE
         assert not (tmp_path / "prompt-workspace").exists()
+        assert not (tmp_path / ".trainer-workspace" / "prompt").exists()
 
     @pytest.mark.asyncio
     async def test_explicit_output_file_writes_only_output_file(self, tmp_path):

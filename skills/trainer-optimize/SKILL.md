@@ -61,7 +61,10 @@ Optional arguments:
 - Supported algorithms: `apo` and `verl`, selected through the same optimization pipeline.
 - Supported judge modes: `deterministic`, `custom`, and `llm_judge`.
 - The optimizer loads GitHub Models settings from the repository root `.env` when `GITHUB_MODELS_*` variables are present.
-- Supported root `.env` variables are `GITHUB_MODELS_API_KEY`, `GITHUB_MODELS_ENDPOINT`, `GITHUB_MODELS_GRADIENT_MODEL`, and `GITHUB_MODELS_APPLY_EDIT_MODEL`.
+- Supported root `.env` variables are `GITHUB_MODELS_API_KEY`, `GITHUB_MODELS_ENDPOINT`, `GITHUB_MODELS_MODEL`, `GITHUB_MODELS_GRADIENT_MODEL`, and `GITHUB_MODELS_APPLY_EDIT_MODEL`.
+- The runtime returns a `dashboard_url` in debug and normal JSON output. Unless `AGL_SERVER_PORT` is already set, it binds Agent Lightning to a free local port on `127.0.0.1` instead of assuming `4747`.
+- Prompt rendering uses placeholder-targeted substitution rather than whole-string Python `str.format()`. Literal JSON or other brace-heavy examples remain literal, escaped braces like `{{literal}}` stay supported, and nested placeholders such as `{input.question}` are allowed.
+- When GitHub Models exposes an OpenAI-compatible endpoint that rejects the Responses API route with `404`, text generation falls back to chat completions automatically.
 - By default the optimized prompt is returned in the JSON result and CLI stdout without writing files.
 - The source prompt is only overwritten when `in_place` is requested.
 - `output` writes a separate optimized prompt file when requested.
@@ -82,10 +85,11 @@ Optional arguments:
 6. Verify the train and validation files each contain at least one JSON object row.
 7. Extract template placeholders and verify they are satisfiable from the sample task schema.
 8. Keep evaluator-only fields such as `expected`, `expected_json`, `reference`, `criteria`, and `scoring` out of the prompt rendering path.
-9. If the prompt or dataset shape is incompatible, stop and explain the mismatch clearly.
-10. Run `scripts/run_optimize.py` with the resolved arguments.
-11. Return the optimized prompt in JSON/stdout unless explicit persistence flags request file output.
-12. Report the optimized prompt path, report path, and optimization metadata from the JSON result.
+9. If the prompt contains literal JSON or brace-heavy examples, keep them literal or escaped and do not let them introduce accidental placeholders.
+10. If the prompt or dataset shape is incompatible, stop and explain the mismatch clearly.
+11. Run `scripts/run_optimize.py` with the resolved arguments.
+12. Return the optimized prompt in JSON/stdout unless explicit persistence flags request file output.
+13. Report the optimized prompt path, report path, dashboard URL, and optimization metadata from the JSON result.
 
 ## Algorithm guidance
 
@@ -149,22 +153,26 @@ After a successful run, the JSON result always contains the optimized prompt tex
 
 ## Dashboard
 
-During an active optimization run, Agent Lightning starts a local dashboard server at `http://localhost:4747`.
+During an active optimization run, Agent Lightning starts a local dashboard server and returns its URL in the JSON result as `dashboard_url`.
 
-- Open the dashboard root URL in a browser while the run is active.
-- The dashboard uses `http://localhost:4747/v1/agl/health` for health checks and API connectivity.
+- Open the returned dashboard root URL in a browser while the run is active.
+- Unless `AGL_SERVER_PORT` is preconfigured, the runtime chooses a free local port automatically.
+- The dashboard health endpoint is `<dashboard_url>/v1/agl/health`.
 - Available pages include `Rollouts`, `Resources`, `Traces`, `Runners`, and `Settings`.
-- If the UI shows `Offline`, verify the backend base URL in `Settings` and confirm the optimization process is still running.
+- If the UI shows `Offline`, verify the backend base URL in `Settings`, confirm the optimization process is still running, and check whether you opened the current `dashboard_url` rather than an older fixed port.
 
 ## Placeholder validation
 
-Template placeholders such as `{input}` must match keys the optimizer can validate from the task rows. Double-brace escapes like `{{literal}}` are ignored. If any placeholder is missing from the dataset schema, stop and explain the mismatch to the user.
+Template placeholders such as `{input}` must match keys the optimizer can validate from the task rows. Double-brace escapes like `{{literal}}` are ignored. Literal JSON examples such as `{"input": "user request"}` are not placeholders and should stay literal. If any placeholder is missing from the dataset schema, stop and explain the mismatch to the user.
 
 ## Error cases
 
 - Missing or unreadable files → report the specific path and stop
 - Empty train or val dataset → require at least one task row in each
 - Placeholder mismatch → list the unmatched placeholders and the actual dataset fields
+- Immediate rollout failure in the dashboard → treat as a runtime exception, inspect stderr and traces first, and do not describe it as a low score
+- GitHub Models `404 page not found` from `responses.create` on older runtime builds → treat as endpoint/API mismatch rather than prompt quality, and use a runtime that falls back to chat completions
+- Dashboard port conflict or stale forwarded URL → use the returned `dashboard_url`, or set `AGL_SERVER_PORT` explicitly if you need a stable port
 - Missing dataset paths → report the missing explicit arguments or unreadable paths and stop
 - Unsupported judge mode → explain the supported modes: `deterministic`, `custom`, and `llm_judge`
 - Unsupported algorithm → explain the supported algorithms: `apo` and `verl`
@@ -196,6 +204,7 @@ GitHub Models `.env` example at the repository root:
 ```dotenv
 GITHUB_MODELS_API_KEY=<github-pat>
 GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
+GITHUB_MODELS_MODEL=openai/gpt-4.1-mini
 GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
 GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
 ```

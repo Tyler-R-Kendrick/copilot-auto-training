@@ -19,7 +19,7 @@ def test_derive_dataset_targets_uses_official_eval_layout(tmp_path):
     assert result["dataset_dir"].endswith("/datasets")
     assert result["train_file"].endswith("/datasets/train.jsonl")
     assert result["val_file"].endswith("/datasets/val.jsonl")
-    assert result["workspace_dir"].endswith("/prompts/support-workspace")
+    assert result["workspace_dir"].endswith("/prompts/.trainer-workspace/support")
 
 
 def test_derive_dataset_targets_uses_local_datasets_for_skill_files(tmp_path):

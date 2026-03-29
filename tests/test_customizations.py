@@ -1,16 +1,31 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _load_agent_skills_module():
+    spec = importlib.util.spec_from_file_location("agent_skills_mcp_customizations", AGENT_SKILLS_MODULE_PATH)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    sys.modules.setdefault("agent_skills_mcp_customizations", module)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _run_python_script(script_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -23,13 +38,19 @@ def _run_python_script(script_path: Path, *args: str) -> subprocess.CompletedPro
     )
 
 
-def _run_shell_script(script_path: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+def _run_shell_script(
+    script_path: Path,
+    *args: str,
+    check: bool = True,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", str(script_path), *args],
         check=check,
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        env={**os.environ, **env} if env else None,
     )
 
 
@@ -50,6 +71,7 @@ class TestAgentCustomizations:
         assert 'name: "trainer"' in text
         assert 'orchestrate repeated loops across the `trainer-optimize`, `trainer-research`, `trainer-synthesize`, and optional `trainer-election` skills' in text
         assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
+        assert 'Do not write trainer artifacts under a sibling `*-workspace/` directory or any repo-root `**/*-workspace/` tree; that naming is reserved for other workflows.' in text
         assert 'Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.' in text
         assert 'Call `load_agent_skill` before first use of a discovered skill' in text
         assert 'Call `run_agent_skill` to execute the discovered skill runtime' in text
@@ -66,6 +88,48 @@ class TestAgentCustomizations:
         assert '`optimize-report.json`' in text
         assert '`decision.md`' in text
         assert 'Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals.' in text
+
+    def test_engineer_agent_exists_and_routes_prompt_work_through_engineer_skill(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "engineer.agent.md"
+        text = _read(agent_path)
+
+        assert 'name: "engineer"' in text
+        assert 'tools:' in text
+        assert 'read' in text
+        assert 'edit' in text
+        assert 'search' in text
+        assert 'execute' in text
+        assert 'todo' in text
+        assert 'agent-skills/*' in text
+        assert 'Use when writing, benchmarking, or improving LLM/ML prompt and context systems' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
+        assert 'Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.' in text
+        assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
+        assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in text
+        assert 'DO NOT claim a performance or quality improvement without running the available benchmark, eval, test, or deterministic check.' in text
+
+        find_idx = text.index('Call `find_agent_skill`')
+        load_idx = text.index('Call `load_agent_skill`')
+        run_idx = text.index('Call `run_agent_skill`')
+
+        assert find_idx < load_idx < run_idx
+
+    def test_engineer_agent_contract_matches_discoverable_engineer_prompt_skill(self, monkeypatch):
+        agent_skills_module = _load_agent_skills_module()
+        monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
+
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "engineer.agent.md")
+        skill = agent_skills_module._find_skill_by_name("engineer-prompt")
+        payload = agent_skills_module.load_agent_skill("engineer-prompt")
+
+        assert skill.dir == (REPO_ROOT / "skills" / "engineer-prompt").resolve().as_posix()
+        assert "Name: engineer-prompt" in payload
+        assert "The user wants to improve a prompt." in payload
+        assert "Reserved for deterministic helpers if the engineer-prompt skill later needs" in payload
+        assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in agent_text
+
+        with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
+            agent_skills_module.run_agent_skill("engineer-prompt")
 
     def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
         canonical_path = REPO_ROOT / "skills" / "trainer-election" / "SKILL.md"
@@ -176,6 +240,12 @@ class TestInstructionCustomization:
         assert 'applyTo: "**/evals/evals.json"' in text
         assert 'Keep the manifest root as a JSON object with `skill_name` and an `evals` array.' in text
         assert 'Keep `files` paths relative and prefer assets under `evals/files/`.' in text
+
+    def test_gitignore_keeps_generic_workspace_glob_and_ignores_trainer_workspace(self):
+        text = _read(REPO_ROOT / ".gitignore")
+
+        assert "**/*-workspace/" in text
+        assert "**/.trainer-workspace/" in text
 
 
 class TestHookCustomization:
@@ -368,7 +438,9 @@ class TestHookCustomization:
                 rel_prompt,
             )
 
-            blocked = _run_shell_script(block_path, check=False)
+            scoped_env = {"PROMPT_WORKFLOW_SCAN_ROOT": str(temp_root)}
+
+            blocked = _run_shell_script(block_path, check=False, env=scoped_env)
             blocked_payload = json.loads(blocked.stdout)
             assert blocked.returncode == 0
             assert blocked_payload["continue"] is False
@@ -386,5 +458,5 @@ class TestHookCustomization:
                 "complete",
             )
 
-            allowed = _run_shell_script(block_path)
+            allowed = _run_shell_script(block_path, env=scoped_env)
             assert allowed.stdout == ""

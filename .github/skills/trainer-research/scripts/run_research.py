@@ -9,11 +9,22 @@ def extract_placeholders(template: str) -> set[str]:
     return set(re.findall(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*)\}(?!\})", template))
 
 
+def trainer_workspace_dir(prompt_path: Path) -> Path:
+    prompt_name = prompt_path.name
+    if prompt_name.endswith(".prompty"):
+        prompt_name = prompt_name[: -len(".prompty")]
+    elif prompt_name.endswith(".md"):
+        prompt_name = prompt_name[: -len(".md")]
+    else:
+        prompt_name = prompt_path.stem
+    return prompt_path.parent / ".trainer-workspace" / prompt_name
+
+
 def derive_dataset_targets(prompt_file: str) -> dict[str, Any]:
     prompt_path = Path(prompt_file)
     prompt_text = prompt_path.read_text(encoding="utf-8")
     eval_dir = prompt_path.parent / "evals"
-    workspace_dir = prompt_path.parent / f"{prompt_path.stem}-workspace"
+    workspace_dir = trainer_workspace_dir(prompt_path)
     return {
         "prompt_file": str(prompt_path),
         "eval_dir": str(eval_dir),

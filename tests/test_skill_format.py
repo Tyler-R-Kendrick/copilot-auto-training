@@ -234,6 +234,15 @@ class TestOfficialEvalFixtures:
         assert all("prompt" in case for case in payload["evals"])
         assert all("expected_output" in case for case in payload["evals"])
 
+    def test_trainer_optimize_training_fixtures_use_local_trainer_workspace_contract(self):
+        dataset_dir = SKILLS_DIR / "trainer-optimize" / "datasets"
+        train_text = (dataset_dir / "train.jsonl").read_text(encoding="utf-8")
+        val_text = (dataset_dir / "val.jsonl").read_text(encoding="utf-8")
+        combined = f"{train_text}\n{val_text}"
+
+        assert ".trainer-workspace/<prompt-name>/" in combined
+        assert "<prompt-dir>/<prompt-name>-workspace/" not in combined
+
     def test_first_run_example_official_eval_manifest_exists(self):
         manifest_path = (
             Path(__file__).resolve().parent.parent

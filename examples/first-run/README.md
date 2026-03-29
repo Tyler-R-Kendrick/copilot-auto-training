@@ -33,4 +33,4 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --branch-factor 2
 ```
 
-While the full run is active, open the dashboard at `http://localhost:4747`.
+While the full run is active, open the `dashboard_url` returned by the command output. If you need a fixed forwarded port, set `AGL_SERVER_PORT` before starting the run.

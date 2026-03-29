@@ -14,8 +14,8 @@ def test_derive_dataset_targets_uses_official_eval_layout(tmp_path):
     assert result["placeholders"] == ["input"]
     assert result["manifest_file"].endswith("/prompts/evals/evals.json")
     assert result["files_dir"].endswith("/prompts/evals/files")
-    assert result["workspace_dir"].endswith("/prompts/intent-workspace")
-    assert result["benchmark_file"].endswith("/prompts/intent-workspace/benchmark.json")
+    assert result["workspace_dir"].endswith("/prompts/.trainer-workspace/intent")
+    assert result["benchmark_file"].endswith("/prompts/.trainer-workspace/intent/benchmark.json")
 
 
 def test_build_research_brief_includes_public_dataset_queries(tmp_path):

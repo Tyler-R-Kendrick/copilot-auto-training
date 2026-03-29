@@ -8,6 +8,9 @@ from typing import Any
 
 
 HIDDEN_SCORING_FIELDS = frozenset({"criteria", "expected", "expected_json", "reference", "scoring"})
+PLACEHOLDER_PATTERN = re.compile(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}(?!\})")
+ESCAPED_OPEN_BRACE = "\x00OPEN_BRACE\x00"
+ESCAPED_CLOSE_BRACE = "\x00CLOSE_BRACE\x00"
 
 
 class DatasetResolutionError(ValueError):
@@ -17,6 +20,10 @@ class DatasetResolutionError(ValueError):
             "Explicit train_file and val_file are required. Missing or unreadable dataset files: "
             + ", ".join(missing_files)
         )
+
+
+class PromptTemplateValidationError(ValueError):
+    """Raised when a prompt template references fields missing from a task payload."""
 
 
 def load_jsonl(path: str) -> list[dict[str, Any]]:
@@ -30,7 +37,7 @@ def load_jsonl(path: str) -> list[dict[str, Any]]:
 
 
 def extract_placeholders(template: str) -> set[str]:
-    return set(re.findall(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*)\}(?!\})", template))
+    return set(PLACEHOLDER_PATTERN.findall(template))
 
 
 def flatten_keys(obj: Any, prefix: str = "") -> set[str]:
@@ -44,11 +51,22 @@ def flatten_keys(obj: Any, prefix: str = "") -> set[str]:
     return keys
 
 
+def flatten_values(obj: Any, prefix: str = "") -> dict[str, Any]:
+    values: dict[str, Any] = {}
+    if not isinstance(obj, dict):
+        return values
+    for key, value in obj.items():
+        path = f"{prefix}.{key}" if prefix else key
+        values[path] = value
+        values.update(flatten_values(value, path))
+    return values
+
+
 def validate_template_against_task(template: str, sample_task: dict[str, Any]) -> None:
     valid_keys = set(sample_task) | flatten_keys(sample_task)
     missing = sorted(name for name in extract_placeholders(template) if name not in valid_keys)
     if missing:
-        raise ValueError(
+        raise PromptTemplateValidationError(
             f"Template placeholders not found in task schema: {missing}. "
             f"Available keys: {sorted(valid_keys)}"
         )
@@ -74,6 +92,7 @@ def _prompt_fields(task: dict[str, Any]) -> dict[str, Any]:
     visible: dict[str, Any] = {}
     input_value = task.get("input")
     if isinstance(input_value, dict):
+        visible["input"] = input_value
         visible.update(input_value)
     elif input_value is not None:
         visible["input"] = input_value
@@ -81,6 +100,20 @@ def _prompt_fields(task: dict[str, Any]) -> dict[str, Any]:
         if key != "input" and key not in HIDDEN_SCORING_FIELDS:
             visible[key] = value
     return visible
+
+
+def render_prompt_text(prompt_text: str, task: dict[str, Any]) -> str:
+    prompt_fields = flatten_values(_prompt_fields(task))
+    missing = sorted(name for name in extract_placeholders(prompt_text) if name not in prompt_fields)
+    if missing:
+        raise PromptTemplateValidationError(
+            f"Prompt placeholders not found in task payload at render time: {missing}. "
+            f"Available keys: {sorted(prompt_fields)}"
+        )
+
+    escaped_prompt = prompt_text.replace("{{", ESCAPED_OPEN_BRACE).replace("}}", ESCAPED_CLOSE_BRACE)
+    rendered = PLACEHOLDER_PATTERN.sub(lambda match: str(prompt_fields[match.group(1)]), escaped_prompt)
+    return rendered.replace(ESCAPED_OPEN_BRACE, "{").replace(ESCAPED_CLOSE_BRACE, "}")
 
 
 def _normalize_text(value: Any) -> str:
@@ -132,10 +165,26 @@ def _extract_response_text(response: Any) -> str:
     raise ValueError("Model response did not contain any text output.")
 
 
+def _is_unsupported_responses_route_error(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None)
+    if status_code == 404:
+        return True
+    response = getattr(exc, "response", None)
+    if getattr(response, "status_code", None) == 404:
+        return True
+    message = str(exc).lower()
+    return "404" in message and "not found" in message
+
+
 async def _complete_text(llm_client: Any, model_name: str, prompt: str) -> str:
-    if hasattr(llm_client, "responses") and hasattr(llm_client.responses, "create"):
-        return _extract_response_text(await llm_client.responses.create(model=model_name, input=prompt))
     completions = getattr(getattr(llm_client, "chat", None), "completions", None)
+    if hasattr(llm_client, "responses") and hasattr(llm_client.responses, "create"):
+        try:
+            return _extract_response_text(await llm_client.responses.create(model=model_name, input=prompt))
+        except Exception as exc:
+            # GitHub Models exposes an OpenAI-compatible endpoint, but some routes only support chat completions.
+            if completions is None or not hasattr(completions, "create") or not _is_unsupported_responses_route_error(exc):
+                raise
     if completions is not None and hasattr(completions, "create"):
         response = await completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
         return _extract_response_text(response)
@@ -153,7 +202,7 @@ def _extract_score(text: str) -> float:
 
 
 async def run_candidate(prompt_text: str, task: dict[str, Any], *, llm_client: Any, model_name: str) -> str:
-    return await _complete_text(llm_client, model_name, prompt_text.format(**_prompt_fields(task)))
+    return await _complete_text(llm_client, model_name, render_prompt_text(prompt_text, task))
 
 
 async def evaluate_output(

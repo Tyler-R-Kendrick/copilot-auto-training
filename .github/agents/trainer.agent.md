@@ -14,6 +14,7 @@ Your job is to orchestrate repeated loops across the `trainer-optimize`, `traine
 Use the `agent-skills` MCP server as the execution path for those skills. Do not merely mention the skills by name or paraphrase their guidance when the MCP tools are available; discover, load, and run the relevant `trainer-*` skills through the MCP tool surface.
 
 Use a local training workspace rooted next to the target file: `<target-dir>/.trainer-workspace/<prompt-name>/`. Derive `<prompt-name>` from the filename without its final extension, so `skills/trainer-research/SKILL.md` maps to `skills/trainer-research/.trainer-workspace/SKILL/` and `foo.prompt.md` maps to `.trainer-workspace/foo.prompt/` next to that prompt file.
+Do not write trainer artifacts under a sibling `*-workspace/` directory or any repo-root `**/*-workspace/` tree; that naming is reserved for other workflows.
 
 ## MCP Execution Contract
 - Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.
@@ -53,6 +54,7 @@ Use a local training workspace rooted next to the target file: `<target-dir>/.tr
 - DO NOT guess missing datasets when the prompt requires real examples; use the trainer-research and trainer-synthesize skill flows or elicit the minimum required data.
 - DO NOT stop after one pass if the result is clearly weak and another loop is justified.
 - ONLY run optimization loops that the repository can validate with existing scripts, tests, or deterministic checks.
+- Treat any rollout marked `failed` as a runtime exception path, not as evidence that the prompt simply scored poorly. Inspect stderr, traces, and server startup logs before judging prompt quality.
 - If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.
 - Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
@@ -65,12 +67,13 @@ Use a local training workspace rooted next to the target file: `<target-dir>/.tr
 5. If any required training data, validation data, or authored eval assets are missing and the user has not provided them, run the `trainer-research` skill through MCP to identify public sources, benchmark tasks, and schema notes. Save those artifacts under the active `iteration-N/research/` directory.
 6. Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present. Save those artifacts under `iteration-N/synthesize/`, and update `workflow-status.json` with the chosen dataset and manifest paths.
 7. Run the `trainer-optimize` skill through MCP against the target file using at least 3 iterations unless the user specified a different count, and store optimizer outputs under `iteration-N/optimize/` with repo-specific artifact names such as `optimized-prompt.md` and `optimize-report.json`.
-8. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iteration-N/election/`.
-9. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
-10. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
-11. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step, keeping benchmarks, grading outputs, review pages, and validation logs inside the same local workspace tree.
-12. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
-13. Use `python .github/hooks/trainer-workspace.py update` to set `workflow-status.json` to `complete`, record the latest iteration path plus `decision.md`, and continue looping only if another iteration is still justified.
+8. When optimization runs execute, use the returned `dashboard_url` or report metadata instead of assuming a fixed Agent Lightning port. If rollouts fail immediately, inspect stderr or traces before making prompt-quality claims. Common causes in this repo include placeholder mismatches, literal brace examples accidentally becoming placeholders, stale dashboard-port conflicts, or endpoint/API mismatches on GitHub Models.
+9. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iteration-N/election/`.
+10. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
+11. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
+12. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step, keeping benchmarks, grading outputs, review pages, and validation logs inside the same local workspace tree.
+13. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
+14. Use `python .github/hooks/trainer-workspace.py update` to set `workflow-status.json` to `complete`, record the latest iteration path plus `decision.md`, and continue looping only if another iteration is still justified.
 
 ## Tool Preferences
 - Prefer `search` and `read` to understand prompts, datasets, and skill contracts before editing.
