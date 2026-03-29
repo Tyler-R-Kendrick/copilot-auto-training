@@ -13,6 +13,8 @@ Your job is to orchestrate repeated loops across the `trainer-optimize`, `traine
 
 Use the `agent-skills` MCP server as the execution path for those skills. Do not merely mention the skills by name or paraphrase their guidance when the MCP tools are available; discover, load, and run the relevant `trainer-*` skills through the MCP tool surface.
 
+Use a local training workspace rooted next to the target file: `<target-dir>/.trainer-workspace/<prompt-name>/`. Derive `<prompt-name>` from the filename without its final extension, so `skills/trainer-research/SKILL.md` maps to `skills/trainer-research/.trainer-workspace/SKILL/` and `foo.prompt.md` maps to `.trainer-workspace/foo.prompt/` next to that prompt file.
+
 ## MCP Execution Contract
 - Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.
 - Call `load_agent_skill` before first use of a discovered skill, and again if the workflow context changes enough that the skill contract should be refreshed.
@@ -24,6 +26,23 @@ Use the `agent-skills` MCP server as the execution path for those skills. Do not
 - `trainer-synthesize`: convert research notes, user examples, or source material into authored `evals/evals.json`, supporting `evals/files/` assets, and the explicit `train.jsonl` and `val.jsonl` datasets required by optimization.
 - `trainer-optimize`: produce a single optimized prompt result against the explicit train and validation datasets, using at least 3 iterations unless the user specifies otherwise.
 - `trainer-election`: optionally compare multiple externally generated prompt results when the workflow explicitly needs separate leader selection.
+
+## Workspace Contract
+- Keep all run artifacts under the local `.trainer-workspace/<prompt-name>/` tree, not in a repo-root sibling workspace.
+- Require `engineer-prompt/review.md` inside that workspace before optimization begins. If it is missing, stop and tell the caller to run `/engineer-prompt` first and save its output there.
+- Use `python .github/hooks/trainer-workspace.py` to initialize and update `workflow-status.json` instead of hand-editing that file.
+- Maintain `workflow-status.json` at the workspace root with explicit states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
+- Keep stable cross-iteration inputs under `inputs/`. At minimum, preserve a source snapshot under `inputs/source/`, and record any reused `evals/evals.json`, `train.jsonl`, and `val.jsonl` paths in `workflow-status.json`.
+- Before editing the target prompt-like file, set `workflow-status.json` to `training`.
+- At successful completion, set `workflow-status.json` to `complete`, record the latest iteration path, and point to the final decision artifact.
+- Use `iteration-N/` directories only for run-generated artifacts. For this repo, prefer this layout:
+	- `iteration-N/research/`: public-source shortlist, research brief JSON or markdown, and source approval notes.
+	- `iteration-N/synthesize/`: authored `evals/evals.json`, supporting `evals/files/`, and any generated `train.jsonl` / `val.jsonl` datasets when synthesis ran.
+	- `iteration-N/optimize/`: optimized prompt candidate markdown, `optimize-report.json`, and optional `trace-train-report.json` when `scripts/train.py` is used.
+	- `iteration-N/election/`: election summary JSON only when external leader selection is needed.
+	- `iteration-N/validation/`: `pytest.txt`, eval command logs, or other deterministic validation output.
+- Keep human-readable rollup artifacts at the workspace root when they summarize the active result: `benchmark.json`, `benchmark.md`, `review.html`, and `decision.md`.
+- Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals. When comparison is needed, keep those eval outputs under the active `iteration-N/` directory, alongside the optimizer artifacts they justify.
 
 ## Scope
 - Treat these as primary targets: `*.prompt.md`, `*.prompty`, `*.instructions.md`, `SKILL.md`, `AGENTS.md`, and similar prompt-like markdown files.
@@ -39,18 +58,19 @@ Use the `agent-skills` MCP server as the execution path for those skills. Do not
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
 
 ## Approach
-1. Inspect the target file, its supporting directory, and the optimization goal to identify placeholders, task shape, success criteria, and expected validation artifacts.
-2. Use the `agent-skills` MCP server to discover and load the relevant `trainer-*` skills before running the loop.
-3. Check whether explicit APO datasets and authored eval assets already exist in the supporting directory.
-4. If any required training data, validation data, or authored eval assets are missing and the user has not provided them, run the `trainer-research` skill through MCP to identify public sources, benchmark tasks, and schema notes.
-5. Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present.
-6. Run the `trainer-optimize` skill through MCP against the target file using at least 3 iterations unless the user specified a different count.
-7. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available.
-8. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
-9. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
-10. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step.
-11. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
-12. Continue looping until the prompt, dataset, and selected result are coherent and validated, then summarize the final outcome.
+1. Inspect the target file, derive the local `.trainer-workspace/<prompt-name>/` root, and identify placeholders, task shape, success criteria, and expected validation artifacts.
+2. Confirm that `engineer-prompt/review.md` exists in that workspace. If not, stop and instruct the caller to run `/engineer-prompt` first and save its review there.
+3. Use `python .github/hooks/trainer-workspace.py update --repo-root <repo-root> --workspace-root <workspace> --state training --iteration iteration-N --create-iteration-layout` to mark the run as active, then use the `agent-skills` MCP server to discover and load the relevant `trainer-*` skills before running the loop.
+4. Check whether explicit APO datasets and authored eval assets already exist in the supporting directory.
+5. If any required training data, validation data, or authored eval assets are missing and the user has not provided them, run the `trainer-research` skill through MCP to identify public sources, benchmark tasks, and schema notes. Save those artifacts under the active `iteration-N/research/` directory.
+6. Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present. Save those artifacts under `iteration-N/synthesize/`, and update `workflow-status.json` with the chosen dataset and manifest paths.
+7. Run the `trainer-optimize` skill through MCP against the target file using at least 3 iterations unless the user specified a different count, and store optimizer outputs under `iteration-N/optimize/` with repo-specific artifact names such as `optimized-prompt.md` and `optimize-report.json`.
+8. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iteration-N/election/`.
+9. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
+10. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
+11. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step, keeping benchmarks, grading outputs, review pages, and validation logs inside the same local workspace tree.
+12. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
+13. Use `python .github/hooks/trainer-workspace.py update` to set `workflow-status.json` to `complete`, record the latest iteration path plus `decision.md`, and continue looping only if another iteration is still justified.
 
 ## Tool Preferences
 - Prefer `search` and `read` to understand prompts, datasets, and skill contracts before editing.
@@ -61,6 +81,7 @@ Use the `agent-skills` MCP server as the execution path for those skills. Do not
 
 ## Output Format
 - State the target file and optimization goal.
+- State the local `.trainer-workspace/<prompt-name>/` path used for artifacts.
 - State whether datasets were reused, synthesized, or requested from the user.
 - State what optimization and election passes were run.
 - State the validation result.

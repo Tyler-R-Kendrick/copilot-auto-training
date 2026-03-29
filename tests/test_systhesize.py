@@ -16,7 +16,22 @@ def test_derive_dataset_targets_uses_official_eval_layout(tmp_path):
     assert result["placeholders"] == ["context", "question"]
     assert result["manifest_file"].endswith("/prompts/evals/evals.json")
     assert result["files_dir"].endswith("/prompts/evals/files")
+    assert result["dataset_dir"].endswith("/datasets")
+    assert result["train_file"].endswith("/datasets/train.jsonl")
+    assert result["val_file"].endswith("/datasets/val.jsonl")
     assert result["workspace_dir"].endswith("/prompts/support-workspace")
+
+
+def test_derive_dataset_targets_uses_local_datasets_for_skill_files(tmp_path):
+    skill_path = tmp_path / "skills" / "demo-skill" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True)
+    skill_path.write_text("Question: {question}\n", encoding="utf-8")
+
+    result = derive_dataset_targets(str(skill_path))
+
+    assert result["dataset_dir"].endswith("/skills/demo-skill/datasets")
+    assert result["train_file"].endswith("/skills/demo-skill/datasets/train.jsonl")
+    assert result["val_file"].endswith("/skills/demo-skill/datasets/val.jsonl")
 
 
 def test_render_evals_json_writes_official_manifest_shape():

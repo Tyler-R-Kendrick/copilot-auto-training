@@ -263,6 +263,52 @@ class TestBuildSelectionPool:
         assert context["expected_eval_count"] == 1
         assert context["manifest_file"] is None
 
+    def test_recognizes_suffix_baselines_and_candidate_prompt_artifacts(self, tmp_path: Path):
+        workspace_dir = tmp_path / "workspace"
+        eval_dir = workspace_dir / "iteration-1" / "eval-billing"
+
+        write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
+        write_workspace_run(eval_dir, "candidate_new", 0.82, 10.0, 100, run_number=2)
+        write_workspace_run(eval_dir, "control_baseline", 0.75, 9.0, 90, run_number=1)
+
+        candidate_artifact = eval_dir / "candidate_new" / "run-2" / "outputs" / "final-candidate.md"
+        candidate_artifact.parent.mkdir(parents=True, exist_ok=True)
+        candidate_artifact.write_text("Candidate prompt body", encoding="utf-8")
+
+        selection_pool, _ = build_selection_pool(workspace_dir=str(workspace_dir), iteration=1)
+        by_name = {candidate["source"]: candidate for candidate in selection_pool}
+
+        assert by_name["control_baseline"]["is_baseline"] is True
+        assert by_name["candidate_new"]["prompt_text"] == "Candidate prompt body"
+        assert by_name["candidate_new"]["prompt_file"].endswith("final-candidate.md")
+
+    def test_direct_eval_dir_supports_manifest_fallback_and_selection(self, tmp_path: Path):
+        workspace_dir = tmp_path / "workspace"
+        eval_dir = workspace_dir / "iteration-3" / "eval-billing"
+        manifest_path = workspace_dir / "evals" / "evals.json"
+
+        write_json(
+            manifest_path,
+            {
+                "skill_name": "trainer-election",
+                "evals": [
+                    {"id": 1, "prompt": "billing", "expected_output": "A"},
+                    {"id": 2, "prompt": "refund", "expected_output": "B"},
+                ],
+            },
+        )
+        write_json(eval_dir / "eval_metadata.json", {"eval_id": 1, "eval_name": "billing"})
+        write_workspace_run(eval_dir, "with_skill", 0.85, 11.0, 120)
+        write_workspace_run(eval_dir, "without_skill", 0.8, 8.0, 90)
+
+        selection_pool, context = build_selection_pool(workspace_dir=str(eval_dir))
+
+        assert [candidate["source"] for candidate in selection_pool] == ["with_skill", "without_skill"]
+        assert selection_pool[0]["coverage_ratio"] == 0.5
+        assert selection_pool[0]["penalty"] == 0.5
+        assert context["manifest_file"] == str(manifest_path)
+        assert context["expected_eval_count"] == 2
+
     def test_raises_when_no_scored_candidate_runs_exist(self, tmp_path: Path):
         workspace_dir = tmp_path / "workspace"
         iteration_dir = workspace_dir / "iteration-1" / "eval-empty"

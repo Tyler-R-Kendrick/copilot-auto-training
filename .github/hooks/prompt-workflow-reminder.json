@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "command": "bash /workspaces/copilot-apo/.github/hooks/block-incomplete-prompt-workflows.sh",
+        "timeout": 15
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "command": "bash /workspaces/copilot-apo/.github/hooks/prompt-workflow-reminder.sh",
+        "timeout": 15
+      }
+    ]
+  }
+}

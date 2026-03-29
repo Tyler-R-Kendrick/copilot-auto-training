@@ -89,6 +89,8 @@ def resolve_manifest_file(iteration_dir: Path, manifest_file: str | None = None)
 
 def _iter_eval_dirs(iteration_dir: Path) -> list[Path]:
     search_root = iteration_dir / "runs" if (iteration_dir / "runs").is_dir() else iteration_dir
+    if _is_eval_dir(search_root):
+        return [search_root]
     return [child for child in sorted(search_root.iterdir(), key=_sort_key) if _is_eval_dir(child)]
 
 

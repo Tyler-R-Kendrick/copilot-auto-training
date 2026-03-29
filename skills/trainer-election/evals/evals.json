@@ -1,0 +1,46 @@
+{
+  "skill_name": "trainer-election",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I already ran three prompt candidates through the same eval workspace and each config folder has grading.json and timing.json artifacts. Pick the winner from the latest iteration without rerunning optimization, and explain how you handled a candidate that only covered part of the eval set.",
+      "expected_output": "The response treats trainer-election as a standalone selection pass over existing scored artifacts, prefers the latest iteration, and explains that incomplete eval coverage is penalized rather than ignored.",
+      "assertions": [
+        "The response uses existing grading or timing artifacts instead of rerunning optimization.",
+        "The response mentions penalizing or discounting incomplete eval coverage.",
+        "The response treats trainer-election as separate from trainer-optimize."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This workspace only has benchmark.json because the raw run folders were archived. Can you still elect the strongest configuration and tell me what result fields I should persist so the caller can explain the decision later?",
+      "expected_output": "The response says benchmark.json can be used as a fallback when raw run artifacts are missing and describes persisted winner and candidate metadata such as winner identity, prompt artifact fields when available, and per-candidate summaries.",
+      "assertions": [
+        "The response mentions benchmark.json as a fallback when raw run artifacts are unavailable.",
+        "The response describes winner or candidate metadata that should be persisted.",
+        "The response does not claim the skill reruns missing evaluations."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Compare with_skill, old_skill, and without_skill runs from an eval directory that lives under iteration-3/runs/. Use the authored eval manifest if it exists, keep the baseline candidates visible in the result, and return the winning prompt text if a prompt artifact is present.",
+      "expected_output": "The response accepts the nested runs workspace layout, uses the nearby eval manifest when available, keeps baseline candidates in the comparison, and surfaces the winning prompt text or prompt file path when a prompt artifact can be found.",
+      "assertions": [
+        "The response supports iteration directories that store evals under runs/.",
+        "The response mentions manifest discovery or use of evals/evals.json when available.",
+        "The response keeps baseline configurations in the comparison.",
+        "The response mentions returning prompt text or a prompt artifact path when available."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I am pointing you straight at a single eval folder instead of the workspace root. Elect the best candidate from that one eval directory, auto-discover the nearby evals/evals.json if it exists, and make sure partial coverage is still penalized.",
+      "expected_output": "The response treats a direct eval directory as a valid entry point, still discovers the nearby authored eval manifest when available, and applies the same incomplete-coverage penalty before choosing a winner.",
+      "assertions": [
+        "The response accepts a direct eval directory as the workspace input.",
+        "The response mentions auto-discovering a nearby evals/evals.json manifest when available.",
+        "The response mentions penalizing partial or incomplete eval coverage."
+      ]
+    }
+  ]
+}

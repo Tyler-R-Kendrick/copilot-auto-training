@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -9,6 +11,26 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _run_python_script(script_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(REPO_ROOT / ".venv" / "bin" / "python"), str(script_path), *args],
+        check=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _run_shell_script(script_path: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(script_path), *args],
+        check=check,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
 
 
 class TestAgentCustomizations:
@@ -38,6 +60,38 @@ class TestAgentCustomizations:
         assert 'Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present.' in text
         assert 'Do not assume `trainer-optimize` performs leader election or baseline comparison internally.' in text
         assert 'If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step' in text
+        assert 'Keep stable cross-iteration inputs under `inputs/`.' in text
+        assert '`iteration-N/optimize/`' in text
+        assert '`optimized-prompt.md`' in text
+        assert '`optimize-report.json`' in text
+        assert '`decision.md`' in text
+        assert 'Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals.' in text
+
+    def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
+        canonical_path = REPO_ROOT / "skills" / "trainer-election" / "SKILL.md"
+        mirrored_path = REPO_ROOT / ".github" / "skills" / "trainer-election" / "SKILL.md"
+
+        canonical = _read(canonical_path).replace(
+            "[skills/trainer-election/references/leader-election.md](./references/leader-election.md)",
+            "[skills/trainer-election/references/leader-election.md](REFERENCE_LINK)",
+        )
+        mirrored = _read(mirrored_path).replace(
+            "[skills/trainer-election/references/leader-election.md](../../../skills/trainer-election/references/leader-election.md)",
+            "[skills/trainer-election/references/leader-election.md](REFERENCE_LINK)",
+        )
+
+        assert canonical == mirrored
+
+    def test_trainer_synthesize_mirror_assets_stay_aligned_with_canonical_contract(self):
+        canonical_root = REPO_ROOT / "skills" / "trainer-synthesize"
+        mirrored_root = REPO_ROOT / ".github" / "skills" / "trainer-synthesize"
+
+        for relative_path in (
+            "SKILL.md",
+            "references/data-generation.md",
+            "scripts/run_synthesize.py",
+        ):
+            assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
 
     def test_trainer_agent_declares_mcp_tool_sequence_and_loop_order(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
@@ -140,3 +194,197 @@ class TestHookCustomization:
         assert text.startswith("#!/usr/bin/env bash")
         assert "/evals/" in text
         assert "python -m pytest -q" in text
+
+    def test_prompt_workflow_hook_exists(self):
+        hook_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.json"
+        hook = json.loads(_read(hook_path))
+
+        stop_hooks = hook["hooks"]["Stop"]
+        post_tool_use = hook["hooks"]["PostToolUse"]
+        assert stop_hooks
+        assert any("block-incomplete-prompt-workflows.sh" in entry["command"] for entry in stop_hooks)
+        assert post_tool_use
+        assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert any("prompt-workflow-reminder.sh" in entry["command"] for entry in post_tool_use)
+
+    def test_prompt_workflow_script_injects_engineer_prompt_and_trainer(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert "*.prompt.md" in text
+        assert "copilot-instructions.md" in text
+        assert "/engineer-prompt" in text
+        assert "@trainer" in text
+        assert ".trainer-workspace" in text
+        assert "inputs/source" in text
+        assert "decision.md" in text
+        assert "systemMessage" in text
+
+    def test_prompt_workflow_block_script_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "block-incomplete-prompt-workflows.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert "workflow-status.json" in text
+        assert ".trainer-workspace" in text
+        assert "/engineer-prompt" in text
+        assert "@trainer" in text
+
+    def test_trainer_workspace_helper_init_and_update_behaves_correctly(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "trainer-workspace.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            prompt_dir = temp_root / "skills" / "demo-skill"
+            prompt_dir.mkdir(parents=True)
+            prompt_file = prompt_dir / "SKILL.md"
+            prompt_file.write_text("# Demo\n", encoding="utf-8")
+            rel_prompt = str(prompt_file.relative_to(REPO_ROOT))
+
+            init_result = _run_python_script(
+                helper_path,
+                "init",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--target-file",
+                rel_prompt,
+            )
+            init_payload = json.loads(init_result.stdout)
+
+            workspace_root = prompt_dir / ".trainer-workspace" / "SKILL"
+            status_path = workspace_root / "workflow-status.json"
+            assert init_payload["workspace_root"].endswith("skills/demo-skill/.trainer-workspace/SKILL")
+            assert workspace_root.is_dir()
+            assert (workspace_root / "engineer-prompt").is_dir()
+            assert (workspace_root / "validation").is_dir()
+            assert (workspace_root / "inputs" / "source" / "SKILL.md").read_text(encoding="utf-8") == "# Demo\n"
+
+            status_payload = json.loads(status_path.read_text(encoding="utf-8"))
+            assert status_payload["workflow_state"] == "pending_engineer_prompt"
+            assert status_payload["required_artifacts"]["source_snapshot"].endswith("inputs/source/SKILL.md")
+
+            review_path = workspace_root / "engineer-prompt" / "review.md"
+            review_path.write_text("# Review\n", encoding="utf-8")
+
+            update_result = _run_python_script(
+                helper_path,
+                "update",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--workspace-root",
+                str(workspace_root.relative_to(REPO_ROOT)),
+                "--state",
+                "training",
+                "--iteration",
+                "iteration-1",
+                "--create-iteration-layout",
+                "--engineer-prompt-review",
+                str(review_path.relative_to(REPO_ROOT)),
+                "--train-dataset",
+                str((workspace_root / "inputs" / "train.jsonl").relative_to(REPO_ROOT)),
+                "--val-dataset",
+                str((workspace_root / "inputs" / "val.jsonl").relative_to(REPO_ROOT)),
+                "--eval-manifest",
+                str((workspace_root / "inputs" / "evals.json").relative_to(REPO_ROOT)),
+                "--optimize-report",
+                str((workspace_root / "iteration-1" / "optimize" / "optimize-report.json").relative_to(REPO_ROOT)),
+                "--validation-log",
+                str((workspace_root / "validation" / "pytest.txt").relative_to(REPO_ROOT)),
+                "--decision-summary",
+                str((workspace_root / "decision.md").relative_to(REPO_ROOT)),
+            )
+            update_payload = json.loads(update_result.stdout)
+
+            assert update_payload["workflow_state"] == "training"
+            assert (workspace_root / "iteration-1" / "research").is_dir()
+            assert (workspace_root / "iteration-1" / "synthesize").is_dir()
+            assert (workspace_root / "iteration-1" / "optimize").is_dir()
+            assert (workspace_root / "iteration-1" / "election").is_dir()
+            assert (workspace_root / "iteration-1" / "validation").is_dir()
+
+            updated_status = json.loads(status_path.read_text(encoding="utf-8"))
+            assert updated_status["required_artifacts"]["engineer_prompt_review"].endswith("engineer-prompt/review.md")
+            assert updated_status["required_artifacts"]["latest_iteration_dir"].endswith("iteration-1")
+            assert updated_status["required_artifacts"]["train_dataset"].endswith("inputs/train.jsonl")
+            assert updated_status["required_artifacts"]["optimize_report"].endswith("iteration-1/optimize/optimize-report.json")
+
+            complete_result = _run_python_script(
+                helper_path,
+                "update",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--workspace-root",
+                str(workspace_root.relative_to(REPO_ROOT)),
+                "--state",
+                "complete",
+            )
+            complete_payload = json.loads(complete_result.stdout)
+            assert complete_payload["workflow_state"] == "complete"
+
+    def test_prompt_workflow_hook_creates_workspace_status_for_prompt_like_file(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.sh"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            prompt_dir = temp_root / "prompts"
+            prompt_dir.mkdir(parents=True)
+            prompt_file = prompt_dir / "example.prompt.md"
+            prompt_file.write_text("Prompt body\n", encoding="utf-8")
+
+            result = _run_shell_script(script_path, str(prompt_file))
+            payload = json.loads(result.stdout)
+            workspace_root = prompt_dir / ".trainer-workspace" / "example.prompt"
+            status_path = workspace_root / "workflow-status.json"
+
+            assert payload["continue"] is True
+            assert "/engineer-prompt" in payload["systemMessage"]
+            assert "@trainer" in payload["systemMessage"]
+            assert workspace_root.is_dir()
+            assert status_path.is_file()
+
+            status_payload = json.loads(status_path.read_text(encoding="utf-8"))
+            assert status_payload["workflow_state"] == "pending_engineer_prompt"
+            assert status_payload["required_artifacts"]["decision_summary"].endswith("decision.md")
+
+    def test_prompt_workflow_block_script_blocks_incomplete_and_allows_complete(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "trainer-workspace.py"
+        block_path = REPO_ROOT / ".github" / "hooks" / "block-incomplete-prompt-workflows.sh"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            prompt_dir = temp_root / "instructions"
+            prompt_dir.mkdir(parents=True)
+            prompt_file = prompt_dir / "demo.instructions.md"
+            prompt_file.write_text("Use this instruction\n", encoding="utf-8")
+            rel_prompt = str(prompt_file.relative_to(REPO_ROOT))
+
+            _run_python_script(
+                helper_path,
+                "init",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--target-file",
+                rel_prompt,
+            )
+
+            blocked = _run_shell_script(block_path, check=False)
+            blocked_payload = json.loads(blocked.stdout)
+            assert blocked.returncode == 0
+            assert blocked_payload["continue"] is False
+            assert rel_prompt in blocked_payload["stopReason"]
+
+            workspace_root = prompt_dir / ".trainer-workspace" / "demo.instructions"
+            _run_python_script(
+                helper_path,
+                "update",
+                "--repo-root",
+                str(REPO_ROOT),
+                "--workspace-root",
+                str(workspace_root.relative_to(REPO_ROOT)),
+                "--state",
+                "complete",
+            )
+
+            allowed = _run_shell_script(block_path)
+            assert allowed.stdout == ""

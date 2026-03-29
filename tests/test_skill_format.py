@@ -177,6 +177,54 @@ class TestSkillOptionalFiles:
 
 
 class TestOfficialEvalFixtures:
+    def test_trainer_synthesize_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "trainer-synthesize" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "trainer-synthesize"
+        assert len(payload["evals"]) >= 4
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        prompts = "\n".join(case["prompt"] for case in payload["evals"])
+        assertions = "\n".join(
+            assertion
+            for case in payload["evals"]
+            for assertion in case.get("assertions", [])
+        )
+        manifest_text = f"{prompts}\n{assertions}".lower()
+
+        assert "train.jsonl" in manifest_text
+        assert "val.jsonl" in manifest_text
+        assert "placeholder" in manifest_text
+        assert "scoring" in manifest_text
+        assert "do not guess" in manifest_text or "instead of guessing" in manifest_text
+
+    def test_trainer_election_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "trainer-election" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "trainer-election"
+        assert len(payload["evals"]) >= 3
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        prompts = "\n".join(case["prompt"] for case in payload["evals"])
+        assertions = "\n".join(
+            assertion
+            for case in payload["evals"]
+            for assertion in case.get("assertions", [])
+        )
+        manifest_text = f"{prompts}\n{assertions}".lower()
+
+        assert "benchmark.json" in manifest_text
+        assert "incomplete eval coverage" in manifest_text
+        assert "runs/" in manifest_text
+        assert "baseline" in manifest_text
+        assert "prompt artifact" in manifest_text
+
     def test_trainer_optimize_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "trainer-optimize" / "evals" / "evals.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
