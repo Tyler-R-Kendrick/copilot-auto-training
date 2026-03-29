@@ -1,0 +1,26 @@
+{
+  "target_file": ".github/agents/engineer.agent.md",
+  "workspace_root": ".github/agents/.trainer-workspace/engineer.agent",
+  "workspace_parent": ".github/agents",
+  "prompt_name": "engineer.agent",
+  "workflow_state": "complete",
+  "updated_at": "2026-03-29T22:18:49Z",
+  "required_artifacts": {
+    "engineer_prompt_review": ".github/agents/.trainer-workspace/engineer.agent/engineer-prompt/review.md",
+    "source_snapshot": ".github/agents/.trainer-workspace/engineer.agent/inputs/source/engineer.agent.md",
+    "latest_iteration_dir": ".github/agents/.trainer-workspace/engineer.agent/iterations/iteration-1",
+    "train_dataset": null,
+    "val_dataset": null,
+    "eval_manifest": null,
+    "optimize_report": null,
+    "validation_log": ".github/agents/.trainer-workspace/engineer.agent/iterations/iteration-1/validation/pytest.txt",
+    "decision_summary": ".github/agents/.trainer-workspace/engineer.agent/decision.md"
+  },
+  "artifact_contract": {
+    "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
+    "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
+    "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/.",
+    "decision": "Summarize the winning prompt decision and validation outcome in decision.md."
+  },
+  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout."
+}

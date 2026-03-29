@@ -3,7 +3,7 @@ name: "conservator"
 description: "Use when reviewing prompt, dataset, or evaluator changes for likely regressions after optimization or customization edits."
 tools: [read, search]
 argument-hint: "Changed files, baseline behavior, validation results, and any risky prompt-optimization assumptions to review."
-user-invocable: false
+user-invocable: true
 disable-model-invocation: false
 ---
 You are a specialist in finding likely regressions in prompt-optimization changes before they are finalized.

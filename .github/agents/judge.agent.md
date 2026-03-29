@@ -3,7 +3,7 @@ name: "judge"
 description: "Use when scoring prompt candidates, comparing prompt revisions, or writing concise candidate summaries during prompt optimization loops."
 tools: [read, edit, search, 'agent-skills/*']
 argument-hint: "Candidate prompts, evaluation goal, scoring criteria, and output location for the summary."
-user-invocable: false
+user-invocable: true
 disable-model-invocation: false
 ---
 You are a specialist in evaluating prompt candidates during iterative optimization.
