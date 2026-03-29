@@ -1,4 +1,5 @@
 agentlightning>=0.1.0
+hydra-core>=1.3.2
 mcp[cli]>=1.8.0
 openai>=1.0.0
 poml>=0.0.6

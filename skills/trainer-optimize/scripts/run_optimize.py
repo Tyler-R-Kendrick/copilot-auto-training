@@ -27,6 +27,8 @@ from optimize_support import (
     load_jsonl,
     render_prompt_text,
     resolve_dataset_paths,
+    smoke_test_prompt,
+    uses_implicit_task_context,
     validate_template_against_task,
 )
 import optimize_support as support
@@ -76,6 +78,7 @@ def build_trace_case_summary(
             f"train_size: {len(train_dataset)}",
             f"val_size: {len(val_dataset)}",
             f"judge_mode: {judge_mode}",
+            "input_binding: " + ("implicit_task_context" if uses_implicit_task_context(prompt_text) else "placeholders"),
             "placeholders: " + (", ".join(placeholders) if placeholders else "<none>"),
             "prompt_preview:",
             prompt_text.strip()[:400] or "<empty>",
@@ -228,6 +231,34 @@ def _make_rollout(judge_mode: str, *, llm_client: Any, model_name: str, judge_pr
     return prompt_optimizer_rollout
 
 
+def _run_debug_smoke_test(
+    prompt_text: str,
+    train_dataset: list[dict[str, Any]],
+    *,
+    judge_mode: str,
+    llm_client: Any,
+    model_name: str,
+    judge_prompt_file: str | None,
+) -> dict[str, Any]:
+    sample = asyncio.run(
+        smoke_test_prompt(
+            prompt_text,
+            train_dataset[0],
+            judge_mode=judge_mode,
+            llm_client=llm_client,
+            model_name=model_name,
+            judge_prompt_file=judge_prompt_file,
+        )
+    )
+    return {
+        "ok": True,
+        "mode": "debug",
+        "message": "Smoke test complete",
+        "sample_score": sample["score"],
+        "input_binding": sample["input_binding"],
+    }
+
+
 def run_optimize_sync(
     prompt_file: str,
     train_file: str | None = None,
@@ -275,6 +306,18 @@ def run_optimize_sync(
         raise ValueError("Optimization requires GITHUB_MODELS_MODEL or OPENAI_MODEL to execute prompt rollouts.")
 
     with _configure_agentlightning_server() as server_settings:
+        if debug_only:
+            result = _run_debug_smoke_test(
+                prompt_text,
+                train_dataset,
+                judge_mode=judge_mode,
+                llm_client=openai_client,
+                model_name=str(inference_model),
+                judge_prompt_file=judge_prompt_file,
+            )
+            result["dashboard_url"] = server_settings["dashboard_url"]
+            return json.dumps(result, indent=2)
+
         import agentlightning as agl
 
         algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
@@ -300,17 +343,6 @@ def run_optimize_sync(
             model_name=str(inference_model),
             judge_prompt_file=judge_prompt_file,
         )
-        if debug_only:
-            trainer.dev(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
-            return json.dumps(
-                {
-                    "ok": True,
-                    "mode": "debug",
-                    "message": "Dry run complete",
-                    "dashboard_url": server_settings["dashboard_url"],
-                },
-                indent=2,
-            )
         trainer.fit(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
 
         optimized_prompt = _extract_best_prompt_template(algo)
@@ -343,6 +375,7 @@ def run_optimize_sync(
         "branch_factor": branch_factor,
         "n_runners": n_runners,
         "judge_mode": judge_mode,
+        "input_binding": "implicit_task_context" if uses_implicit_task_context(prompt_text) else "placeholders",
         "candidate_count": _count_candidates(algo),
     }
     if report_file:

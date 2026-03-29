@@ -157,6 +157,12 @@ Optional writes:
 - `--in-place` overwrites the source prompt
 - `--report-file` writes a JSON report
 
+Prompt binding notes:
+
+- Templates that declare placeholders such as `{input}` render directly from dataset rows.
+- Prompt-like files with no placeholders, including agent instruction files, now receive an implicit `Task Context:` block during rollouts so they can be optimized against explicit datasets without changing the source prompt interface.
+- `--debug-only` runs a live smoke rollout against the first training row without instantiating APO or VERL, which makes it useful for validating prompt, dataset, and model wiring separately from full optimization.
+
 For authored skill evaluation, the key file is:
 
 - [skills/trainer-optimize/evals/evals.json](../skills/trainer-optimize/evals/evals.json)

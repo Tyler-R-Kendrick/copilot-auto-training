@@ -37,54 +37,69 @@ def load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
 
 def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
     repo_root = find_repo_root(prompt_file)
-    dotenv_values = load_dotenv_file(repo_root / ".env")
-    github_names = (
-        "GITHUB_MODELS_API_KEY",
-        "GITHUB_MODELS_ENDPOINT",
-        "GITHUB_MODELS_MODEL",
-        "GITHUB_MODELS_GRADIENT_MODEL",
-        "GITHUB_MODELS_APPLY_EDIT_MODEL",
-    )
-    dotenv_github = any(dotenv_values.get(name) not in (None, "") for name in github_names)
-    process_github = any(os.getenv(name) not in (None, "") for name in github_names)
+    dotenv_path = repo_root / ".env"
+    dotenv_values = load_dotenv_file(dotenv_path)
+    dotenv_present = dotenv_path.exists()
 
-    def pick(name: str, default: str | None = None, *, dotenv_only: bool = False) -> str | None:
+    def pick(name: str, default: str | None = None) -> str | None:
         dotenv_value = dotenv_values.get(name)
         process_value = os.getenv(name)
-        if dotenv_only:
-            return dotenv_value if dotenv_value not in (None, "") else default
-        if process_value not in (None, ""):
-            return process_value
         if dotenv_value not in (None, ""):
             return dotenv_value
+        if dotenv_present:
+            return default
+        if process_value not in (None, ""):
+            return process_value
         return default
 
-    if dotenv_github or process_github:
-        dotenv_only = dotenv_github
-        api_key = pick("GITHUB_MODELS_API_KEY", dotenv_only=dotenv_only) or pick(
-            "OPENAI_API_KEY", dotenv_only=dotenv_only
+    openai_active = any(
+        pick(name) not in (None, "") for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL")
+    )
+    github_markers = any(
+        pick(name) not in (None, "")
+        for name in (
+            "GITHUB_MODELS_API_KEY",
+            "GITHUB_MODELS_ENDPOINT",
+            "GITHUB_MODELS_MODEL",
+            "GITHUB_MODELS_GRADIENT_MODEL",
+            "GITHUB_MODELS_APPLY_EDIT_MODEL",
         )
+    )
+
+    if openai_active:
+        inference_model = pick("OPENAI_MODEL")
+        gradient_model = pick("OPENAI_GRADIENT_MODEL", inference_model)
+        apply_edit_model = pick("OPENAI_APPLY_EDIT_MODEL", gradient_model or inference_model)
+        return {
+            "provider": "openai",
+            "api_key": pick("OPENAI_API_KEY"),
+            "base_url": pick("OPENAI_BASE_URL"),
+            "inference_model": inference_model,
+            "gradient_model": gradient_model,
+            "apply_edit_model": apply_edit_model,
+            "repo_root": str(repo_root),
+        }
+
+    if github_markers:
+        api_key = pick("GITHUB_MODELS_API_KEY")
         if not api_key:
-            raise ValueError("GitHub Models configuration requires GITHUB_MODELS_API_KEY or OPENAI_API_KEY.")
+            raise ValueError("GitHub Models configuration requires GITHUB_MODELS_API_KEY.")
         gradient_model = pick(
             "GITHUB_MODELS_GRADIENT_MODEL",
-            pick("GITHUB_MODELS_MODEL", DEFAULT_GITHUB_GRADIENT_MODEL, dotenv_only=dotenv_only),
-            dotenv_only=dotenv_only,
+            pick("GITHUB_MODELS_MODEL", DEFAULT_GITHUB_GRADIENT_MODEL),
         )
         inference_model = pick(
             "GITHUB_MODELS_MODEL",
             gradient_model or DEFAULT_GITHUB_GRADIENT_MODEL,
-            dotenv_only=dotenv_only,
         )
         apply_edit_model = pick(
             "GITHUB_MODELS_APPLY_EDIT_MODEL",
             gradient_model or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-            dotenv_only=dotenv_only,
         )
         return {
             "provider": "github",
             "api_key": api_key,
-            "base_url": pick("GITHUB_MODELS_ENDPOINT", DEFAULT_GITHUB_MODELS_ENDPOINT, dotenv_only=dotenv_only),
+            "base_url": pick("GITHUB_MODELS_ENDPOINT", DEFAULT_GITHUB_MODELS_ENDPOINT),
             "inference_model": inference_model or DEFAULT_GITHUB_GRADIENT_MODEL,
             "gradient_model": gradient_model or DEFAULT_GITHUB_GRADIENT_MODEL,
             "apply_edit_model": apply_edit_model or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
@@ -96,8 +111,8 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
         "api_key": pick("OPENAI_API_KEY"),
         "base_url": pick("OPENAI_BASE_URL"),
         "inference_model": pick("OPENAI_MODEL"),
-        "gradient_model": DEFAULT_GITHUB_GRADIENT_MODEL,
-        "apply_edit_model": DEFAULT_GITHUB_APPLY_EDIT_MODEL,
+        "gradient_model": pick("OPENAI_GRADIENT_MODEL", pick("OPENAI_MODEL")),
+        "apply_edit_model": pick("OPENAI_APPLY_EDIT_MODEL", pick("OPENAI_GRADIENT_MODEL", pick("OPENAI_MODEL"))),
         "repo_root": str(repo_root),
     }
 

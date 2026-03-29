@@ -1,0 +1,56 @@
+{
+  "skill_name": "conservator-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review a trainer-workflow rewrite where the staged instructions no longer require `find_agent_skill`, `load_agent_skill`, and `run_agent_skill` before each `trainer-*` stage, even though the surrounding text still claims MCP routing is enforced. Return the conservator review the parent trainer should act on.",
+      "expected_output": "The review should identify the dropped MCP skill-routing requirement as the highest-risk regression, explain why it breaks the repo's trainer contract, cite the changed instructions and thin validation, and keep the output concise and review-only.",
+      "assertions": [
+        "The response names missing MCP skill-routing as the primary regression.",
+        "The response explains why the regression matters for the trainer workflow contract.",
+        "The response cites concrete evidence rather than generic worry.",
+        "The response stays concise and review-only."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review prompt-optimization guidance that tells authors to place `expected`, `criteria`, and benchmark notes directly in visible prompt inputs and describes `evals/evals.json` as interchangeable with explicit `train.jsonl` and `val.jsonl` runtime datasets.",
+      "expected_output": "The review should flag evaluator-field leakage and authored-eval versus runtime-dataset blur as the main contract drift, explain why it breaks prompt rendering and evaluation hygiene, and cite the manifest and dataset instructions as evidence.",
+      "assertions": [
+        "The response distinguishes authored eval manifests from explicit runtime datasets.",
+        "The response flags evaluator-only field leakage into prompt-visible inputs.",
+        "The response ties the finding to concrete repo guidance."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Review a conservator rewrite that expands prompt and dataset checks but never inspects scorer assumptions, authored eval assertions, or whether the validation log proves the claimed behavior. The latest optimize attempt failed on a placeholder mismatch, yet the summary calls it only a weak score.",
+      "expected_output": "The review should treat the placeholder mismatch as a runtime exception rather than a low score, call out missing evaluator and validation coverage, and recommend a follow-up check that inspects stderr or traces before making prompt-quality claims.",
+      "assertions": [
+        "The response classifies the placeholder mismatch as operational failure rather than weak quality.",
+        "The response mentions scorer assumptions, eval assertions, or validation proof gaps.",
+        "The response includes a concrete follow-up check."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review a candidate conservator prompt that lists focus areas but leaves the evidence order and output structure loose. Different runs alternately return one issue, three issues, or generic advice, and the prompt never says what to do when the supplied evidence is incomplete or benign.",
+      "expected_output": "The review should identify the loose audit sequence and output contract as the main reliability risk, recommend a fixed evidence order and a no-finding or missing-proof path, and keep the final response stable enough for repeated trainer use.",
+      "assertions": [
+        "The response calls for a fixed evidence order.",
+        "The response requests a stable output package.",
+        "The response includes a no-finding or missing-proof path."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Review a small wording cleanup in the conservator agent. MCP routing, authored eval separation, evaluator coverage, and output sections are unchanged. Validation reran the relevant trainer tests and full pytest. There is no diff touching scoring, split hygiene, or workflow boundaries.",
+      "expected_output": "The review should say no clear regression is evident from the supplied changes, avoid inventing a major issue, and mention any residual risk only in terms of normal validation scope.",
+      "assertions": [
+        "The response has an explicit no-clear-regression path.",
+        "The response avoids inventing unsupported regressions.",
+        "The response keeps any residual risk proportional to the evidence."
+      ]
+    }
+  ]
+}

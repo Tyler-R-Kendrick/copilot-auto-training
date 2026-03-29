@@ -1,0 +1,26 @@
+{
+  "target_file": ".github/agents/conservator.agent.md",
+  "workspace_root": ".github/agents/.trainer-workspace/conservator.agent",
+  "workspace_parent": ".github/agents",
+  "prompt_name": "conservator.agent",
+  "workflow_state": "complete",
+  "updated_at": "2026-03-29T21:46:40Z",
+  "required_artifacts": {
+    "engineer_prompt_review": ".github/agents/.trainer-workspace/conservator.agent/engineer-prompt/review.md",
+    "source_snapshot": ".github/agents/.trainer-workspace/conservator.agent/inputs/source/conservator.agent.md",
+    "latest_iteration_dir": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1",
+    "train_dataset": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1/synthesize/datasets/train.jsonl",
+    "val_dataset": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1/synthesize/datasets/val.jsonl",
+    "eval_manifest": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1/synthesize/evals/evals.json",
+    "optimize_report": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1/optimize/optimize-stage.json",
+    "validation_log": ".github/agents/.trainer-workspace/conservator.agent/iterations/iteration-1/validation/pytest.txt",
+    "decision_summary": ".github/agents/.trainer-workspace/conservator.agent/decision.md"
+  },
+  "artifact_contract": {
+    "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
+    "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
+    "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/.",
+    "decision": "Summarize the winning prompt decision and validation outcome in decision.md."
+  },
+  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout."
+}

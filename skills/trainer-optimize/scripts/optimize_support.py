@@ -11,6 +11,7 @@ HIDDEN_SCORING_FIELDS = frozenset({"criteria", "expected", "expected_json", "ref
 PLACEHOLDER_PATTERN = re.compile(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}(?!\})")
 ESCAPED_OPEN_BRACE = "\x00OPEN_BRACE\x00"
 ESCAPED_CLOSE_BRACE = "\x00CLOSE_BRACE\x00"
+IMPLICIT_TASK_CONTEXT_HEADING = "Task Context"
 
 
 class DatasetResolutionError(ValueError):
@@ -38,6 +39,10 @@ def load_jsonl(path: str) -> list[dict[str, Any]]:
 
 def extract_placeholders(template: str) -> set[str]:
     return set(PLACEHOLDER_PATTERN.findall(template))
+
+
+def uses_implicit_task_context(template: str) -> bool:
+    return not extract_placeholders(template)
 
 
 def flatten_keys(obj: Any, prefix: str = "") -> set[str]:
@@ -114,6 +119,20 @@ def render_prompt_text(prompt_text: str, task: dict[str, Any]) -> str:
     escaped_prompt = prompt_text.replace("{{", ESCAPED_OPEN_BRACE).replace("}}", ESCAPED_CLOSE_BRACE)
     rendered = PLACEHOLDER_PATTERN.sub(lambda match: str(prompt_fields[match.group(1)]), escaped_prompt)
     return rendered.replace(ESCAPED_OPEN_BRACE, "{").replace(ESCAPED_CLOSE_BRACE, "}")
+
+
+def _serialize_task_context(task: dict[str, Any]) -> str:
+    visible_fields = _prompt_fields(task)
+    if set(visible_fields) == {"input"} and not isinstance(visible_fields["input"], dict):
+        return str(visible_fields["input"])
+    return json.dumps(visible_fields, indent=2, sort_keys=True, ensure_ascii=True)
+
+
+def compose_runtime_prompt(prompt_text: str, task: dict[str, Any]) -> str:
+    if not uses_implicit_task_context(prompt_text):
+        return render_prompt_text(prompt_text, task)
+    task_context = _serialize_task_context(task)
+    return f"{prompt_text.rstrip()}\n\n{IMPLICIT_TASK_CONTEXT_HEADING}:\n{task_context}\n"
 
 
 def _normalize_text(value: Any) -> str:
@@ -202,7 +221,34 @@ def _extract_score(text: str) -> float:
 
 
 async def run_candidate(prompt_text: str, task: dict[str, Any], *, llm_client: Any, model_name: str) -> str:
-    return await _complete_text(llm_client, model_name, render_prompt_text(prompt_text, task))
+    return await _complete_text(llm_client, model_name, compose_runtime_prompt(prompt_text, task))
+
+
+async def smoke_test_prompt(
+    prompt_text: str,
+    task: dict[str, Any],
+    *,
+    judge_mode: str,
+    llm_client: Any,
+    model_name: str,
+    judge_prompt_file: str | None = None,
+    custom_scorer: Any | None = None,
+) -> dict[str, Any]:
+    output_text = await run_candidate(prompt_text, task, llm_client=llm_client, model_name=model_name)
+    score = await evaluate_output(
+        task,
+        output_text,
+        judge_mode=judge_mode,
+        judge_prompt_file=judge_prompt_file,
+        llm_client=llm_client,
+        custom_scorer=custom_scorer,
+        judge_model=model_name,
+    )
+    return {
+        "output_text": output_text,
+        "score": score,
+        "input_binding": "implicit_task_context" if uses_implicit_task_context(prompt_text) else "placeholders",
+    }
 
 
 async def evaluate_output(

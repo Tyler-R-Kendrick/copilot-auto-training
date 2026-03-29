@@ -80,6 +80,8 @@ class TestRunOptimizeModuleShape:
         env_sample = Path(optimize_module.__file__).parent.parent.parent.parent / ".env.sample"
         text = env_sample.read_text(encoding="utf-8")
 
+        assert "OPENAI_GRADIENT_MODEL=" in text
+        assert "OPENAI_APPLY_EDIT_MODEL=" in text
         assert "GITHUB_MODELS_API_KEY=" in text
         assert "GITHUB_MODELS_ENDPOINT=" in text
         assert "GITHUB_MODELS_MODEL=" in text
@@ -190,12 +192,54 @@ class TestGithubModelsConfiguration:
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
 
-        with pytest.raises(ValueError, match="GITHUB_MODELS_API_KEY|OPENAI_API_KEY"):
+        with pytest.raises(ValueError, match="GITHUB_MODELS_API_KEY"):
             await run_optimize(
                 prompt_file=str(prompt_path),
                 train_file=train,
                 val_file=val,
             )
+
+    @pytest.mark.asyncio
+    async def test_openai_env_takes_precedence_over_github_sample_defaults(self, tmp_path):
+        repo_root = tmp_path / "repo"
+        repo_root.mkdir()
+        (repo_root / "requirements.txt").write_text("agentlightning>=0.1.0\n", encoding="utf-8")
+        (repo_root / ".env").write_text(
+            "\n".join(
+                [
+                    "OPENAI_API_KEY=test-openai-token",
+                    "OPENAI_BASE_URL=https://api.openai.example/v1",
+                    "OPENAI_MODEL=gpt-4.1-mini",
+                    "GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference",
+                    "GITHUB_MODELS_MODEL=openai/gpt-4.1-mini",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        prompt_path = repo_root / "prompts" / "support.md"
+        prompt_path.parent.mkdir(parents=True)
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=str(prompt_path),
+                train_file=train,
+                val_file=val,
+            )
+        )
+
+        openai_module = sys.modules["openai"]
+        assert openai_module.AsyncOpenAI.last_init_kwargs["api_key"] == "test-openai-token"
+        assert openai_module.AsyncOpenAI.last_init_kwargs["base_url"] == "https://api.openai.example/v1"
+        assert result["model_provider"] == "openai"
+        assert result["model_endpoint"] == "https://api.openai.example/v1"
+        assert result["inference_model"] == "gpt-4.1-mini"
+        assert result["gradient_model"] == "gpt-4.1-mini"
+        assert result["apply_edit_model"] == "gpt-4.1-mini"
 
 
 class TestRunOptimizeInputValidation:
@@ -245,7 +289,92 @@ class TestRunOptimizeDebugOnly:
 
         assert result["ok"] is True
         assert result["mode"] == "debug"
+        assert result["input_binding"] == "placeholders"
+        assert "sample_score" in result
         assert result["dashboard_url"].startswith("http://")
+
+    @pytest.mark.asyncio
+    async def test_debug_only_skips_algorithm_instantiation_and_trainer_dev(self, monkeypatch):
+        prompt = _write_file(SIMPLE_TEMPLATE)
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        agl = sys.modules["agentlightning"]
+
+        def fail_algorithm(*args, **kwargs):
+            raise AssertionError("debug-only should not instantiate optimization algorithms")
+
+        def fail_dev(self, *, agent, train_dataset, val_dataset):
+            raise AssertionError("debug-only should not call Trainer.dev")
+
+        monkeypatch.setattr(agl, "APO", fail_algorithm)
+        monkeypatch.setattr(agl.Trainer, "dev", fail_dev)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=prompt,
+                train_file=train,
+                val_file=val,
+                debug_only=True,
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "debug"
+
+    @pytest.mark.asyncio
+    async def test_debug_only_verl_does_not_require_hydra_bound_algorithm_import(self, monkeypatch):
+        prompt = _write_file(SIMPLE_TEMPLATE)
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        agl = sys.modules["agentlightning"]
+
+        def hydra_failure(*args, **kwargs):
+            raise ModuleNotFoundError("No module named 'hydra'")
+
+        monkeypatch.setattr(agl, "VERL", hydra_failure)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=prompt,
+                train_file=train,
+                val_file=val,
+                algorithm="verl",
+                debug_only=True,
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "debug"
+
+    @pytest.mark.asyncio
+    async def test_debug_only_injects_implicit_task_context_for_prompts_without_placeholders(self, monkeypatch):
+        prompt = _write_file("You are a careful reviewer.\n")
+        train = _write_jsonl([{"input": "review this change", "expected": "pong"}])
+        val = _write_jsonl(SIMPLE_VAL)
+
+        captured: dict[str, str] = {}
+
+        async def capture_prompt(llm_client, model_name, prompt_text):
+            captured["prompt"] = prompt_text
+            return "pong"
+
+        monkeypatch.setattr(optimize_module.support, "_complete_text", capture_prompt)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=prompt,
+                train_file=train,
+                val_file=val,
+                debug_only=True,
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["input_binding"] == "implicit_task_context"
+        assert "Task Context:" in captured["prompt"]
+        assert "review this change" in captured["prompt"]
 
     @pytest.mark.asyncio
     async def test_debug_only_does_not_write_files(self, tmp_path):
@@ -520,6 +649,7 @@ class TestRunOptimizeNormalRun:
             "branch_factor",
             "n_runners",
             "judge_mode",
+            "input_binding",
             "candidate_count",
         }
         assert required <= set(result)

@@ -1,0 +1,76 @@
+{
+  "target_file": "/workspaces/copilot-apo/.github/agents/conservator.agent.md",
+  "workspace_root": "/workspaces/copilot-apo/.github/agents/.trainer-workspace/conservator.agent",
+  "approved_sources": [
+    {
+      "rank": 1,
+      "title": "Conservator engineer review",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/.github/agents/.trainer-workspace/conservator.agent/engineer-prompt/review.md",
+      "fit": "Directly states the optimization goal: stronger regression recall, clearer evidence order, evaluator and validation coverage, stable output, and an explicit no-finding path.",
+      "risk_notes": "High-authority local source; use as the primary rewrite brief."
+    },
+    {
+      "rank": 2,
+      "title": "Current conservator agent contract",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/.github/agents/conservator.agent.md",
+      "fit": "Defines the existing review-only scope, required workflow checks, and required output headings that must be preserved or tightened rather than replaced.",
+      "risk_notes": "Preserve subagent-only role and review-only boundary."
+    },
+    {
+      "rank": 3,
+      "title": "Customization tests for conservator and trainer workflow",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/tests/test_customizations.py",
+      "fit": "Pins repo-owned phrases and behavioral requirements around MCP routing, single-shot optimize boundaries, authored eval separation, and validation workflow expectations.",
+      "risk_notes": "Acts as a contract check for the prompt rewrite and validation."
+    },
+    {
+      "rank": 4,
+      "title": "Prompt optimization and eval-manifest instructions",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/.github/instructions/prompt-optimization.instructions.md",
+      "fit": "Defines trainer skill separation, dataset boundaries, and prompt-file validation habits that the conservator should reliably inspect.",
+      "risk_notes": "Use together with eval-manifest guidance to author realistic review cases."
+    },
+    {
+      "rank": 5,
+      "title": "Trainer-optimize dataset and runtime contract",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/skills/trainer-optimize/references/dataset-format.md",
+      "fit": "Defines the real scoring shapes, hidden evaluator fields, and the fact that the runtime only injects row data through prompt placeholders.",
+      "risk_notes": "Critical for blocker detection: the raw `.agent.md` target is not optimizer-native."
+    },
+    {
+      "rank": 6,
+      "title": "Judge-agent trainer-workspace precedent",
+      "type": "repo-local",
+      "path": "/workspaces/copilot-apo/.github/agents/.trainer-workspace/judge.agent/decision.md",
+      "fit": "Shows the repo-accepted pattern for `.agent.md` targets: synthesize datasets, record optimize blockers locally, and persist a grounded manual rewrite only when the optimizer cannot consume the raw target meaningfully.",
+      "risk_notes": "Useful process precedent, not a substitute for conservator-specific evidence."
+    },
+    {
+      "rank": 7,
+      "title": "RULERS: Locked Rubrics and Evidence-Anchored Scoring for Robust LLM Evaluation",
+      "type": "external",
+      "citation": "arXiv:2601.08654",
+      "fit": "Supports a fixed audit sequence, explicit score boundaries, and evidence-anchored judgments instead of free-form critique.",
+      "risk_notes": "Use as supporting methodology only; repo-local workflow rules remain primary."
+    }
+  ],
+  "rejected_candidates": [
+    {
+      "title": "Generic code-review checklists",
+      "reason": "Too broad to cover repo-specific trainer workflow regressions such as MCP routing, authored eval separation, or optimizer blocker handling."
+    },
+    {
+      "title": "Optimizer benchmark results without the repo runtime contract",
+      "reason": "They do not explain the `.agent.md` placeholder mismatch or the repo's requirement to keep run artifacts under the local `.trainer-workspace` tree."
+    },
+    {
+      "title": "Blog-style LLM reviewer tips",
+      "reason": "Derivative advice without stable task contracts or observable evaluator rules does not clear the approval bar for authored eval cases."
+    }
+  ]
+}
