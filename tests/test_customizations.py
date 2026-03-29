@@ -263,12 +263,12 @@ class TestAgentCustomizations:
         agent_path = REPO_ROOT / ".github" / "agents" / "prompt-optimization-loop.agent.md"
         assert not agent_path.exists()
 
-    def test_judge_agent_exists_and_is_subagent_only(self):
+    def test_judge_agent_exists_and_is_user_invocable(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "judge.agent.md"
         text = _read(agent_path)
 
         assert 'name: "judge"' in text
-        assert 'user-invocable: false' in text
+        assert 'user-invocable: true' in text
         assert 'description: "Use when scoring prompt candidates' in text
         assert 'write concise candidate summaries' in text
 
@@ -410,11 +410,11 @@ class TestAgentCustomizations:
             assert all("expected_output" in case for case in payload["evals"])
             assert all(case.get("assertions") for case in payload["evals"])
 
-    def test_conservator_agent_exists_and_is_subagent_only(self):
+    def test_conservator_agent_exists_and_is_user_invocable(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "conservator.agent.md"
         text = _read(agent_path)
 
-        assert 'user-invocable: false' in text
+        assert 'user-invocable: true' in text
         assert 'name: "conservator"' in text
         assert 'Use when reviewing prompt, dataset, or evaluator changes for likely regressions' in text
         assert 'required MCP skill-routing' in text

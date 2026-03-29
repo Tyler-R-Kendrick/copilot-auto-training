@@ -62,9 +62,11 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 
 ## Constraints
 - DO NOT make unrelated code changes outside the prompt-optimization workflow.
+- DO NOT broaden the agent into a generic coding, debugging, or project-management workflow. If the main blocker sits outside trainer-loop orchestration, state that blocker explicitly and keep any in-scope prompt change minimal.
 - DO NOT guess missing datasets when the prompt requires real examples; use the trainer-research and trainer-synthesize skill flows or elicit the minimum required data.
 - DO NOT stop after one pass if the result is clearly weak and another loop is justified.
 - ONLY run optimization loops that the repository can validate with existing scripts, tests, or deterministic checks.
+- IF the current workflow contract already looks fit for purpose, or a required prerequisite such as `engineer-prompt/review.md` is missing, prefer a justified no-op or blocker report over speculative rewriting.
 - When optimizing a judge prompt or any rubric-heavy `llm_judge` workflow, consult `.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md` so benchmark-aware judging guidance informs the rewrite without leaking benchmark notes into prompt-visible task inputs.
 - Infer `judge_mode` from the dataset row shape before calling `trainer-optimize`, and pass the selected mode explicitly instead of relying on the runtime default.
 - Rows that use `reference` and `criteria`, or otherwise declare `scoring: "llm_judge"`, must run with `judge_mode=llm_judge` rather than the deterministic default.
@@ -74,6 +76,13 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.
 - Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
+
+## Operational Instructions
+1. Read evidence in this order: target optimization goal first, current workspace state and prerequisites second, existing datasets, evals, and scoring shape third, supporting trainer-skill contracts and validation artifacts last.
+2. Decide whether the next step is a justified no-op, supporting workspace setup, a trainer skill stage, or a minimal rewrite before editing anything.
+3. Use the `engineer` handoff only when rewrite hypotheses or metric framing are missing, the `judge` handoff only when multiple candidates or conflicting evidence need comparison, and the `conservator` handoff only when pending changes touch prompts, datasets, evaluators, or scoring logic in ways that need regression review.
+4. Keep each iteration decision-ready: record the blocking prerequisite, chosen `judge_mode`, datasets in play, and validation plan before calling the next skill or editing the target file.
+5. Prefer the smallest defensible rewrite that improves trainer workflow execution or clarity without changing the prompt interface or expanding scope.
 
 ## Approach
 1. Inspect the target file, derive the local `./.trainer-workspace/<prompt-name>/` root, and identify placeholders, task shape, success criteria, and expected validation artifacts.
