@@ -1,12 +1,13 @@
 # Getting Started
 
-This guide covers installation, model configuration, the first run, and the files written by the optimizer.
+This guide covers installation, model configuration, the first run, and the optimizer's output modes.
 
 ## Prerequisites
 
 - Python 3.11 or newer
 - A virtual environment for the repository
 - Model credentials through either `OPENAI_API_KEY` or GitHub Models configuration in the repository root `.env`
+- A model name through `OPENAI_MODEL` or `GITHUB_MODELS_MODEL`
 
 ## Install Dependencies
 
@@ -29,6 +30,8 @@ GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
 GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
 ```
 
+Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported secret and model keys stay documented in one place.
+
 When these `GITHUB_MODELS_*` values are present, the optimizer treats the repository-root `.env` as the authoritative source for GitHub Models settings.
 
 ## Verify the Environment
@@ -42,6 +45,8 @@ python -m pytest -q
 ## First Run
 
 The smallest runnable example in this repository is documented in [examples/first-run/README.md](../examples/first-run/README.md).
+
+`trainer-optimize` requires explicit `--train-file` and `--val-file` inputs. It does not infer, synthesize, or collect missing datasets at runtime.
 
 Smoke test:
 
@@ -63,6 +68,28 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --iterations 2 \
   --beam-width 2 \
   --branch-factor 2
+```
+
+By default, the optimized prompt is returned in JSON/stdout and the source prompt is left unchanged.
+
+Write to a separate file:
+
+```bash
+python skills/trainer-optimize/scripts/run_optimize.py \
+  --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
+  --output-file /tmp/optimized.md
+```
+
+Overwrite the source prompt explicitly:
+
+```bash
+python skills/trainer-optimize/scripts/run_optimize.py \
+  --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
+  --in-place
 ```
 
 While the full run is active, open the dashboard described in [docs/dashboard.md](dashboard.md).
@@ -118,17 +145,34 @@ For the full dataset contract, see [skills/trainer-optimize/references/dataset-f
 
 ## Outputs and Artifacts
 
-Successful optimization runs write:
+Successful optimization runs always return the optimized prompt in JSON/stdout.
 
-- the winning prompt back to the original markdown file
-- a report at the explicit `--report-file` path or the runtime default
-- runtime artifacts under `<prompt-dir>/<prompt-name>-workspace/`
+Optional writes:
+
+- `--output-file` writes a separate optimized prompt file
+- `--in-place` overwrites the source prompt
+- `--report-file` writes a JSON report
 
 For authored skill evaluation, the key file is:
 
 - [skills/trainer-optimize/evals/evals.json](../skills/trainer-optimize/evals/evals.json)
 
-The optimizer workspace directory is gitignored and keeps `benchmark.json`, per-run summaries, candidate snapshots, and steering notes.
+The optimizer no longer writes prompt content or reports unless you explicitly request those outputs.
+
+## Trace Training
+
+To tune the optimize runtime itself with Microsoft Trace, run the helper on one or more explicit prompt cases:
+
+```bash
+python skills/trainer-optimize/scripts/train.py \
+  --prompt-file examples/first-run/prompts/classify_support.md \
+  --train-file examples/first-run/datasets/train.jsonl \
+  --val-file examples/first-run/datasets/val.jsonl \
+  --epochs 2 \
+  --report-file /tmp/trace-train-report.json
+```
+
+The Trace helper keeps `trainer-optimize` single-shot. It tunes the policy that selects optimize settings and writes a JSON training report only when you request `--report-file`.
 
 ## Next Reading
 

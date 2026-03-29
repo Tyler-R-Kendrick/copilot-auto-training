@@ -7,7 +7,6 @@ Authored skill eval cases follow the official Agent Skills structure:
 ```text
 <prompt-dir>/evals/evals.json
 <prompt-dir>/evals/files/
-<prompt-dir>/<prompt-name>-workspace/iteration-N/
 ```
 
 The optimizer itself works with explicit JSONL datasets such as:
@@ -32,19 +31,9 @@ GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
 GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
 ```
 
-Optimization run artifacts are stored under a dedicated workspace directory that should stay gitignored:
+`trainer-optimize` does not infer dataset locations and does not synthesize missing JSONL files at runtime. Provide explicit `train.jsonl` and `val.jsonl` paths before starting optimization.
 
-```text
-<prompt-dir>/<prompt-name>-workspace/
-	benchmark.json
-	steering.md
-	iteration-001/
-		report.json
-		summary.md
-		candidates/
-```
-
-`steering.md` is the rolling memory of prior optimization runs. Each new run should read it before selecting a winner so repeated failures, reward hacking, and verbose or redundant outputs are penalized rather than repeated.
+Single-shot optimize does not write steering files, iteration summaries, candidate workspaces, or dataset-collection artifacts unless a higher-level workflow adds them externally.
 
 ## File format
 
@@ -131,7 +120,7 @@ Work backward from the task the prompt is supposed to solve.
 3. Build representative tasks for the same input type your prompt expects.
 4. Add hidden scoring fields without leaking them into the prompt input path.
 5. Split into `train.jsonl` and `val.jsonl`, and optionally `test.jsonl`.
-6. Review workspace `steering.md` and the latest iteration `summary.md` before another optimization pass so the next iteration carries forward the prior learnings.
+6. Keep prompt optimization non-destructive by default, and only request file outputs when the workflow explicitly needs them.
 
 Use `scripts/generate_jsonl.py` to bootstrap explicit JSONL datasets from CSV input.
 

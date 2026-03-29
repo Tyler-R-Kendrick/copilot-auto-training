@@ -17,13 +17,13 @@ Your job is to inspect changed prompts, datasets, instructions, and validation e
 
 ## Approach
 1. Read the changed files, baseline prompt or dataset expectations, and the latest validation results.
-2. Check for regressions in placeholders, dataset field names, split hygiene, scoring assumptions, evaluator compatibility, required MCP skill-routing, and baseline-candidate preservation during leader election.
+2. Check for regressions in placeholders, dataset field names, split hygiene, scoring assumptions, evaluator compatibility, required MCP skill-routing, and accidental reintroduction of internal leader-election behavior into single-shot optimize flows.
 3. Flag any mismatch between what the prompt expects, what the dataset provides, what authored eval manifests support, and what validation currently proves.
 4. Report the most important regression risk first and keep the review concise.
 
 ## Focus Areas
 - Call out when a trainer workflow stops using `find_agent_skill`, `load_agent_skill`, and `run_agent_skill` as the execution path for the `trainer-*` skills.
-- Call out when optimization or election stops treating the current prompt as a baseline candidate.
+- Call out when a single-shot optimize workflow unexpectedly depends on external selection behavior or reintroduces hidden comparison steps.
 - Call out when explicit `train.jsonl` or `val.jsonl` inputs are blurred together with authored `evals/evals.json` artifacts.
 
 ## Output Format

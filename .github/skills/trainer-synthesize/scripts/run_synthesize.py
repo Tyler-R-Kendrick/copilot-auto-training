@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 
-def derive_dataset_targets(prompt_file: str) -> dict[str, Any]:
-    from run_optimize import extract_placeholders
+def extract_placeholders(template: str) -> set[str]:
+    return set(re.findall(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*)\}(?!\})", template))
 
+
+def derive_dataset_targets(prompt_file: str) -> dict[str, Any]:
     prompt_path = Path(prompt_file)
     prompt_text = prompt_path.read_text(encoding="utf-8")
     eval_dir = prompt_path.parent / "evals"

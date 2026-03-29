@@ -13,11 +13,12 @@
     },
     {
       "id": 2,
-      "prompt": "Improve this skill prompt and compare the result against the baseline rather than assuming the new version is better.",
-      "expected_output": "The response keeps the original prompt as a baseline candidate and explains the winner using observable quality differences.",
+      "prompt": "Improve this skill prompt, but keep the optimize run single-shot and non-destructive unless I explicitly ask to write files.",
+      "expected_output": "The response improves the prompt while keeping optimization single-shot, avoiding internal leader-election behavior, and making file persistence explicit instead of implicit.",
       "assertions": [
-        "The response mentions baseline comparison.",
-        "The response favors concrete quality signals over vague praise."
+        "The response mentions single-shot optimization or equivalent wording.",
+        "The response avoids internal leader-election behavior.",
+        "The response keeps file writes explicit rather than implicit."
       ]
     },
     {

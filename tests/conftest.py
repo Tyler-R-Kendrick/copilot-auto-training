@@ -1,7 +1,4 @@
-"""
-conftest.py — install lightweight stubs for external packages
-(agentlightning, openai) before any test module imports run_optimize.
-"""
+"""Test fixtures for external packages used by the trainer scripts."""
 from __future__ import annotations
 
 import sys
@@ -22,12 +19,8 @@ class _PromptTemplate:
 
 
 class _BaseAlgorithm:
-    """Minimal algorithm stub whose behaviour tests can override per-test."""
+    """Minimal external-algorithm stub for unit tests."""
 
-    # Class-level knob: controls how many candidates _Trainer.fit() produces.
-    # Tests that need to exercise the multi-candidate path can monkeypatch this
-    # value (e.g. ``monkeypatch.setattr(agl.APO, "_num_candidates", 3)``).
-    # Defaults to 1 to exercise the single-candidate → variant fallback path.
     _num_candidates: int = 1
 
     def __init__(self, client, *, beam_rounds=3, beam_width=4, branch_factor=4,
@@ -70,25 +63,18 @@ class _Trainer:
 
     def fit(self, *, agent, train_dataset, val_dataset):
         self._fit_called = True
-        # Simulate a successful optimisation: produce _num_candidates candidates.
-        # The first/best has the "<!-- optimized -->" marker; additional candidates
-        # are labelled so tests can assert which path was taken.
         if isinstance(self.algorithm, (_APO, _VERL)):
             seed = list(self.initial_resources.values())[0]
             n = self.algorithm._num_candidates
             algo_name = self.algorithm.__class__.__name__.lower()
             candidates = [
                 _PromptTemplate(
-                    template=seed.template + "\n<!-- optimized -->" + f"\n<!-- algorithm:{algo_name} -->" + (
-                        f"\n<!-- candidate {i} -->" if i > 0 else ""
-                    ),
+                    template=seed.template + f"\nRefined instruction {i + 1} from {algo_name}.",
                     engine=seed.engine,
                 )
                 for i in range(n)
             ]
             self.algorithm._candidates = candidates
-            # Simulate a successful optimisation: append a marker so tests can
-            # verify the output file contains the "optimized" result.
             self.algorithm._best_prompt = candidates[0]
 
 
@@ -128,9 +114,26 @@ class _AsyncOpenAI:
     def __init__(self, **kwargs):
         self.init_kwargs = kwargs
         type(self).last_init_kwargs = dict(kwargs)
+        self.responses = self._Responses()
+        self.chat = self._Chat()
 
     async def judge_score(self, rendered_prompt: str) -> float:
         return 0.5
+
+    class _Responses:
+        async def create(self, *, model: str, input: str):
+            return types.SimpleNamespace(output_text=input)
+
+    class _Chat:
+        class _Completions:
+            async def create(self, *, model: str, messages: list[dict[str, str]]):
+                content = messages[-1]["content"] if messages else ""
+                message = types.SimpleNamespace(content=content)
+                choice = types.SimpleNamespace(message=message)
+                return types.SimpleNamespace(choices=[choice])
+
+        def __init__(self):
+            self.completions = self._Completions()
 
 
 _openai.AsyncOpenAI = _AsyncOpenAI
