@@ -11,3 +11,9 @@ if [[ -x "$workspace_uv" ]]; then
 elif command -v uv >/dev/null 2>&1; then
     uv sync --directory "$tool_dir"
 fi
+
+if command -v gh >/dev/null 2>&1; then
+    if ! gh extension list 2>/dev/null | awk '{print $1}' | grep -Eq '(^|/)gh-aw$'; then
+        gh extension install github/gh-aw
+    fi
+fi

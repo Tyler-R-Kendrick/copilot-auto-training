@@ -2,6 +2,7 @@
 # Ignore unmanaged local additions while keeping canonical links and in-place source dirs visible.
 *
 !.gitignore
+!create-workflow
 !engineer-prompt
 !judge-outcome
 !judge-rubric

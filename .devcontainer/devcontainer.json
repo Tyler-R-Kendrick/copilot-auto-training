@@ -1,6 +1,11 @@
 {
 	"image": "mcr.microsoft.com/devcontainers/universal:2",
 	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/copilot-cli:1": {},
+		"ghcr.io/devcontainers-extra/features/act:1": {},
+		"ghcr.io/devcontainers-extra/features/actions-runner:1": {},
+		"ghcr.io/devcontainers-extra/features/actionlint:1": {},
 		"ghcr.io/devcontainers-extra/features/uv:1": {}
 	},
 	"postStartCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/post-start.sh",
