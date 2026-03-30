@@ -15,6 +15,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
+PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
 
 
 def _read(path: Path) -> str:
@@ -58,6 +59,15 @@ def _load_skill_links_module():
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     sys.modules.setdefault("sync_skill_links_customizations", module)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_plugin_links_module():
+    spec = importlib.util.spec_from_file_location("sync_plugin_links_customizations", PLUGIN_LINKS_MODULE_PATH)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    sys.modules.setdefault("sync_plugin_links_customizations", module)
     spec.loader.exec_module(module)
     return module
 
@@ -561,6 +571,7 @@ class TestHookCustomization:
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
         assert any("prompt-workflow-reminder.sh" in entry["command"] for entry in post_tool_use)
         assert any("ensure-skill-link-watcher.sh" in entry["command"] for entry in post_tool_use)
+        assert any("ensure-plugin-link-watcher.sh" in entry["command"] for entry in post_tool_use)
 
     def test_skill_link_watcher_launcher_exists(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "ensure-skill-link-watcher.sh"
@@ -573,6 +584,16 @@ class TestHookCustomization:
         assert "$HOME/skills" in text
         assert "$HOME/.agents/skills" in text
 
+    def test_plugin_link_watcher_launcher_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "ensure-plugin-link-watcher.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert "sync-plugin-links.py" in text
+        assert "--watch" in text
+        assert 'pgrep -u "$UID" -f "$sync_helper .*--watch"' in text
+        assert "copilot-training-plugin-link-watcher" in text
+
     def test_skill_link_sync_helper_exists(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
         text = _read(script_path)
@@ -580,6 +601,17 @@ class TestHookCustomization:
         assert text.startswith("#!/usr/bin/env python3")
         assert ".agents/skills" in text
         assert "~/skills" in text
+        assert "--check" in text
+        assert "--watch" in text
+        assert "symlink_to" in text
+
+    def test_plugin_link_sync_helper_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env python3")
+        assert "plugin-sources.json" in text
+        assert "marketplace.json" in text
         assert "--check" in text
         assert "--watch" in text
         assert "symlink_to" in text
@@ -678,6 +710,183 @@ class TestHookCustomization:
             drift_payload = json.loads(drift.stdout)
             assert drift_payload["status"] == "drift"
             assert "repo-skill" in drift_payload["non_symlink"]
+
+    def test_plugin_link_sync_helper_normalizes_plugin_components_and_marketplace(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            plugin_root = temp_root / "plugins" / "demo-plugin"
+            plugin_root.mkdir(parents=True)
+            (plugin_root / "plugin.json").write_text(
+                json.dumps(
+                    {
+                        "name": "demo-plugin",
+                        "description": "Demo plugin.",
+                        "version": "1.2.3",
+                        "license": "MIT",
+                        "repository": "https://example.invalid/repo",
+                    }
+                ) + "\n",
+                encoding="utf-8",
+            )
+
+            skill_root = temp_root / "skills" / "demo-skill"
+            skill_root.mkdir(parents=True)
+            (skill_root / "SKILL.md").write_text("---\nname: demo-skill\ndescription: demo\n---\n", encoding="utf-8")
+
+            agent_root = temp_root / ".github" / "agents"
+            agent_root.mkdir(parents=True)
+            agent_file = agent_root / "demo.agent.md"
+            agent_file.write_text("---\nname: demo\n---\n", encoding="utf-8")
+
+            hook_root = temp_root / ".github" / "hooks"
+            hook_root.mkdir(parents=True, exist_ok=True)
+            hook_file = hook_root / "demo-hook.sh"
+            hook_file.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+            (hook_root / "__pycache__").mkdir()
+
+            mcp_root = temp_root / "tools" / "demo-mcp"
+            mcp_root.mkdir(parents=True)
+            (mcp_root / "server.py").write_text("print('ok')\n", encoding="utf-8")
+
+            obsolete_plugin_root = temp_root / "plugins" / "obsolete-plugin"
+            obsolete_plugin_root.mkdir(parents=True)
+
+            plugin_config = {
+                "marketplace": {
+                    "name": "demo-marketplace",
+                    "owner": {"name": "Demo Owner"},
+                    "metadata": {"description": "Demo marketplace.", "version": "9.9.9"},
+                },
+                "plugin": {
+                    "name": "demo-plugin",
+                    "directory": "plugins/demo-plugin",
+                    "components": {
+                        "skills": [{"root": "skills"}],
+                        "agents": [{"root": ".github/agents"}],
+                        "mcps": ["tools/demo-mcp"],
+                        "hooks": [{"root": ".github/hooks", "exclude": ["__pycache__"]}],
+                    },
+                },
+            }
+            plugin_config_path = temp_root / ".github" / "plugin" / "plugin-sources.json"
+            plugin_config_path.parent.mkdir(parents=True, exist_ok=True)
+            plugin_config_path.write_text(json.dumps(plugin_config, indent=2) + "\n", encoding="utf-8")
+
+            result = _run_python_script(helper_path, "--repo-root", str(temp_root))
+            payload = json.loads(result.stdout)
+
+            assert "demo-plugin:skills/demo-skill" in payload["created"]
+            assert "demo-plugin:agents/demo.agent.md" in payload["created"]
+            assert "demo-plugin:mcps/demo-mcp" in payload["created"]
+            assert "demo-plugin:hooks/demo-hook.sh" in payload["created"]
+            assert payload["marketplace_updated"] is True
+            assert "obsolete-plugin" in payload["removed"]
+
+            assert (plugin_root / "skills" / "demo-skill").is_symlink()
+            assert (plugin_root / "agents" / "demo.agent.md").is_symlink()
+            assert (plugin_root / "mcps" / "demo-mcp").is_symlink()
+            assert (plugin_root / "hooks" / "demo-hook.sh").is_symlink()
+            assert (plugin_root / "skills" / "demo-skill").resolve() == skill_root.resolve()
+            assert (plugin_root / "agents" / "demo.agent.md").resolve() == agent_file.resolve()
+            assert (plugin_root / "mcps" / "demo-mcp").resolve() == mcp_root.resolve()
+            assert (plugin_root / "hooks" / "demo-hook.sh").resolve() == hook_file.resolve()
+            assert not (plugin_root / "hooks" / "__pycache__").exists()
+            assert not obsolete_plugin_root.exists()
+
+            marketplace_payload = json.loads((temp_root / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8"))
+            assert marketplace_payload == {
+                "name": "demo-marketplace",
+                "owner": {"name": "Demo Owner"},
+                "metadata": {"description": "Demo marketplace.", "version": "9.9.9"},
+                "plugins": [
+                    {
+                        "name": "demo-plugin",
+                        "description": "Demo plugin.",
+                        "version": "1.2.3",
+                        "source": "plugins/demo-plugin",
+                    }
+                ],
+            }
+
+    def test_plugin_link_sync_helper_check_detects_drift(self):
+        helper_path = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as temp_dir:
+            temp_root = Path(temp_dir)
+            skill_root = temp_root / "skills" / "demo-skill"
+            skill_root.mkdir(parents=True)
+            (skill_root / "SKILL.md").write_text("---\nname: demo-skill\ndescription: demo\n---\n", encoding="utf-8")
+
+            plugin_root = temp_root / "plugins" / "demo-plugin"
+            plugin_root.mkdir(parents=True)
+            (plugin_root / "plugin.json").write_text(
+                json.dumps(
+                    {
+                        "name": "demo-plugin",
+                        "description": "Demo plugin.",
+                        "version": "1.0.0",
+                        "license": "MIT",
+                        "repository": "https://example.invalid/repo",
+                    }
+                ) + "\n",
+                encoding="utf-8",
+            )
+
+            plugin_config_path = temp_root / ".github" / "plugin" / "plugin-sources.json"
+            plugin_config_path.parent.mkdir(parents=True, exist_ok=True)
+            plugin_config_path.write_text(
+                json.dumps(
+                    {
+                        "marketplace": {
+                            "name": "demo-marketplace",
+                            "owner": {"name": "Demo Owner"},
+                            "metadata": {"description": "Demo marketplace.", "version": "1.0.0"},
+                        },
+                        "plugin": {
+                            "name": "demo-plugin",
+                            "directory": "plugins/demo-plugin",
+                            "components": {
+                                "skills": ["skills/demo-skill"],
+                                "agents": [],
+                                "mcps": [],
+                                "hooks": [],
+                            },
+                        },
+                    },
+                    indent=2,
+                ) + "\n",
+                encoding="utf-8",
+            )
+
+            _run_python_script(helper_path, "--repo-root", str(temp_root))
+
+            clean = subprocess.run(
+                [str(REPO_ROOT / ".venv" / "bin" / "python"), str(helper_path), "--repo-root", str(temp_root), "--check"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            assert clean.returncode == 0
+            clean_payload = json.loads(clean.stdout)
+            assert clean_payload["status"] == "ok"
+
+            broken_link = temp_root / "plugins" / "demo-plugin" / "skills" / "demo-skill"
+            broken_link.unlink()
+            broken_link.mkdir()
+            (broken_link / "SKILL.md").write_text("stale copy\n", encoding="utf-8")
+
+            drift = subprocess.run(
+                [str(REPO_ROOT / ".venv" / "bin" / "python"), str(helper_path), "--repo-root", str(temp_root), "--check"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            assert drift.returncode == 1
+            drift_payload = json.loads(drift.stdout)
+            assert drift_payload["status"] == "drift"
+            assert "demo-plugin:skills/demo-skill" in drift_payload["non_symlink"]
 
     def test_agents_skill_directory_matches_managed_links(self):
         skill_links_module = _load_skill_links_module()

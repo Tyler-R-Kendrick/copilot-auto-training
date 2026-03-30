@@ -1,0 +1,42 @@
+{
+  "marketplace": {
+    "name": "copilot-training",
+    "owner": {
+      "name": "Tyler Kendrick"
+    },
+    "metadata": {
+      "description": "Copilot CLI plugin marketplace for the single copilot-training plugin, including repo skills, agents, hooks, and MCP runtime assets.",
+      "version": "0.1.0"
+    }
+  },
+  "plugin": {
+    "name": "copilot-training",
+    "directory": "plugins/copilot-training",
+    "components": {
+      "skills": [
+        {
+          "root": "skills"
+        }
+      ],
+      "agents": [
+        {
+          "root": ".github/agents",
+          "exclude": [
+            ".trainer-workspace"
+          ]
+        }
+      ],
+      "mcps": [
+        "tools/agent-skills-mcp"
+      ],
+      "hooks": [
+        {
+          "root": ".github/hooks",
+          "exclude": [
+            "__pycache__"
+          ]
+        }
+      ]
+    }
+  }
+}

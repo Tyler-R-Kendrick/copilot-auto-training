@@ -1,0 +1,1 @@
+../../../.github/hooks/ensure-skill-link-watcher.sh

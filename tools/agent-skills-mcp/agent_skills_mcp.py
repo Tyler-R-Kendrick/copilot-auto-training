@@ -60,12 +60,27 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _bundled_root() -> Path | None:
+    candidate = Path(__file__).resolve().parent / "skill_bundle"
+    if candidate.is_dir():
+        return candidate
+    return None
+
+
 def _candidate_skill_roots() -> list[tuple[str, Path]]:
+    roots: list[tuple[str, Path]] = []
+
+    bundled_root = _bundled_root()
+    if bundled_root is not None:
+        for spec in SUPPORTED_SKILL_ROOTS:
+            candidate = (bundled_root / spec).resolve()
+            if candidate.is_dir():
+                roots.append((f"bundled/{spec}", candidate))
+
     repo_root = _repository_root()
     override = os.getenv("AGENT_SKILLS_ROOTS")
     root_specs = [part.strip() for part in override.split(os.pathsep)] if override else list(SUPPORTED_SKILL_ROOTS)
 
-    roots: list[tuple[str, Path]] = []
     for spec in root_specs:
         if not spec:
             continue
@@ -82,7 +97,9 @@ def _candidate_skill_roots() -> list[tuple[str, Path]]:
                 label = path.relative_to(repo_root).as_posix()
             except ValueError:
                 label = path.as_posix()
-            roots.append((label, path))
+            candidate = (label, path)
+            if candidate not in roots:
+                roots.append(candidate)
     return roots
 
 
@@ -215,13 +232,13 @@ def _freshness_key(skill_dir: Path, frontmatter: dict[str, Any], root_rank: int)
     return (_version_key(frontmatter), newest_mtime_ns, file_count, -root_rank, skill_dir.as_posix())
 
 
-def _read_skill_dir(skill_dir: Path, source_root: str, root_rank: int) -> SkillRecord:
+def _read_skill_dir(skill_dir: Path, source_root: str, root_rank: int, root_path: Path | None = None) -> SkillRecord:
     real_dir = skill_dir.resolve()
-    repo_root = _repository_root()
+    effective_root = root_path.resolve() if root_path is not None else _repository_root()
     try:
-        real_dir.relative_to(repo_root)
+        real_dir.relative_to(effective_root)
     except ValueError as exc:
-        raise SkillError(f"{skill_dir} resolves outside the repository root {repo_root}") from exc
+        raise SkillError(f"{skill_dir} resolves outside the skill root {effective_root}") from exc
     skill_md = real_dir / "SKILL.md"
     if not skill_md.is_file():
         raise SkillError(f"{real_dir} is not a valid skill directory because SKILL.md is missing")
@@ -261,7 +278,7 @@ def _collect_skills(*, include_model_invocation_disabled: bool) -> list[SkillRec
             if not child.is_dir():
                 continue
             try:
-                skill = _read_skill_dir(child, source_root, root_rank)
+                skill = _read_skill_dir(child, source_root, root_rank, root_path)
             except SkillError as exc:
                 LOGGER.warning("Skipping invalid skill at %s: %s", child, exc)
                 continue
@@ -295,7 +312,7 @@ def _find_skill_by_name(name: str, *, include_model_invocation_disabled: bool = 
         if not skill_md.exists():
             raise SkillError(f"Skill '{name}' exists at {candidate_dir} but SKILL.md is missing")
         try:
-            skill = _read_skill_dir(candidate_dir, source_root, 0)
+            skill = _read_skill_dir(candidate_dir, source_root, 0, root_path)
         except SkillError as exc:
             raise SkillError(f"Skill '{name}' is invalid: {exc}") from exc
         if include_model_invocation_disabled or not skill.model_invocation_disabled:
@@ -344,10 +361,8 @@ def _resolve_script_path(skill: SkillRecord, relative_path: str = "") -> Path:
 
     skill_dir = Path(skill.dir)
     candidate = (skill_dir / relative_path).resolve()
-    repo_root = _repository_root()
     try:
         candidate.relative_to(skill_dir)
-        candidate.relative_to(repo_root)
     except ValueError as exc:
         raise SkillError(f"Script path '{relative_path}' escapes skill '{skill.name}'") from exc
 
@@ -469,13 +484,14 @@ def run_agent_skill(name: str, script_path: str = "", argv: list[str] | None = N
     skill = _find_skill_by_name(name)
     entrypoint = _resolve_script_path(skill, script_path)
     normalized_argv = _normalize_argv(argv)
+    run_cwd = os.getenv("AGENT_SKILLS_RUN_CWD", "").strip() or skill.dir
     result = subprocess.run(
         [
             _resolve_python_executable(),
             str(entrypoint),
             *normalized_argv,
         ],
-        cwd=skill.dir,
+        cwd=run_cwd,
         capture_output=True,
         text=True,
         check=False,

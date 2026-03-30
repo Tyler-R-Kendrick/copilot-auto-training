@@ -16,6 +16,11 @@
         "matcher": "Write|Edit|MultiEdit",
         "command": "bash /workspaces/copilot-apo/.github/hooks/ensure-skill-link-watcher.sh",
         "timeout": 15
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "command": "bash /workspaces/copilot-apo/.github/hooks/ensure-plugin-link-watcher.sh",
+        "timeout": 15
       }
     ]
   }

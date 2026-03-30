@@ -1,7 +1,17 @@
 ---
 on:
-   schedule: "0 0 * * *"
+   schedule: daily
    workflow_dispatch:
+
+description: Reusable workflow that selects one prompt-like file, runs the trainer loop, and opens a pull request when the optimized result validates.
+
+labels: [prompt-optimization, automation]
+
+inlined-imports: true
+
+imports:
+  - shared/agent-skills-runtime.md
+  - shared/trainer-loop-contract.md
 
 permissions:
   contents: read
@@ -13,14 +23,6 @@ engine: copilot
 tools:
   github:
     toolsets: [default]
-
-mcp-servers:
-  agent-skills:
-    command: tools/agent-skills-mcp/.venv/bin/python
-    args: [tools/agent-skills-mcp/server.py]
-    allowed: [find_agent_skill, load_agent_skill, run_agent_skill]
-
-network: defaults
 
 safe-outputs:
   create-pull-request:
@@ -55,7 +57,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 
 ## Workspace Mapping
 
-1. Use the same workspace naming rules as `.github/hooks/trainer-workspace.py`:
+1. Use these workspace naming rules:
    - strip `.prompty` entirely
    - otherwise strip only the final extension
    - examples:
@@ -90,14 +92,9 @@ Select exactly one prompt-like source file in this repository, run the repositor
 ## Execution
 
 1. Work on exactly one selected target.
-2. If the selected target has no local trainer workspace, initialize it with the repository helper:
-
-   ```bash
-   python .github/hooks/trainer-workspace.py init --repo-root . --target-file <target-file> --state pending_engineer_prompt
-   ```
-
+2. If the selected target has no local trainer workspace, initialize it by following the imported trainer loop contract: create the local `.trainer-workspace/<prompt-name>/` tree, create the required subdirectories, snapshot the source file under `inputs/source/`, and write `workflow-status.json` with state `pending_engineer_prompt`.
 3. Inspect the selected workspace. If `engineer-prompt/review.md` is missing, create that review artifact first so the trainer loop has its required prerequisite. The review must stay in the selected local workspace.
-4. Run the repository's trainer loop for the selected file by following `.github/agents/trainer.agent.md` as the contract and by using the local `agent-skills` MCP server configured for this workflow.
+4. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
 5. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
 6. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
 7. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
@@ -134,6 +131,6 @@ Select exactly one prompt-like source file in this repository, run the repositor
 ## Guardrails
 
 - Use the configured `agent-skills` MCP server deliberately: discover the relevant trainer skills before running them.
-- Preserve repository conventions from `.github/hooks/trainer-workspace.py` and `.github/agents/trainer.agent.md`.
+- Preserve the imported trainer loop contract for workspace layout, artifact names, and state transitions.
 - Keep the workflow deterministic: select one target, perform one trainer loop, and produce one pull request at most.
 - Do not guess missing datasets when the trainer contract requires research or synthesis first.

@@ -1,0 +1,1 @@
+../../../.github/hooks/sync-skill-links.py

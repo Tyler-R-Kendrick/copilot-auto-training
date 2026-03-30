@@ -1,0 +1,1 @@
+../../../.github/hooks/sync-plugin-links.py

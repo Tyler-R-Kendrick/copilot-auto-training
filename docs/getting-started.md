@@ -46,6 +46,17 @@ Run the test suite before starting an optimization run:
 python -m pytest -q
 ```
 
+## Install The Copilot CLI Plugins
+
+If you want to use the repo's skills through Copilot CLI instead of running the local Python scripts directly, add this repository as a plugin marketplace:
+
+```bash
+copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
+copilot plugin install copilot-training@copilot-training
+```
+
+The repo publishes a single `copilot-training` plugin that includes the repo's skills, agents, hooks, and MCP runtime assets. For direct subdirectory installs and update commands, see [docs/copilot-cli-plugins.md](copilot-cli-plugins.md).
+
 ## First Run
 
 The smallest runnable example in this repository is documented in [examples/first-run/README.md](../examples/first-run/README.md).
