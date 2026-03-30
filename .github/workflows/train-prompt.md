@@ -97,15 +97,23 @@ Select exactly one prompt-like source file in this repository, run the repositor
 1. Work on exactly one selected target.
 2. If the selected target has no local trainer workspace, initialize it by following the imported trainer loop contract: create the local `.trainer-workspace/<prompt-name>/` tree, create the required subdirectories, snapshot the source file under `inputs/source/`, and write `workflow-status.json` with state `pending_engineer_prompt`.
 3. Inspect the selected workspace. If `engineer-prompt/review.md` is missing, create that review artifact first so the trainer loop has its required prerequisite. The review must stay in the selected local workspace.
-4. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
-5. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
-6. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
-7. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-8. Keep the change set tightly scoped to:
+4. If `workflow-status.json` shows `workflow_state` of `training`, treat the run as a resumption of an interrupted session rather than a fresh iteration:
+   a. Read `required_artifacts.latest_iteration_dir` to identify the active iteration directory.
+   b. Audit which stages already have output artifacts within that iteration:
+      - `research/` contains a research brief → research stage complete.
+      - `synthesize/datasets/train.jsonl` and `synthesize/datasets/val.jsonl` both exist → synthesize stage complete.
+      - `optimize/optimized-prompt.md` exists → optimize stage complete.
+      - `validation/pytest.txt` exists → validation stage complete.
+   c. Resume from the first incomplete stage (research → synthesize → optimize → validation → pull request) without creating a new `iterations/iteration-N/` directory.
+5. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
+6. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
+7. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
+8. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
+9. Keep the change set tightly scoped to:
    - the selected prompt-like file
    - its local `.trainer-workspace/<prompt-name>/` artifacts
    - directly related supporting prompt-evaluation assets created by the trainer loop
-9. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
+10. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
 
 ## Validation
 
