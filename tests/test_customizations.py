@@ -45,6 +45,23 @@ def _markdown_numbered_items(text: str) -> list[str]:
     return items
 
 
+def _gh_aw_glob_to_regex(pattern: str) -> re.Pattern[str]:
+    """Mirror gh-aw's glob_pattern_helpers.cjs path-mode glob behavior."""
+    escaped = (
+        pattern.replace("\\", "\\\\")
+        .replace(".", r"\.")
+    )
+    escaped = re.sub(r"([+?^${}()|\[\]])", r"\\\1", escaped)
+    escaped = escaped.replace("**", "<!DOUBLESTAR>")
+    escaped = escaped.replace("*", "[^/]*")
+    escaped = escaped.replace("<!DOUBLESTAR>", ".*")
+    return re.compile(f"^{escaped}$")
+
+
+def _matches_gh_aw_allowed_files(path: str, patterns: list[str]) -> bool:
+    return any(_gh_aw_glob_to_regex(pattern).match(path) for pattern in patterns)
+
+
 def _load_agent_skills_module():
     spec = importlib.util.spec_from_file_location("agent_skills_mcp_customizations", AGENT_SKILLS_MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -1147,28 +1164,58 @@ class TestTrainPromptWorkflow:
     def test_workflow_lock_exists(self):
         assert self.WORKFLOW_LOCK.is_file(), f"train-prompt.lock.yml not found: {self.WORKFLOW_LOCK}"
 
-    def test_source_allowed_files_includes_github_prefix(self):
-        """The trainer modifies files across many sub-paths of .github/ (not just
-        instructions/), so the broad '.github/' prefix must appear in allowed-files.
-        '.github/' is only usable as an allowed-files entry once it is removed from
-        protected_path_prefixes in the lock file."""
+    def _source_allowed_files(self) -> list[str]:
         text = _read(self.WORKFLOW_MD)
         frontmatter = self._parse_frontmatter_yaml(text)
-        lines = [ln.strip() for ln in frontmatter.splitlines()]
-        assert '- ".github/"' in lines, (
-            "train-prompt.md allowed-files must include '.github/' so the trainer "
-            "can create pull requests modifying any file under .github/."
+        match = re.search(
+            r"(?ms)^safe-outputs:\n.*?^  create-pull-request:\n.*?^    allowed-files:\n(?P<body>(?:^      - .*\n)+)",
+            frontmatter,
         )
+        assert match, "Could not find safe-outputs.create-pull-request.allowed-files in train-prompt.md"
+        return [
+            json.loads(line.strip().removeprefix("- ").strip())
+            for line in match.group("body").splitlines()
+            if line.strip().startswith("- ")
+        ]
 
-    def test_lock_config_json_includes_github_in_allowed_files(self):
+    def test_source_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
+        """Regression test for the safe_outputs failure: gh-aw treats allowed-files
+        as strict glob patterns on full paths, so bare '.github/' does not match
+        nested files like '.github/instructions/evals/evals.json'."""
+        allowed = self._source_allowed_files()
+        blocked_files = [
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/engineer-prompt/review.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/manual-followup-report.json",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/validation/pytest.txt",
+            ".github/instructions/datasets/train.jsonl",
+            ".github/instructions/evals/evals.json",
+            ".github/instructions/evals-dataset.instructions.md",
+        ]
+        for path in blocked_files:
+            assert _matches_gh_aw_allowed_files(path, allowed), (
+                f"'{path}' is not matched by train-prompt.md allowed-files under gh-aw "
+                f"glob semantics. allowed-files={allowed}"
+            )
+
+    def test_lock_config_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
             allowed = config.get("create_pull_request", {}).get("allowed_files", [])
-            assert ".github/" in allowed, (
-                f"train-prompt.lock.yml safe-outputs config must include "
-                f"'.github/' in allowed_files, got: {allowed}"
-            )
+            blocked_files = [
+                ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
+                ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/train.jsonl",
+                ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/evals/evals.json",
+                ".github/instructions/datasets/val.jsonl",
+                ".github/instructions/evals/evals.json",
+                ".github/instructions/evals-dataset.instructions.md",
+            ]
+            for path in blocked_files:
+                assert _matches_gh_aw_allowed_files(path, allowed), (
+                    f"train-prompt.lock.yml allowed_files must match '{path}' under gh-aw "
+                    f"glob semantics. got: {allowed}"
+                )
 
     def test_lock_config_no_protected_path_prefixes(self):
         """protected_path_prefixes must be empty so the trainer can create pull
@@ -1202,21 +1249,32 @@ class TestTrainPromptWorkflow:
             f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
         )
 
-    def test_trainer_workspace_files_covered_by_allowed_prefix(self):
-        """Spot-check that the specific paths blocked in the reported failures
-        (issues #6 and #8) are covered by the '.github/' or '.agents/' allowed prefix."""
-        covered_prefixes = (".github/", ".agents/")
-        blocked_files = [
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/candidate-1.md",
-            ".github/instructions/datasets/train.jsonl",
-            ".github/instructions/datasets/val.jsonl",
-            ".github/instructions/evals-dataset.instructions.md",
-            ".github/instructions/evals/evals.json",
+    def test_allowed_files_cover_prompt_targets_and_related_assets_across_repo(self):
+        """The Train Prompt workflow can target prompt-like files anywhere in the
+        repository, then write local .trainer-workspace artifacts plus adjacent
+        datasets/ and evals/ assets. The allowlist must cover those shapes."""
+        representative_paths = [
+            "AGENTS.md",
             ".github/agents/trainer.agent.md",
             ".agents/skills/trainer-optimize/SKILL.md",
+            "skills/trainer-optimize/SKILL.md",
+            "skills/trainer-optimize/.trainer-workspace/SKILL/decision.md",
+            "skills/trainer-optimize/datasets/train.jsonl",
+            "skills/trainer-optimize/evals/evals.json",
+            "examples/first-run/example.prompty",
+            "docs/support.prompt.md",
         ]
-        for path in blocked_files:
-            assert any(path.startswith(p) for p in covered_prefixes), (
-                f"'{path}' is not covered by any of the allowed prefixes {covered_prefixes}"
+        source_allowed = self._source_allowed_files()
+        lock_configs = self._lock_safe_outputs_configs()
+        assert lock_configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
+        for path in representative_paths:
+            assert _matches_gh_aw_allowed_files(path, source_allowed), (
+                f"train-prompt.md allowed-files do not cover '{path}'. "
+                f"allowed-files={source_allowed}"
             )
+            for config in lock_configs:
+                allowed = config.get("create_pull_request", {}).get("allowed_files", [])
+                assert _matches_gh_aw_allowed_files(path, allowed), (
+                    f"train-prompt.lock.yml allowed_files do not cover '{path}'. "
+                    f"allowed-files={allowed}"
+                )

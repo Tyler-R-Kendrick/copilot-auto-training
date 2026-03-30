@@ -28,9 +28,18 @@ safe-outputs:
   create-pull-request:
     max: 1
     allowed-files:
-      - ".github/"
-      - ".agents/"
-      - "AGENTS.md"
+      - "*.md"
+      - "*.mdx"
+      - "*.prompty"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.prompty"
+      - ".trainer-workspace/**"
+      - "**/.trainer-workspace/**"
+      - "datasets/**"
+      - "**/datasets/**"
+      - "evals/**"
+      - "**/evals/**"
   add-reviewer:
     max: 1
 ---
