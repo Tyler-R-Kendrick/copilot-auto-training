@@ -6,36 +6,75 @@ Reference implementation and reusable workflow for optimizing prompt-like markdo
 
 Use this project when you need to:
 
-- optimize checked-in prompt-like files such as `SKILL.md`, `AGENTS.md`, `*.prompt.md`, `*.instructions.md`, and `.prompty`
-- keep authored eval cases plus explicit `train.jsonl` and `val.jsonl` datasets under version control
-- run one target at a time with artifacts stored next to the prompt in a local `.trainer-workspace/<prompt-name>/`
-- gate prompt updates on deterministic repository validation before opening a pull request
-
-This project is not the right fit when you need to:
-
-- optimize general application code instead of prompt-like markdown
-- guess missing datasets at runtime instead of researching or synthesizing them first
-- fold leader election into `trainer-optimize`; multi-candidate selection belongs in `trainer-election`
+- optimize your prompts
+- optimize your agent-skills
+- optimize your agent instuctions (AGENTS.md, copilot-instructions.md. CLAUDE.md, etc)
+- enable automatic optimization in a loop or on a schedule.
 
 ## What The Repo Provides
 
-This repository shows how to keep authored skill evaluation cases aligned with the Agent Skills guidance while still running APO against explicit datasets:
+### Agents
 
-- prompts stay in markdown
-- authored eval cases live under `evals/evals.json`
-- supporting eval assets live under `evals/files/`
-- optimization datasets can be passed explicitly when APO needs `train.jsonl` and `val.jsonl`
-- Agent Lightning exposes a local dashboard while runs are active
+The repo uses multiple agents that can be invoked as custom agents or subagents for the goal of running self-improvement loops on prompts. These agents adhere to the Copilot Custom Agents standard.
 
-The main example in this repository is the [trainer-optimize skill](skills/trainer-optimize/SKILL.md), backed by the runtime in [skills/trainer-optimize/scripts/run_optimize.py](skills/trainer-optimize/scripts/run_optimize.py).
+#### Trainer Agent
+
+The trainer agent coordinates state-of-the-art self-improvement loops with the other agents to produce optimized prompts.
+
+#### Judge Agent
+
+The judge implements the current state-of-the-art techniques to judge, grade, and score responses using dynamic metrics and rubrics.
+The one exception is that the judge explicitly considers token usage as a metric for optimization, making sure to minimize tokens whilst not degrading performance.
+
+#### Conservator Agent
+
+The conservator inspects the training history and repo documentation to ensure we don't introduce regressions or repeat previous failures
+
+#### Engineer Agent
+
+The engineer applies state-of-the-art practices from prompt engineering and context engineering to guide and steer prompt optimization.
+
+### Skills
+
+The repo exposes multiple skills to enhance the capabilities of each of the agents. For each agent, there are multiple skills implemented as agent-skills to support them.
+
+#### Trainer Skills
+- `trainer-optimize`
+- `trainer-election`
+- `trainer-research`
+- `trainer-optimize`
+
+#### Judge Skills
+- `judge-rubric`
+- `judge-trajectory`
+- `judge-outcome`
+
+#### Engineer Skills
+- `engineer-prompt`
+
+### Plugins
+
+We expose all capabilities in this repo as a single plugin.
+
+### GitHub Agentic Workflows
+
+We expose a single `train-prompt` agentic workflow to run these capabilities automatically.
+The workflow searches for and triages prompts that should be optimized against a repo.
+
+### MCP servers
+
+#### agent-skills
+
+In order to make agent-skills available to tool discovery, we created an MCP server that exposes agent-skills to built-in discovery for GitHub Copilot.
 
 ## Ways To Use It
 
-### 1. Run It Locally
+### 1. Using it locally
 
-Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation.
+Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation. Simply clone it and run locally.
+Tell Copilot to: `run @trainer on #<prompt-name>.`
 
-### 2. Install Copilot CLI Plugins From This Repo
+### 2. Using it as a GitHub Copilot Plugin
 
 Use the plugin marketplace when you want these skills available inside Copilot CLI without copying files by hand.
 
@@ -60,7 +99,7 @@ copilot plugin install Tyler-R-Kendrick/copilot-apo:plugins/copilot-training
 The installable plugin bundles live under `plugins/`, and the marketplace manifest lives at `.github/plugin/marketplace.json`.
 For the full import flow, see [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md).
 
-### 3. Import The Workflow Into Another Repo
+### 3. Using it as a GitHub Copilot Agentic Workflow
 
 Use the reusable workflow when another repository already stores prompt-like markdown in git and you want scheduled or manual optimization runs that produce reviewable pull requests.
 
@@ -92,18 +131,6 @@ The imported workflow will:
 
 The workflow source lives in [`.github/workflows/train-prompt.md`](.github/workflows/train-prompt.md). Frontmatter changes require recompiling it with `gh aw compile train-prompt`.
 
-## Features
-
-- Agent Lightning optimization with `apo` and `verl`
-- Official `evals/evals.json` authored-eval layout
-- Explicit dataset inputs for APO runs
-- Workspace-based reports, candidate snapshots, and steering artifacts inside the optimizer runtime
-- GitHub Models support through a repository-root `.env`
-- A small copy-paste example under [examples/first-run](examples/first-run/README.md)
-- Tested behavior for config resolution, artifact writing, and optimization flow
-- A reusable GitHub Agentic Workflow that packages its trainer skill runtime for downstream repositories
-- A Copilot CLI plugin marketplace that publishes installable skill bundles from this repository
-
 ## Requirements
 
 - Python 3.11+
@@ -122,29 +149,17 @@ Inside the devcontainer, `.devcontainer/post-start.sh` now repairs or recreates 
 
 ## Quick Start
 
-Run the test suite:
-
-```bash
-python -m pytest -q
-```
-
 Run the smallest example in this repository:
 
 ```bash
-python skills/trainer-optimize/scripts/run_optimize.py \
-  --prompt-file examples/first-run/prompts/classify_support.md \
-  --train-file examples/first-run/datasets/train.jsonl \
-  --val-file examples/first-run/datasets/val.jsonl \
+run @trainer on #:examples/first-run/prompts/classify_support.md \
   --debug-only
 ```
 
 Run a small optimization pass:
 
 ```bash
-python skills/trainer-optimize/scripts/run_optimize.py \
-  --prompt-file examples/first-run/prompts/classify_support.md \
-  --train-file examples/first-run/datasets/train.jsonl \
-  --val-file examples/first-run/datasets/val.jsonl \
+run @trainer on #:examples/first-run/prompts/classify_support.md \
   --iterations 2 \
   --beam-width 2 \
   --branch-factor 2
@@ -161,22 +176,6 @@ For the full setup, configuration, and artifact walkthrough, start with [docs/ge
 - [examples/first-run/README.md](examples/first-run/README.md): smallest runnable example in the repo
 - [skills/trainer-optimize/SKILL.md](skills/trainer-optimize/SKILL.md): skill contract and operator instructions
 - [skills/trainer-optimize/references/dataset-format.md](skills/trainer-optimize/references/dataset-format.md): dataset schema and scoring guidance
-
-## Repository Layout
-
-```text
-docs/
-plugins/
-examples/
-  first-run/
-skills/trainer-optimize/
-  assets/
-  references/
-  scripts/
-tests/
-README.md
-requirements.txt
-```
 
 ## Development
 
