@@ -2,7 +2,7 @@
 
 ## Build and Test
 
-- Use the repository virtual environment for Python commands: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`.
+- Use the repository virtual environment for Python commands: `python3.12 -m venv .venv && source .venv/bin/activate && python -m pip install -r requirements.txt`.
 - Run `python -m pytest -q` before finishing meaningful changes.
 - For `trainer-optimize` smoke tests, pass explicit `--prompt-file`, `--train-file`, and `--val-file` arguments and start with `--debug-only`. See [docs/getting-started.md](../docs/getting-started.md) and [examples/first-run/README.md](../examples/first-run/README.md).
 

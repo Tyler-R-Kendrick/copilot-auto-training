@@ -14,6 +14,19 @@ Read [the authoring reference](./references/gh-aw-authoring.md) before drafting 
 
 Use [the starter template](./assets/workflow-template.md) when you need a clean first draft.
 
+## gh aw CLI quick reference
+
+`gh aw` is a GitHub CLI extension, so invoke it through `gh`, not as a standalone `gh-aw` binary.
+
+- Run commands from the repository root.
+- Use `gh aw --help` for the top-level command list.
+- Use `gh aw <command> --help` for command-specific flags.
+- `gh aw new <workflow-name> --engine copilot` scaffolds a new markdown workflow.
+- `gh aw compile <workflow-name>` accepts either a workflow id like `my-workflow` or a filename like `my-workflow.md`; with no argument it compiles every markdown workflow under `.github/workflows/`.
+- `gh aw validate <workflow-name> --strict` validates without emitting lock files and runs the full validation stack.
+- `gh aw trial ./path/to/workflow.md --host-repo .` is the local-file path for exercising a `workflow_dispatch` workflow against the current repository.
+- `gh aw list` is a quick readiness check; if it reports `no .github/workflows directory found`, the repository has not been set up for workflow authoring yet.
+
 ## When to use
 
 - The user wants to create a new GitHub Agentic Workflow.
@@ -41,6 +54,8 @@ Follow this order.
 Check whether the repository has already been initialized for GitHub Agentic Workflows.
 
 - If the repo is not initialized, instruct the user to initialize it with `gh aw init` or by following the repository setup prompt from `install.md`.
+- `gh aw init` is interactive by default and sets up the dispatcher agent, `.gitattributes`, and Copilot MCP wiring unless `--no-mcp` is passed.
+- Use `gh aw list` or inspect `.github/workflows/` as a quick readiness check before assuming the repo is already set up.
 - Initialization is required for the full authoring experience because it installs the dispatcher agent and MCP configuration used during workflow authoring.
 - If the user only wants a draft file and is not ready to initialize, you may still create the markdown workflow, but state that compilation and execution may not work until initialization and secrets are configured.
 
@@ -119,10 +134,11 @@ After editing frontmatter or imports, recompile the workflow.
 Use this validation loop:
 
 1. Run `gh aw compile <workflow-name>` or `gh aw compile`.
-2. If the workflow is security-sensitive or newly authored, prefer `gh aw compile --validate --strict`.
-3. If errors are unclear, rerun with `--verbose`.
-4. Confirm the `.lock.yml` file was regenerated.
-5. Commit both the `.md` and `.lock.yml` files.
+2. For a newly authored or security-sensitive workflow, prefer `gh aw validate <workflow-name> --strict` before or after compile. `gh aw validate` is the no-emit validation command and runs the full lint and security stack.
+3. If you are iterating on frontmatter frequently, use `gh aw compile --watch <workflow-name>`.
+4. If errors are unclear, rerun the failing command with `--verbose`.
+5. Confirm the `.lock.yml` file was regenerated after compile.
+6. Commit both the `.md` and `.lock.yml` files.
 
 Important rule:
 
@@ -138,12 +154,13 @@ Use the shortest path that matches the failure mode.
 - check YAML indentation, colons, arrays, and field names
 - verify required fields like `on:` are present
 - run `gh aw compile --verbose`
-- use `gh aw compile --validate` to isolate schema issues
+- use `gh aw validate --strict` to isolate schema, lint, and security issues without rewriting lock files
 - use `gh aw compile --purge` if stale lock files are causing confusion
 
 ### MCP failures
 
 - inspect the workflow MCP configuration with `gh aw mcp inspect <workflow-name>`
+- use `gh aw mcp list-tools <server> <workflow-name>` to confirm the server exposes the tools the workflow expects
 - verify `allowed` tools match what the workflow expects
 - verify secrets-backed env vars or headers are present
 - verify container images, commands, and network access

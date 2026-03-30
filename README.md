@@ -33,10 +33,12 @@ The main example in this repository is the [trainer-optimize skill](skills/train
 ## Installation
 
 ```bash
-python -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
+
+Inside the devcontainer, `.devcontainer/post-start.sh` now repairs or recreates `.venv` with Python 3.12 and installs `requirements.txt` automatically when the environment is missing, stale, or broken.
 
 ## Quick Start
 

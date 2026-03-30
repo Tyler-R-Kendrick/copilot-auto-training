@@ -12,12 +12,14 @@ This guide covers installation, model configuration, the first run, and the opti
 ## Install Dependencies
 
 ```bash
-python -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 The runtime dependency set includes `poml`, which Agent Lightning APO requires during optimization.
+
+In the devcontainer, the post-start hook automatically recreates `.venv` with Python 3.12 and reinstalls dependencies when the local environment is missing, stale, or missing `pip`.
 
 ## Configure Model Access
 

@@ -26,6 +26,16 @@ gh aw init
 
 This sets up the repository for authoring, including the dispatcher agent and MCP configuration used by the GitHub authoring experience.
 
+`gh aw` is a GitHub CLI extension, so run it as `gh aw ...` from the repository root. Use `gh aw --help` for the top-level command list and `gh aw <command> --help` for command-specific flags.
+
+Quick readiness check:
+
+```bash
+gh aw list
+```
+
+If that reports `no .github/workflows directory found`, the repository has not been set up for workflow authoring yet.
+
 ## Basic creation flow
 
 1. Create `.github/workflows/<workflow-name>.md`
@@ -39,11 +49,12 @@ Useful commands:
 ```bash
 gh aw new my-workflow
 gh aw compile my-workflow
-gh aw compile --validate --strict
+gh aw validate my-workflow --strict
 gh aw compile --watch
 gh aw run my-workflow
 gh aw logs my-workflow
 gh aw audit <run-id>
+gh aw trial ./my-workflow.md --host-repo .
 ```
 
 ## Manual authoring checklist
@@ -149,7 +160,7 @@ If the workflow needs to publish results, include the required safe output types
 - check YAML indentation and list syntax
 - verify `on:` is present when the file is meant to be runnable
 - use `gh aw compile --verbose`
-- use `gh aw compile --validate`
+- use `gh aw validate --strict`
 
 ### Lock file not generated
 
@@ -168,6 +179,7 @@ If the workflow needs to publish results, include the required safe output types
 - verify env vars and secret references
 - verify network allow-list entries
 - inspect with `gh aw mcp inspect`
+- confirm exposed tools with `gh aw mcp list-tools <server> <workflow-name>`
 
 ### Tool not found at runtime
 
