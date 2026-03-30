@@ -172,7 +172,7 @@ if str(_synthesize_scripts_dir) not in sys.path:
 # the correct settings from that file.
 # ---------------------------------------------------------------------------
 
-import run_optimize as _run_optimize_module  # noqa: E402 – must come after sys.path setup
+import run_optimize as _run_optimize_module  # noqa: E402 -- must come after sys.path setup
 
 _real_create_openai_client = _run_optimize_module.create_openai_client
 

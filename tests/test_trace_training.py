@@ -386,6 +386,23 @@ def test_train_cases_without_inference_model_returns_manual_followup(tmp_path, m
         "configure_trace_environment",
         lambda prompt_file: {"provider": "github", "inference_model": None},
     )
+    import run_optimize as _ro_module
+    monkeypatch.setattr(
+        _ro_module,
+        "create_openai_client",
+        lambda pf: (
+            sys.modules["openai"].AsyncOpenAI(),
+            {
+                "provider": "github",
+                "api_key": None,
+                "base_url": None,
+                "inference_model": None,
+                "gradient_model": None,
+                "apply_edit_model": None,
+                "repo_root": str(tmp_path),
+            },
+        ),
+    )
 
     result = trace_train.train_cases(
         [{"prompt_file": str(prompt_path), "train_file": str(train_path), "val_file": str(val_path)}],
