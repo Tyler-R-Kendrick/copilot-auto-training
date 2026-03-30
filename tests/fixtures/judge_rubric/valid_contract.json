@@ -1,0 +1,56 @@
+{
+  "domain": "Rubric validation",
+  "task": "Check whether a structured rubric contract is complete before scoring candidate answers.",
+  "evidence_mode": "hybrid",
+  "decision": "Confirm the rubric contract is ready for rendering and later judging.",
+  "dimensions": [
+    {
+      "name": "Correctness",
+      "why_it_matters": "The final scoring decision needs factually sound judgments.",
+      "pass_boundary": "The candidate is materially correct and supported by the allowed evidence.",
+      "partial_boundary": "The candidate is mostly correct but misses a meaningful detail.",
+      "fail_boundary": "The candidate contains a material error or contradiction.",
+      "allowed_evidence": "Final outputs, references, and benchmark criteria."
+    },
+    {
+      "name": "Process Reliability",
+      "why_it_matters": "The workflow must account for runtime failures and evidence gathering quality.",
+      "pass_boundary": "The candidate shows reliable process execution with corroborated evidence use.",
+      "partial_boundary": "The candidate is usable but shows minor reliability or evidence gaps.",
+      "fail_boundary": "The candidate relies on broken process steps or unsupported process claims.",
+      "allowed_evidence": "Tool traces, logs, validation artifacts, and intermediate outputs."
+    },
+    {
+      "name": "Constraint Compliance",
+      "why_it_matters": "The grader must preserve required schema, scope, and policy constraints.",
+      "pass_boundary": "The candidate fully respects the required output and policy constraints.",
+      "partial_boundary": "The candidate misses a minor formatting or scope detail.",
+      "fail_boundary": "The candidate ignores a core required constraint.",
+      "allowed_evidence": "Task contract, schema, and final deliverable."
+    }
+  ],
+  "aggregation_rules": {
+    "weighting_or_priority": "Prioritize correctness first, then process reliability, then constraint compliance.",
+    "non_negotiable_failures": [
+      "Material factual contradiction.",
+      "Invented evidence."
+    ],
+    "tie_breakers": [
+      "Stronger rubric compliance.",
+      "Clearer evidence anchoring."
+    ]
+  },
+  "robustness_checks": {
+    "order_bias_check": "Reverse the candidate order and confirm the winner is unchanged.",
+    "evidence_quality_check": "Lower confidence when claims are not corroborated by artifacts.",
+    "benchmark_overfitting_check": "Do not reward benchmark-savvy wording without matching evidence.",
+    "confidence_guidance": "Reduce confidence when the margin is narrow or evidence is conflicting."
+  },
+  "blockers": {
+    "missing_inputs": [],
+    "weak_evidence_areas": [
+      "Cases where process logs are incomplete but final outputs are strong."
+    ],
+    "clarifications_needed": []
+  }
+}

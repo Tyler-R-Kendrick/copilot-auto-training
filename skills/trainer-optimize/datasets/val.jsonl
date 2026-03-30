@@ -1,0 +1,2 @@
+{"input": "Optimize a prompt while keeping runtime outputs in a dedicated workspace directory.", "expected": "Write trainer workflow reports and steering artifacts under <prompt-dir>/.trainer-workspace/<prompt-name>/ rather than any sibling <prompt-name>-workspace/ layout.", "scoring": "exact_match"}
+{"input": "Describe the modern optimizer layout.", "expected": "Mention explicit APO datasets, authored evals in evals/evals.json, and per-run artifacts in the prompt workspace directory.", "scoring": "exact_match"}

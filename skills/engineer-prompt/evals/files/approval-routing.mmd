@@ -1,0 +1,14 @@
+flowchart TD
+    A[Request received] --> B{Enough information?}
+    B -->|No| C[Route: requester_update\nState: needs_info]
+    B -->|Yes| D{Needs finance review?}
+    D -->|Yes| E[Route: finance_review\nState: pending_review]
+    D -->|No| F[Route: manager_review\nState: pending_review]
+    E --> G{Above director threshold\nor policy exception?}
+    F --> G
+    G -->|Yes| H[Route: director_review\nState: escalated]
+    G -->|No| I{Outcome stated?}
+    H --> I
+    I -->|Approved| J[Route: approved_final\nState: approved]
+    I -->|Rejected| K[Route: rejected_final\nState: rejected]
+    I -->|No explicit outcome| L[Keep latest supported review state]

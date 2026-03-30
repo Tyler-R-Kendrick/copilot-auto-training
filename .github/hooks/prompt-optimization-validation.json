@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "command": "/workspaces/copilot-apo/.github/hooks/validate-prompt-optimization.sh"
+      }
+    ]
+  }
+}

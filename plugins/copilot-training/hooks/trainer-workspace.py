@@ -1,0 +1,1 @@
+../../../.github/hooks/trainer-workspace.py

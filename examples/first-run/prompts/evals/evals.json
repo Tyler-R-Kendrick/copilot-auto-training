@@ -1,0 +1,32 @@
+{
+  "skill_name": "classify-support-example",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Classify this request: I was charged twice for the same subscription renewal.",
+      "expected_output": "The response returns the refund_request label and nothing else.",
+      "assertions": [
+        "The output is a single label.",
+        "The output matches refund_request."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Classify this request: I can sign in, but I cannot find where to change my email address.",
+      "expected_output": "The response returns the update_email label and nothing else.",
+      "assertions": [
+        "The output is a single label.",
+        "The output matches update_email."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Classify this request: The password reset link never arrives in my inbox.",
+      "expected_output": "The response returns the reset_password label and nothing else.",
+      "assertions": [
+        "The output is a single label.",
+        "The output matches reset_password."
+      ]
+    }
+  ]
+}

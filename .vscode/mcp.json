@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "agent-skills": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "${workspaceFolder}/tools/agent-skills-mcp/server.py"
+      ]
+    }
+  }
+}

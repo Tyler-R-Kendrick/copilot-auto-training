@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApprovalDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision_state",
+    "route",
+    "needs_escalation",
+    "evidence"
+  ],
+  "properties": {
+    "request_id": {
+      "type": ["string", "null"]
+    },
+    "decision_state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "needs_info",
+        "pending_review",
+        "approved",
+        "rejected",
+        "escalated"
+      ]
+    },
+    "route": {
+      "type": "string",
+      "enum": [
+        "requester_update",
+        "manager_review",
+        "finance_review",
+        "director_review",
+        "approved_final",
+        "rejected_final"
+      ]
+    },
+    "needs_escalation": {
+      "type": "boolean"
+    },
+    "approvers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "amount": {
+      "type": ["number", "null"]
+    },
+    "currency": {
+      "type": ["string", "null"]
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

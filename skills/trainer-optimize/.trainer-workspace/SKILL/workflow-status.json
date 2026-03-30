@@ -1,0 +1,26 @@
+{
+  "target_file": "skills/trainer-optimize/SKILL.md",
+  "workspace_root": "skills/trainer-optimize/.trainer-workspace/SKILL",
+  "workspace_parent": "skills/trainer-optimize",
+  "prompt_name": "SKILL",
+  "workflow_state": "complete",
+  "updated_at": "2026-03-29T18:41:02Z",
+  "required_artifacts": {
+    "engineer_prompt_review": "skills/trainer-optimize/.trainer-workspace/SKILL/engineer-prompt/review.md",
+    "source_snapshot": "skills/trainer-optimize/.trainer-workspace/SKILL/inputs/source/SKILL.md",
+    "latest_iteration_dir": "skills/trainer-optimize/.trainer-workspace/SKILL/iteration-3",
+    "train_dataset": "skills/trainer-optimize/datasets/train.jsonl",
+    "val_dataset": "skills/trainer-optimize/datasets/val.jsonl",
+    "eval_manifest": "skills/trainer-optimize/evals/evals.json",
+    "optimize_report": null,
+    "validation_log": "skills/trainer-optimize/.trainer-workspace/SKILL/iteration-3/validation/pytest.txt",
+    "decision_summary": "skills/trainer-optimize/.trainer-workspace/SKILL/decision.md"
+  },
+  "artifact_contract": {
+    "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
+    "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
+    "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iteration-N/.",
+    "decision": "Summarize the winning prompt decision and validation outcome in decision.md."
+  },
+  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout."
+}

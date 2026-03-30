@@ -1,0 +1,1 @@
+../../../.github/hooks/validate-skill-isolation.sh

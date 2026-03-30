@@ -1,0 +1,1 @@
+../../../.github/hooks/ensure-plugin-link-watcher.sh

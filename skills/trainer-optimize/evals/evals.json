@@ -1,0 +1,34 @@
+{
+  "skill_name": "trainer-optimize",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Optimize this markdown prompt, but keep every placeholder and the overall workflow intact.",
+      "expected_output": "The response improves the prompt wording without dropping placeholders, changing the task shape, or rewriting the workflow contract.",
+      "assertions": [
+        "The response explicitly preserves placeholders.",
+        "The response keeps the workflow scope focused on prompt optimization.",
+        "The response does not introduce unrelated code changes."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Improve this skill prompt, but keep the optimize run single-shot and non-destructive unless I explicitly ask to write files.",
+      "expected_output": "The response improves the prompt while keeping optimization single-shot, avoiding internal leader-election behavior, and making file persistence explicit instead of implicit.",
+      "assertions": [
+        "The response mentions single-shot optimization or equivalent wording.",
+        "The response avoids internal leader-election behavior.",
+        "The response keeps file writes explicit rather than implicit."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Tighten this prompt so it avoids verbose, repetitive output and reward-hacking behavior.",
+      "expected_output": "The response reduces verbosity and removes any language that optimizes for the evaluator instead of the real task.",
+      "assertions": [
+        "The response discourages verbose or redundant output.",
+        "The response avoids evaluator-gaming language."
+      ]
+    }
+  ]
+}

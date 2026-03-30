@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 430, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 409, in main
+    result = run_optimize_sync(
+             ^^^^^^^^^^^^^^^^^^
+  File "/workspaces/copilot-apo/skills/trainer-optimize/scripts/run_optimize.py", line 304, in run_optimize_sync
+    trainer.dev(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
+  File "/workspaces/copilot-apo/.venv/lib/python3.12/site-packages/agentlightning/trainer/trainer.py", line 473, in dev
+    raise TypeError(
+TypeError: Trainer.dev() requires an algorithm that inherits from FastAlgorithm. Received APO.

@@ -1,0 +1,25 @@
+{
+  "name": "copilot-training",
+  "description": "Single Copilot CLI plugin for the copilot-training bundle, bundling repo skills, agents, hooks, and MCP runtime assets.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Tyler Kendrick"
+  },
+  "homepage": "https://github.com/Tyler-R-Kendrick/copilot-apo",
+  "repository": "https://github.com/Tyler-R-Kendrick/copilot-apo",
+  "license": "MIT",
+  "keywords": [
+    "copilot",
+    "agent-skills",
+    "agents",
+    "mcp",
+    "hooks"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "skills",
+    "agents",
+    "hooks",
+    "mcp"
+  ]
+}

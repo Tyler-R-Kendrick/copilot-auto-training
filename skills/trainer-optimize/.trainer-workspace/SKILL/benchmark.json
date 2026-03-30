@@ -1,0 +1,29 @@
+{
+  "target_file": "skills/trainer-optimize/SKILL.md",
+  "workspace_root": "skills/trainer-optimize/.trainer-workspace/SKILL",
+  "iteration": "iteration-2",
+  "datasets": {
+    "mode": "reused",
+    "train": "skills/trainer-optimize/datasets/train.jsonl",
+    "val": "skills/trainer-optimize/datasets/val.jsonl",
+    "eval_manifest": "skills/trainer-optimize/evals/evals.json"
+  },
+  "optimize": {
+    "requested_via_mcp": true,
+    "mcp_run_status": "blocked_missing_opto_in_mcp_host",
+    "fallback_runtime": "repo_venv_direct_script",
+    "algorithm": "apo",
+    "iterations": 3,
+    "judge_mode": "deterministic",
+    "source_prompt_render_status": "failed_literal_json_braces",
+    "workspace_copy_render_status": "passed",
+    "model_call_status": "failed_http_404",
+    "produced_candidate": false,
+    "produced_report": false
+  },
+  "validation": {
+    "pytest_log": "skills/trainer-optimize/.trainer-workspace/SKILL/iteration-2/validation/pytest.txt",
+    "passed": true
+  },
+  "follow_up_iteration_justified": true
+}

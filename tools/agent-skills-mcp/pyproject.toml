@@ -1,0 +1,77 @@
+[project]
+name = "agent-skills"
+version = "0.1.0"
+description = "Local MCP server that exposes repository agent skills as tools and resources."
+requires-python = ">=3.11"
+dependencies = [
+	"mcp[cli]>=1.8.0",
+	"pyyaml>=6.0.0",
+]
+
+[project.scripts]
+agent-skills-mcp = "server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = [
+	"agent_skills_mcp.py",
+	"server.py",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"../../skills/trainer-election/SKILL.md" = "skill_bundle/skills/trainer-election/SKILL.md"
+"../../skills/trainer-election/assets" = "skill_bundle/skills/trainer-election/assets"
+"../../skills/trainer-election/datasets" = "skill_bundle/skills/trainer-election/datasets"
+"../../skills/trainer-election/evals" = "skill_bundle/skills/trainer-election/evals"
+"../../skills/trainer-election/references" = "skill_bundle/skills/trainer-election/references"
+"../../skills/trainer-election/scripts" = "skill_bundle/skills/trainer-election/scripts"
+"../../skills/trainer-optimize/SKILL.md" = "skill_bundle/skills/trainer-optimize/SKILL.md"
+"../../skills/trainer-optimize/assets" = "skill_bundle/skills/trainer-optimize/assets"
+"../../skills/trainer-optimize/datasets" = "skill_bundle/skills/trainer-optimize/datasets"
+"../../skills/trainer-optimize/evals" = "skill_bundle/skills/trainer-optimize/evals"
+"../../skills/trainer-optimize/references" = "skill_bundle/skills/trainer-optimize/references"
+"../../skills/trainer-optimize/scripts" = "skill_bundle/skills/trainer-optimize/scripts"
+"../../skills/trainer-research/SKILL.md" = "skill_bundle/skills/trainer-research/SKILL.md"
+"../../skills/trainer-research/assets" = "skill_bundle/skills/trainer-research/assets"
+"../../skills/trainer-research/evals" = "skill_bundle/skills/trainer-research/evals"
+"../../skills/trainer-research/references" = "skill_bundle/skills/trainer-research/references"
+"../../skills/trainer-research/scripts" = "skill_bundle/skills/trainer-research/scripts"
+"../../skills/trainer-synthesize/SKILL.md" = "skill_bundle/skills/trainer-synthesize/SKILL.md"
+"../../skills/trainer-synthesize/assets" = "skill_bundle/skills/trainer-synthesize/assets"
+"../../skills/trainer-synthesize/evals" = "skill_bundle/skills/trainer-synthesize/evals"
+"../../skills/trainer-synthesize/references" = "skill_bundle/skills/trainer-synthesize/references"
+"../../skills/trainer-synthesize/scripts" = "skill_bundle/skills/trainer-synthesize/scripts"
+
+[tool.hatch.build.targets.sdist]
+include = [
+	"agent_skills_mcp.py",
+	"server.py",
+	"pyproject.toml",
+]
+
+[tool.hatch.build.targets.sdist.force-include]
+"../../skills/trainer-election/SKILL.md" = "skill_bundle/skills/trainer-election/SKILL.md"
+"../../skills/trainer-election/assets" = "skill_bundle/skills/trainer-election/assets"
+"../../skills/trainer-election/datasets" = "skill_bundle/skills/trainer-election/datasets"
+"../../skills/trainer-election/evals" = "skill_bundle/skills/trainer-election/evals"
+"../../skills/trainer-election/references" = "skill_bundle/skills/trainer-election/references"
+"../../skills/trainer-election/scripts" = "skill_bundle/skills/trainer-election/scripts"
+"../../skills/trainer-optimize/SKILL.md" = "skill_bundle/skills/trainer-optimize/SKILL.md"
+"../../skills/trainer-optimize/assets" = "skill_bundle/skills/trainer-optimize/assets"
+"../../skills/trainer-optimize/datasets" = "skill_bundle/skills/trainer-optimize/datasets"
+"../../skills/trainer-optimize/evals" = "skill_bundle/skills/trainer-optimize/evals"
+"../../skills/trainer-optimize/references" = "skill_bundle/skills/trainer-optimize/references"
+"../../skills/trainer-optimize/scripts" = "skill_bundle/skills/trainer-optimize/scripts"
+"../../skills/trainer-research/SKILL.md" = "skill_bundle/skills/trainer-research/SKILL.md"
+"../../skills/trainer-research/assets" = "skill_bundle/skills/trainer-research/assets"
+"../../skills/trainer-research/evals" = "skill_bundle/skills/trainer-research/evals"
+"../../skills/trainer-research/references" = "skill_bundle/skills/trainer-research/references"
+"../../skills/trainer-research/scripts" = "skill_bundle/skills/trainer-research/scripts"
+"../../skills/trainer-synthesize/SKILL.md" = "skill_bundle/skills/trainer-synthesize/SKILL.md"
+"../../skills/trainer-synthesize/assets" = "skill_bundle/skills/trainer-synthesize/assets"
+"../../skills/trainer-synthesize/evals" = "skill_bundle/skills/trainer-synthesize/evals"
+"../../skills/trainer-synthesize/references" = "skill_bundle/skills/trainer-synthesize/references"
+"../../skills/trainer-synthesize/scripts" = "skill_bundle/skills/trainer-synthesize/scripts"
