@@ -1150,34 +1150,39 @@ class TestTrainPromptWorkflow:
     def test_workflow_lock_exists(self):
         assert self.WORKFLOW_LOCK.is_file(), f"train-prompt.lock.yml not found: {self.WORKFLOW_LOCK}"
 
-    def test_source_allowed_files_includes_github_instructions(self):
-        text = _read(self.WORKFLOW_MD)
-        frontmatter = self._parse_frontmatter_yaml(text)
-        assert ".github/instructions/" in frontmatter, (
-            "train-prompt.md allowed-files must include '.github/instructions/' "
-            "so the trainer can create pull requests modifying instruction files."
-        )
-
-    def test_source_allowed_files_does_not_rely_on_broad_github_prefix(self):
-        """The bare '.github/' prefix is also a protected_path_prefix, so it cannot
-        serve as an effective allowed-files entry. The config must use the more
-        specific '.github/instructions/' instead."""
+    def test_source_allowed_files_includes_github_prefix(self):
+        """The trainer modifies files across many sub-paths of .github/ (not just
+        instructions/), so the broad '.github/' prefix must appear in allowed-files.
+        '.github/' is only usable as an allowed-files entry once it is removed from
+        protected_path_prefixes in the lock file."""
         text = _read(self.WORKFLOW_MD)
         frontmatter = self._parse_frontmatter_yaml(text)
         lines = [ln.strip() for ln in frontmatter.splitlines()]
-        assert '- ".github/"' not in lines, (
-            "'.github/' is too broad: it is also a protected_path_prefix and will "
-            "be blocked. Use '.github/instructions/' instead."
+        assert '- ".github/"' in lines, (
+            "train-prompt.md allowed-files must include '.github/' so the trainer "
+            "can create pull requests modifying any file under .github/."
         )
 
-    def test_lock_config_json_includes_github_instructions_in_allowed_files(self):
+    def test_lock_config_json_includes_github_in_allowed_files(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
             allowed = config.get("create_pull_request", {}).get("allowed_files", [])
-            assert ".github/instructions/" in allowed, (
+            assert ".github/" in allowed, (
                 f"train-prompt.lock.yml safe-outputs config must include "
-                f"'.github/instructions/' in allowed_files, got: {allowed}"
+                f"'.github/' in allowed_files, got: {allowed}"
+            )
+
+    def test_lock_config_github_not_in_protected_path_prefixes(self):
+        """'.github/' must not appear in protected_path_prefixes — it was the root
+        cause of the PR creation failure reported in issue #6."""
+        configs = self._lock_safe_outputs_configs()
+        assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
+        for config in configs:
+            prefixes = config.get("create_pull_request", {}).get("protected_path_prefixes", [])
+            assert ".github/" not in prefixes, (
+                f"'.github/' must be removed from protected_path_prefixes so that "
+                f"allowed_files entries under .github/ are not overridden. Got: {prefixes}"
             )
 
     def test_lock_configs_are_consistent_with_each_other(self):
@@ -1192,11 +1197,17 @@ class TestTrainPromptWorkflow:
             "Both safe-outputs config blocks in train-prompt.lock.yml must have "
             f"identical allowed_files. Got:\n  block 1: {first_allowed}\n  block 2: {second_allowed}"
         )
+        first_pp = configs[0].get("create_pull_request", {}).get("protected_path_prefixes", [])
+        second_pp = configs[1].get("create_pull_request", {}).get("protected_path_prefixes", [])
+        assert first_pp == second_pp, (
+            "Both safe-outputs config blocks in train-prompt.lock.yml must have "
+            f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
+        )
 
     def test_trainer_workspace_files_covered_by_allowed_prefix(self):
-        """Spot-check that the specific paths that were blocked in the reported
-        failure are covered by '.github/instructions/'."""
-        covered_prefix = ".github/instructions/"
+        """Spot-check that the specific paths blocked in the reported failure (issue #6)
+        are covered by the '.github/' allowed prefix."""
+        covered_prefix = ".github/"
         blocked_files = [
             ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
             ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/candidate-1.md",
@@ -1204,6 +1215,7 @@ class TestTrainPromptWorkflow:
             ".github/instructions/datasets/val.jsonl",
             ".github/instructions/evals-dataset.instructions.md",
             ".github/instructions/evals/evals.json",
+            ".github/agents/trainer.agent.md",
         ]
         for path in blocked_files:
             assert path.startswith(covered_prefix), (
