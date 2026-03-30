@@ -1130,18 +1130,15 @@ class TestTrainPromptWorkflow:
                 # Env-var form: value is a JSON-escaped string (use json.loads for
                 # proper handling of all escape sequences, not just \")
                 raw_yaml_value = stripped.split(":", 1)[1].strip()
-                inner_json = json.loads(raw_yaml_value)  # decode JSON string escapes
-                try:
-                    configs.append(json.loads(inner_json))
-                except json.JSONDecodeError:
-                    pass
+                inner_json = json.loads(raw_yaml_value)  # decode outer JSON string escapes
+                configs.append(json.loads(inner_json))   # decode the inner JSON object
             else:
                 try:
                     candidate = json.loads(stripped)
                     if isinstance(candidate, dict) and "create_pull_request" in candidate:
                         configs.append(candidate)
                 except json.JSONDecodeError:
-                    pass
+                    pass  # skip lines that match keyword filters but aren't valid JSON
         return configs
 
     def test_workflow_source_exists(self):
