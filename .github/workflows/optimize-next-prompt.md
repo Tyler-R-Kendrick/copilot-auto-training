@@ -1,7 +1,7 @@
 ---
 on:
-  workflow_dispatch:
-  schedule: weekly on monday
+   schedule: "0 0 * * *"
+   workflow_dispatch:
 
 permissions:
   contents: read
