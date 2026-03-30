@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -47,10 +48,8 @@ def _markdown_numbered_items(text: str) -> list[str]:
 
 def _gh_aw_glob_to_regex(pattern: str) -> re.Pattern[str]:
     """Mirror gh-aw's glob_pattern_helpers.cjs path-mode glob behavior."""
-    escaped = (
-        pattern.replace("\\", "\\\\")
-        .replace(".", r"\.")
-    )
+    escaped = pattern.replace("\\", "\\\\")
+    escaped = escaped.replace(".", r"\.")
     escaped = re.sub(r"([+?^${}()|\[\]])", r"\\\1", escaped)
     escaped = escaped.replace("**", "<!DOUBLESTAR>")
     escaped = escaped.replace("*", "[^/]*")
@@ -1167,16 +1166,10 @@ class TestTrainPromptWorkflow:
     def _source_allowed_files(self) -> list[str]:
         text = _read(self.WORKFLOW_MD)
         frontmatter = self._parse_frontmatter_yaml(text)
-        match = re.search(
-            r"(?ms)^safe-outputs:\n.*?^  create-pull-request:\n.*?^    allowed-files:\n(?P<body>(?:^      - .*\n)+)",
-            frontmatter,
-        )
-        assert match, "Could not find safe-outputs.create-pull-request.allowed-files in train-prompt.md"
-        return [
-            json.loads(line.strip().removeprefix("- ").strip())
-            for line in match.group("body").splitlines()
-            if line.strip().startswith("- ")
-        ]
+        parsed = yaml.safe_load(frontmatter)
+        allowed_files = parsed["safe-outputs"]["create-pull-request"]["allowed-files"]
+        assert isinstance(allowed_files, list), "Expected allowed-files to be a YAML list"
+        return [str(pattern) for pattern in allowed_files]
 
     def test_source_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
         """Regression test for the safe_outputs failure: gh-aw treats allowed-files
