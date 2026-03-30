@@ -43,6 +43,19 @@ def _parse_yaml_simple(raw: str) -> dict:
     return result
 
 
+def _cross_skill_mentions(skill_root: Path) -> list[str]:
+    text = _skill_md(skill_root).read_text(encoding="utf-8")
+    other_skill_names = sorted(path.name for path in _skill_dirs() if path != skill_root)
+    matches: list[str] = []
+
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        for skill_name in other_skill_names:
+            if re.search(rf"(?<![A-Za-z0-9-]){re.escape(skill_name)}(?![A-Za-z0-9-])", line):
+                matches.append(f"{skill_name} on line {line_number}: {line.strip()}")
+
+    return matches
+
+
 class TestSkillFileExists:
     def test_skills_dir_exists(self):
         assert SKILLS_DIR.is_dir(), f"skills/ directory not found: {SKILLS_DIR}"
@@ -50,6 +63,7 @@ class TestSkillFileExists:
     def test_expected_skills_exist(self):
         names = {path.name for path in _skill_dirs()}
         assert {
+            "judge-rubric",
             "trainer-optimize",
             "trainer-election",
             "trainer-research",
@@ -156,6 +170,11 @@ class TestSkillBody:
             "SKILL.md body should contain instructions (headings or list items)"
         )
 
+    @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
+    def test_skill_does_not_reference_other_agent_skills(self, skill_root: Path):
+        matches = _cross_skill_mentions(skill_root)
+        assert not matches, "SKILL.md must not reference other agent skills:\n" + "\n".join(matches)
+
 
 class TestSkillOptionalFiles:
     @pytest.mark.parametrize("skill_root", _skill_dirs(), ids=lambda path: path.name)
@@ -182,8 +201,26 @@ class TestSkillOptionalFiles:
     def test_synthesize_runtime_exists(self):
         assert (SKILLS_DIR / "trainer-synthesize" / "scripts" / "run_synthesize.py").is_file()
 
+    def test_judge_rubric_runtime_exists(self):
+        assert (SKILLS_DIR / "judge-rubric" / "scripts" / "render_rubric.py").is_file()
+
 
 class TestOfficialEvalFixtures:
+    def test_judge_rubric_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "judge-rubric" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "judge-rubric"
+        assert len(payload["evals"]) >= 3
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "pass-partial-fail" in manifest_text or "pass, partial, and fail" in manifest_text
+        assert "tie-break" in manifest_text
+        assert "confidence" in manifest_text
+
     def test_trainer_synthesize_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "trainer-synthesize" / "evals" / "evals.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))

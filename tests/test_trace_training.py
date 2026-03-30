@@ -276,6 +276,54 @@ def test_execute_training_case_returns_case_report(tmp_path, monkeypatch):
     assert report["candidate_count"] == 2
 
 
+def test_execute_training_case_preserves_manual_followup_payload(tmp_path, monkeypatch):
+    prompt_path = tmp_path / "prompt.md"
+    train_path = tmp_path / "train.jsonl"
+    val_path = tmp_path / "val.jsonl"
+
+    prompt_path.write_text("Answer: {input}\n", encoding="utf-8")
+    _write_jsonl(train_path, [{"input": "ping", "expected": "pong"}])
+    _write_jsonl(val_path, [{"input": "foo", "expected": "bar"}])
+
+    async def fake_run_optimize(**kwargs):
+        return json.dumps(
+            {
+                "ok": True,
+                "mode": "manual_followup",
+                "optimized_prompt": "Answer: {input}\n",
+                "followup_instruction": "rerun later",
+                "agent_handoff_instruction": "answer model prompt locally",
+                "rerun_command": "python run_optimize.py ...",
+                "model_prompt": "prompt for model",
+                "blocker_reason": "RateLimitError",
+                "candidate_count": 0,
+            }
+        )
+
+    monkeypatch.setattr(trace_train, "run_optimize", fake_run_optimize)
+
+    report_node = trace_train.execute_training_case(
+        json.dumps(
+            {
+                "prompt_file": str(prompt_path),
+                "train_file": str(train_path),
+                "val_file": str(val_path),
+                "judge_mode": "deterministic",
+            },
+            sort_keys=True,
+        ),
+        "apo",
+        json.dumps({"iterations": 3, "beam_width": 4, "branch_factor": 4, "n_runners": 4}),
+    )
+    report = json.loads(report_node.data)
+
+    assert report["mode"] == "manual_followup"
+    assert report["baseline_score"] is None
+    assert report["optimized_score"] is None
+    assert report["followup_instruction"] == "rerun later"
+    assert report["blocker_reason"] == "RateLimitError"
+
+
 def test_render_training_feedback_covers_positive_zero_and_negative_cases():
     positive = trace_train.render_training_feedback(
         {"improvement": 0.125, "algorithm": "apo", "iterations": 3, "beam_width": 4}
@@ -324,7 +372,7 @@ def test_train_cases_requires_positive_epochs_and_cases():
         )
 
 
-def test_train_cases_requires_inference_model_from_trace_environment(tmp_path, monkeypatch):
+def test_train_cases_without_inference_model_returns_manual_followup(tmp_path, monkeypatch):
     prompt_path = tmp_path / "prompt.md"
     train_path = tmp_path / "train.jsonl"
     val_path = tmp_path / "val.jsonl"
@@ -339,11 +387,15 @@ def test_train_cases_requires_inference_model_from_trace_environment(tmp_path, m
         lambda prompt_file: {"provider": "github", "inference_model": None},
     )
 
-    with pytest.raises(ValueError, match="requires GITHUB_MODELS_MODEL or OPENAI_MODEL"):
-        trace_train.train_cases(
-            [{"prompt_file": str(prompt_path), "train_file": str(train_path), "val_file": str(val_path)}],
-            epochs=1,
-        )
+    result = trace_train.train_cases(
+        [{"prompt_file": str(prompt_path), "train_file": str(train_path), "val_file": str(val_path)}],
+        epochs=1,
+    )
+
+    assert result["ok"] is True
+    assert result["mode"] == "manual_followup"
+    assert result["epochs"] == 0
+    assert result["history"][0]["mode"] == "manual_followup"
 
 
 def test_train_cases_runs_multiple_epochs_and_writes_report(tmp_path, monkeypatch):

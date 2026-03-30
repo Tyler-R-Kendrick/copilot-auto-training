@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,17 @@ PLACEHOLDER_PATTERN = re.compile(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_
 ESCAPED_OPEN_BRACE = "\x00OPEN_BRACE\x00"
 ESCAPED_CLOSE_BRACE = "\x00CLOSE_BRACE\x00"
 IMPLICIT_TASK_CONTEXT_HEADING = "Task Context"
+MODEL_UNAVAILABLE_MARKERS = (
+    "rate limit",
+    "ratelimit",
+    "too many requests",
+    "service unavailable",
+    "model unavailable",
+    "temporarily unavailable",
+    "connection error",
+    "timed out",
+    "timeout",
+)
 
 
 class DatasetResolutionError(ValueError):
@@ -141,6 +153,127 @@ def _normalize_text(value: Any) -> str:
 
 def _default_judge_prompt_file() -> Path:
     return Path(__file__).resolve().parent.parent / "assets" / "judge-default.md"
+
+
+def _serialize_example_rows(rows: list[dict[str, Any]], *, limit: int = 2) -> str:
+    return json.dumps(rows[:limit], indent=2, sort_keys=True, ensure_ascii=True)
+
+
+def is_model_unavailable_error(exc: Exception) -> bool:
+    name = type(exc).__name__.lower()
+    message = str(exc).lower()
+    return any(marker in name for marker in ("ratelimit", "timeout")) or any(
+        marker in message for marker in MODEL_UNAVAILABLE_MARKERS
+    )
+
+
+def build_manual_followup_result(
+    *,
+    prompt_file: str,
+    prompt_text: str,
+    train_file: str,
+    val_file: str,
+    train_dataset: list[dict[str, Any]],
+    val_dataset: list[dict[str, Any]],
+    model_settings: dict[str, Any],
+    algorithm: str,
+    iterations: int,
+    beam_width: int,
+    branch_factor: int,
+    n_runners: int,
+    judge_mode: str,
+    judge_prompt_file: str | None,
+    reason: str,
+    dashboard_url: str | None = None,
+) -> dict[str, Any]:
+    command = [
+        "python",
+        "skills/trainer-optimize/scripts/run_optimize.py",
+        "--prompt-file",
+        prompt_file,
+        "--train-file",
+        train_file,
+        "--val-file",
+        val_file,
+        "--iterations",
+        str(iterations),
+        "--algorithm",
+        algorithm,
+        "--beam-width",
+        str(beam_width),
+        "--branch-factor",
+        str(branch_factor),
+        "--n-runners",
+        str(n_runners),
+        "--judge-mode",
+        judge_mode,
+    ]
+    if judge_prompt_file:
+        command.extend(["--judge-prompt-file", judge_prompt_file])
+    input_binding = "implicit_task_context" if uses_implicit_task_context(prompt_text) else "placeholders"
+    model_prompt = "\n\n".join(
+        [
+            "You are reproducing the repository's Agent Lightning prompt-optimization step because the runtime could not reach an external model.",
+            "Return only a revised markdown prompt. Preserve existing placeholders unless the provided datasets prove a new placeholder is valid. Do not expose evaluator-only fields such as expected, expected_json, reference, criteria, or scoring in the prompt body.",
+            f"Judge mode: {judge_mode}",
+            f"Input binding: {input_binding}",
+            "Baseline prompt:\n" + prompt_text.strip(),
+            "Training examples (first rows):\n" + _serialize_example_rows(train_dataset),
+            "Validation examples (first rows):\n" + _serialize_example_rows(val_dataset),
+            "Constraints:\n- Keep literal braces/examples literal.\n- If the prompt has no placeholders, assume the runtime appends a Task Context JSON block.\n- Any candidate that introduces unsupported placeholders is invalid.\n- Optimize for the supplied datasets only.",
+        ]
+    )
+    if judge_mode == "llm_judge":
+        judge_prompt_path = Path(judge_prompt_file) if judge_prompt_file else _default_judge_prompt_file()
+        model_prompt += "\n\nJudge prompt:\n" + judge_prompt_path.read_text(encoding="utf-8").strip()
+    rerun_command = " ".join(shlex.quote(part) for part in command)
+    return {
+        "ok": True,
+        "mode": "manual_followup",
+        "message": "External model unavailable; completed deterministic preparation and generated an agent-side inference handoff.",
+        "blocker_reason": reason,
+        "prompt_file": prompt_file,
+        "train_file": train_file,
+        "val_file": val_file,
+        "optimized_prompt": prompt_text,
+        "optimized_prompt_changed": False,
+        "output_file": None,
+        "report_file": None,
+        "prompt_file_updated": False,
+        "dashboard_url": dashboard_url,
+        "model_provider": model_settings.get("provider"),
+        "model_endpoint": model_settings.get("base_url"),
+        "inference_model": model_settings.get("inference_model"),
+        "gradient_model": model_settings.get("gradient_model"),
+        "apply_edit_model": model_settings.get("apply_edit_model"),
+        "algorithm": algorithm,
+        "iterations": iterations,
+        "train_size": len(train_dataset),
+        "val_size": len(val_dataset),
+        "beam_width": beam_width,
+        "branch_factor": branch_factor,
+        "n_runners": n_runners,
+        "judge_mode": judge_mode,
+        "input_binding": input_binding,
+        "candidate_count": 0,
+        "rerun_command": rerun_command,
+        "agent_handoff_instruction": (
+            "Use the current @trainer agent to answer the `model_prompt`, save the returned markdown as `optimized-prompt.md`, "
+            "and continue validation without requiring an external inference token."
+        ),
+        "manual_reproduction_steps": [
+            "Reuse the same prompt file and explicit train/val JSONL datasets; dataset discovery already succeeded.",
+            "Use the current @trainer agent as the inference step by answering the `model_prompt` directly and saving the reply as `optimized-prompt.md`.",
+            "Continue the trainer workflow with the generated candidate prompt and the same datasets, judge mode, and validation checks.",
+            "Re-run the optimize command later only if you want a fully automated model-backed pass after rate limits clear.",
+        ],
+        "followup_instruction": (
+            "Use the current @trainer agent to answer `model_prompt`, save the markdown reply as `optimized-prompt.md`, continue validation, "
+            f"and use this command only for a later fully automated rerun if needed: {rerun_command}"
+        ),
+        "model_prompt": model_prompt,
+        "sample_runtime_prompt": compose_runtime_prompt(prompt_text, train_dataset[0]) if train_dataset else prompt_text,
+    }
 
 
 def _score_exact_match(output_text: str, expected: Any) -> float:

@@ -20,7 +20,7 @@ Read `references/trajectory-techniques.md` when you need the benchmark rationale
 - Web, code, RAG, or tool-use comparisons where process reliability is part of the verdict.
 - Candidate comparisons where runtime failures, evidence-gathering quality, or side effects should influence the score.
 
-Do not use this skill alone for clean outcome-only response comparison. In those cases, load `judge-outcome` instead.
+Do not use this skill alone for clean outcome-only response comparison. In those cases, switch to an outcome-focused judging contract instead.
 
 ## Required inputs
 

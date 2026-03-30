@@ -20,7 +20,7 @@ Read `references/outcome-techniques.md` when you need the benchmark rationale fo
 - Cases where `reference`, `criteria`, or explicit outcome artifacts matter more than the full process trace.
 - Prompt-candidate comparisons where the decisive evidence is the quality of the final answer, final file, or end-state response.
 
-Do not use this skill as the only judging contract when tool traces, side effects, runtime failures, or intermediate artifacts are central to the verdict. In those cases, load `judge-trajectory` first.
+Do not use this skill as the only judging contract when tool traces, side effects, runtime failures, or intermediate artifacts are central to the verdict. In those cases, switch to a process-aware judging contract instead.
 
 ## Required inputs
 

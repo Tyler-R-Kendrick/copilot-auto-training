@@ -19,6 +19,18 @@ ITERATION_SUBDIRS = ("research", "synthesize", "optimize", "election", "validati
 ITERATIONS_DIRNAME = "iterations"
 
 
+def detect_optimize_artifact(repo_root: Path, iteration_abs: Path) -> str | None:
+    optimize_dir = iteration_abs / "optimize"
+    candidates = (
+        optimize_dir / "optimize-report.json",
+        optimize_dir / "manual-followup-report.json",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate.relative_to(repo_root))
+    return None
+
+
 def prompt_name_for(path: str | Path) -> str:
     base = Path(path).name
     if base.endswith(".prompty"):
@@ -182,6 +194,16 @@ def update_workspace(
             for name in ITERATION_SUBDIRS:
                 (iteration_abs / name).mkdir(parents=True, exist_ok=True)
         required["latest_iteration_dir"] = str(iteration_abs.relative_to(repo_root))
+        if optimize_report is None:
+            detected_optimize_artifact = detect_optimize_artifact(repo_root, iteration_abs)
+            if detected_optimize_artifact is not None:
+                required["optimize_report"] = detected_optimize_artifact
+
+    if required.get("latest_iteration_dir") and optimize_report is None and required.get("optimize_report") is None:
+        latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
+        detected_optimize_artifact = detect_optimize_artifact(repo_root, latest_iteration_abs)
+        if detected_optimize_artifact is not None:
+            required["optimize_report"] = detected_optimize_artifact
 
     payload["workspace_root"] = workspace_rel
     payload["artifact_contract"] = artifact_contract()

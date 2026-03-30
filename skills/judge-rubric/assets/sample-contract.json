@@ -1,0 +1,57 @@
+{
+  "domain": "Policy-answer judging",
+  "task": "Compare two final policy answers for correctness, coverage, and evidence use.",
+  "evidence_mode": "outcome-focused",
+  "decision": "Select the stronger final answer and explain the margin.",
+  "dimensions": [
+    {
+      "name": "Correctness",
+      "why_it_matters": "The selected answer must match the policy and avoid false claims.",
+      "pass_boundary": "The answer is materially correct and does not contradict the policy.",
+      "partial_boundary": "The answer is mostly correct but misses or blurs an important policy detail.",
+      "fail_boundary": "The answer contains a material policy error or contradiction.",
+      "allowed_evidence": "Final answer text, reference answer, and cited policy excerpts."
+    },
+    {
+      "name": "Constraint Compliance",
+      "why_it_matters": "The answer must follow the requested format and scope constraints.",
+      "pass_boundary": "The answer follows the requested format and covers the required scope.",
+      "partial_boundary": "The answer is usable but misses a minor formatting or scope requirement.",
+      "fail_boundary": "The answer ignores the required format or omits a core scope requirement.",
+      "allowed_evidence": "Prompt contract, output schema, and final answer text."
+    },
+    {
+      "name": "Evidence Quality",
+      "why_it_matters": "The answer should justify its claims from observable policy evidence.",
+      "pass_boundary": "Claims are grounded in supplied policy evidence or explicit references.",
+      "partial_boundary": "The answer is plausible but some claims are weakly grounded.",
+      "fail_boundary": "The answer relies on unsupported assertions or invented evidence.",
+      "allowed_evidence": "Reference materials, criteria, benchmark notes, and final answer text."
+    }
+  ],
+  "aggregation_rules": {
+    "weighting_or_priority": "Prioritize correctness first, then constraint compliance, then evidence quality.",
+    "non_negotiable_failures": [
+      "A material policy contradiction is an automatic fail.",
+      "Invented evidence is an automatic fail on evidence quality."
+    ],
+    "tie_breakers": [
+      "Stronger rubric compliance.",
+      "Clearer evidence anchoring.",
+      "Lower evaluator risk."
+    ]
+  },
+  "robustness_checks": {
+    "order_bias_check": "Reverse candidate order mentally and confirm the same winner still leads.",
+    "evidence_quality_check": "Downgrade confidence when the answer relies on unsupported claims.",
+    "benchmark_overfitting_check": "Do not reward benchmark-savvy phrasing without matching evidence.",
+    "confidence_guidance": "Lower confidence when the margin is narrow or evidence is incomplete."
+  },
+  "blockers": {
+    "missing_inputs": [],
+    "weak_evidence_areas": [
+      "Close calls where both answers omit the same policy detail."
+    ],
+    "clarifications_needed": []
+  }
+}

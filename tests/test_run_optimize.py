@@ -400,6 +400,76 @@ class TestRunOptimizeDebugOnly:
         assert not report.exists()
 
 
+class TestRunOptimizeManualFallback:
+    @pytest.mark.asyncio
+    async def test_missing_model_returns_manual_followup_payload(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+        monkeypatch.delenv("OPENAI_MODEL", raising=False)
+        monkeypatch.delenv("OPENAI_GRADIENT_MODEL", raising=False)
+        monkeypatch.delenv("OPENAI_APPLY_EDIT_MODEL", raising=False)
+        monkeypatch.delenv("GITHUB_MODELS_API_KEY", raising=False)
+        monkeypatch.delenv("GITHUB_MODELS_ENDPOINT", raising=False)
+        monkeypatch.delenv("GITHUB_MODELS_MODEL", raising=False)
+        monkeypatch.delenv("GITHUB_MODELS_GRADIENT_MODEL", raising=False)
+        monkeypatch.delenv("GITHUB_MODELS_APPLY_EDIT_MODEL", raising=False)
+
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=str(prompt_path),
+                train_file=train,
+                val_file=val,
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "manual_followup"
+        assert result["optimized_prompt"] == SIMPLE_TEMPLATE
+        assert result["optimized_prompt_changed"] is False
+        assert result["agent_handoff_instruction"].startswith("Use the current @trainer agent")
+        assert result["rerun_command"].startswith("python ")
+        assert "save the markdown reply as `optimized-prompt.md`" in result["followup_instruction"]
+        assert "Baseline prompt:" in result["model_prompt"]
+        assert "Training examples" in result["model_prompt"]
+        assert result["sample_runtime_prompt"].strip().startswith("You are a helper. Answer: ping")
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_returns_manual_followup_and_writes_report(self, tmp_path, monkeypatch):
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        report_path = tmp_path / "report.json"
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        agl = sys.modules["agentlightning"]
+
+        def raise_rate_limit(self, *, agent, train_dataset, val_dataset):
+            raise RuntimeError("RateLimitError: Too many requests")
+
+        monkeypatch.setattr(agl.Trainer, "fit", raise_rate_limit)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=str(prompt_path),
+                train_file=train,
+                val_file=val,
+                report_file=str(report_path),
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "manual_followup"
+        assert "RateLimitError" in result["blocker_reason"]
+        assert result["report_file"] == str(report_path)
+        assert report_path.exists()
+        assert json.loads(report_path.read_text(encoding="utf-8"))["mode"] == "manual_followup"
+
+
 class TestRolloutCandidateValidation:
     @pytest.mark.asyncio
     async def test_invalid_candidate_placeholder_returns_zero_instead_of_failing(self, monkeypatch):

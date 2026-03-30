@@ -1,0 +1,31 @@
+{
+  "domain": "Rubric validation",
+  "task": "Check whether a structured rubric contract is complete before scoring candidate answers.",
+  "evidence_mode": "outcome-focused",
+  "decision": "Reject incomplete rubric contracts.",
+  "dimensions": [
+    {
+      "name": "Correctness",
+      "why_it_matters": "The scoring rubric needs a correctness dimension.",
+      "pass_boundary": "The answer is correct.",
+      "partial_boundary": "The answer is mostly correct.",
+      "fail_boundary": "The answer is materially wrong."
+    },
+    {
+      "name": "Constraint Compliance",
+      "why_it_matters": "The output must respect task constraints.",
+      "pass_boundary": "The output respects all major constraints.",
+      "partial_boundary": "The output misses a minor constraint.",
+      "fail_boundary": "The output misses a major constraint.",
+      "allowed_evidence": "Task contract and final answer."
+    },
+    {
+      "name": "Evidence Quality",
+      "why_it_matters": "Claims should be grounded in evidence.",
+      "pass_boundary": "Claims are evidence-backed.",
+      "partial_boundary": "Some claims are weakly grounded.",
+      "fail_boundary": "Claims are unsupported.",
+      "allowed_evidence": "References and final answer."
+    }
+  ]
+}

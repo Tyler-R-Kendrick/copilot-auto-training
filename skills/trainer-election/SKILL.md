@@ -1,6 +1,6 @@
 ---
 name: trainer-election
-description: Elect the strongest prompt or skill candidate from an existing evaluation workspace. Use this skill whenever a workflow already has multiple scored configurations and needs a separate leader-selection pass over grading, timing, or benchmark artifacts, especially when comparing optimize outputs without pushing that selection logic back into trainer-optimize.
+description: Elect the strongest prompt or skill candidate from an existing evaluation workspace. Use this skill whenever a workflow already has multiple scored configurations and needs a separate leader-selection pass over grading, timing, or benchmark artifacts, especially when comparing optimizer outputs without pushing that selection logic back into the optimization runtime.
 license: MIT
 compatibility: Requires Python 3.11+. Reads eval workspaces that follow the Agent Skills evaluation layout with eval metadata, grading.json, timing.json, and optional benchmark.json artifacts.
 metadata:
@@ -19,7 +19,7 @@ Use this skill to elect a winner from existing evaluation artifacts. Treat it as
 - Multiple candidate configurations already exist as `with_skill`, `without_skill`, `old_skill`, or other config directories inside a skill-eval workspace.
 - Each candidate has already been run against authored evals and saved `grading.json` and optional `timing.json` artifacts.
 - You need a separate election pass that picks the strongest configuration from workspace results instead of generating new candidates.
-- The workflow explicitly needs comparison across multiple optimize outputs, prompt rewrites, or skill revisions without folding that comparison into `trainer-optimize`.
+- The workflow explicitly needs comparison across multiple optimizer outputs, prompt rewrites, or skill revisions without folding that comparison into the optimization runtime.
 
 Do not use this skill to gather datasets, synthesize evals, optimize prompts, or run missing evaluations from scratch. Those remain separate skills.
 

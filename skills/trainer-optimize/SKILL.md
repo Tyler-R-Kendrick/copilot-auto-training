@@ -65,15 +65,17 @@ Optional arguments:
 - The runtime returns a `dashboard_url` in debug and normal JSON output. Unless `AGL_SERVER_PORT` is already set, it binds Agent Lightning to a free local port on `127.0.0.1` instead of assuming `4747`.
 - Prompt rendering uses placeholder-targeted substitution rather than whole-string Python `str.format()`. Literal JSON or other brace-heavy examples remain literal, escaped braces like `{{literal}}` stay supported, and nested placeholders such as `{input.question}` are allowed.
 - When GitHub Models exposes an OpenAI-compatible endpoint that rejects the Responses API route with `404`, text generation falls back to chat completions automatically.
+- When no inference model is configured, or a live optimize run loses model access because of rate limiting or service unavailability, the runtime returns a `manual_followup` JSON payload instead of failing. That payload includes deterministic preparation results plus an agent-side inference handoff: the current `@trainer` agent can answer the returned `model_prompt`, save the result as a candidate prompt, and continue the workflow without an inference API token.
 - By default the optimized prompt is returned in the JSON result and CLI stdout without writing files.
 - The source prompt is only overwritten when `in_place` is requested.
 - `output` writes a separate optimized prompt file when requested.
 - `report` writes a JSON report only when requested.
+- In `manual_followup` mode, the source prompt is left unchanged. The JSON payload preserves the baseline prompt, explains the blocker, and includes the `model_prompt`, `agent_handoff_instruction`, and `rerun_command` needed for the current `@trainer` agent to finish the optimize stage without an inference API token.
 - `scripts/train.py` can run a Microsoft Trace self-training loop over one or more explicit prompt/train/val cases to tune the single-shot optimize policy.
 - Require at least one row in both `train` and `val`.
 - The repository's authored skill eval cases live under `evals/evals.json` next to the prompt or skill.
 - The generator utility `scripts/generate_jsonl.py` can create explicit `train.jsonl` and `val.jsonl` files from CSV input.
-- Dataset generation and conversion belong outside this runtime. Use [skills/trainer-research/SKILL.md](../trainer-research/SKILL.md) and [skills/trainer-synthesize/SKILL.md](../trainer-synthesize/SKILL.md) before calling `trainer-optimize` when explicit JSONL files do not exist yet.
+- Dataset generation and conversion belong outside this runtime. Use a separate research-and-synthesis workflow before calling this skill when explicit JSONL files do not exist yet.
 
 ## Process
 
@@ -89,7 +91,8 @@ Optional arguments:
 10. If the prompt or dataset shape is incompatible, stop and explain the mismatch clearly.
 11. Run `scripts/run_optimize.py` with the resolved arguments.
 12. Return the optimized prompt in JSON/stdout unless explicit persistence flags request file output.
-13. Report the optimized prompt path, report path, dashboard URL, and optimization metadata from the JSON result.
+13. If the runtime returns `manual_followup`, use the returned `model_prompt` through the current `@trainer` agent to draft the candidate prompt, then report the blocker, the handoff instruction, and the saved candidate artifact instead of claiming the code runtime produced the candidate directly.
+14. Otherwise report the optimized prompt path, report path, dashboard URL, and optimization metadata from the JSON result.
 
 ## Algorithm guidance
 
@@ -149,6 +152,8 @@ python scripts/train.py \
 
 After a successful run, the JSON result always contains the optimized prompt text and optimization metadata. Files are written only when requested via `output`, `report`, or `in_place`.
 
+When the runtime returns `manual_followup`, it still reports the validated prompt/dataset metadata plus a model-ready optimization prompt and an agent-side handoff. This is the supported fallback when external models are unavailable.
+
 `scripts/train.py` writes a JSON training report only when `--report-file` is passed; otherwise it prints the report to stdout.
 
 ## Dashboard
@@ -176,6 +181,7 @@ Template placeholders such as `{input}` must match keys the optimizer can valida
 - Missing dataset paths → report the missing explicit arguments or unreadable paths and stop
 - Unsupported judge mode → explain the supported modes: `deterministic`, `custom`, and `llm_judge`
 - Unsupported algorithm → explain the supported algorithms: `apo` and `verl`
+- Missing model configuration or transient model availability failures such as `RateLimitError` → return `manual_followup` with deterministic preparation output and an agent-side inference handoff so the current `@trainer` agent can finish the optimize stage without an inference token
 
 ## Running the script
 

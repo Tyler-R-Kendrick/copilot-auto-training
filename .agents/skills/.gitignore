@@ -4,6 +4,7 @@
 !.gitignore
 !engineer-prompt
 !judge-outcome
+!judge-rubric
 !judge-trajectory
 !skill-creator/
 !trainer-election

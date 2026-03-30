@@ -2,7 +2,7 @@
 name: trainer-synthesize
 description: Build official `evals/evals.json` cases and explicit APO datasets from grounded or computed source data. Use whenever a prompt or skill needs eval rows, `train.jsonl`, or `val.jsonl`, especially when correct outputs must be derived from raw fields, business rules, or verifier-backed synthetic examples.
 license: MIT
-compatibility: Requires Python 3.11+. Works with the trainer-optimize skill in this repository.
+compatibility: Requires Python 3.11+. Produces official eval manifests plus explicit APO datasets for this repository.
 metadata:
   author: your-org
   version: "0.1.0"
@@ -18,15 +18,15 @@ In this repository, authored eval cases live in `evals/evals.json`, optional eva
 ## When to use this skill
 
 - The workflow needs `evals/evals.json` for a markdown prompt or skill.
-- The workflow also needs explicit `train.jsonl` and `val.jsonl` files before handing off to `trainer-optimize`.
-- The user has examples, CSV or JSON data, tables, schemas, business rules, or source notes from the `trainer-research` skill.
+- The workflow also needs explicit `train.jsonl` and `val.jsonl` files before handing off to a downstream optimizer.
+- The user has examples, CSV or JSON data, tables, schemas, business rules, or source notes from an approved research brief.
 - The agent should convert known source material into high-quality eval cases.
 - The agent should convert grounded source rows into explicit APO datasets without blurring them together with authored eval manifests.
 - The expected outputs are not directly written down and must be derived from raw fields.
 - The agent needs explicit transforms such as map, filter, reduce, grouping, joins, sorting, normalization, or rule evaluation before authoring eval rows.
 - The agent should add synthetic rows only after grounded or computed rows establish the target task pattern.
 
-If no credible source material exists yet, use `trainer-research` first instead of guessing.
+If no credible source material exists yet, use a primary-source research workflow first instead of guessing.
 
 ## Inputs
 
@@ -34,7 +34,7 @@ If no credible source material exists yet, use `trainer-research` first instead 
 - `task_description`: short description of the real task the prompt should solve
 - `scoring_rule`: expected answer format or evaluation rule
 - Optional `split_strategy`: how to divide grounded rows into train and validation sets when APO datasets are required
-- Optional source material such as `csv_file`, JSON, tables, schemas, rule definitions, lookup tables, existing examples, or structured notes from the `trainer-research` skill
+- Optional source material such as `csv_file`, JSON, tables, schemas, rule definitions, lookup tables, existing examples, or structured notes from an approved research brief
 
 ## Resolve Before Writing
 
@@ -59,7 +59,7 @@ Return, in order:
 4. The final `train.jsonl` and `val.jsonl` content when APO datasets are required
 5. A brief provenance and split note that explains which rows are grounded, which rows are synthetic, and how validation rows were held out
 
-If the needed inputs are already present, state that the plan is fully satisfied and proceed. In this repository, producing only `evals/evals.json` is the exception; when the output is meant to feed `trainer-optimize`, treat `train.jsonl` and `val.jsonl` as part of done state.
+If the needed inputs are already present, state that the plan is fully satisfied and proceed. In this repository, producing only `evals/evals.json` is the exception; when the output is meant to feed an optimizer, treat `train.jsonl` and `val.jsonl` as part of done state.
 
 ## Synthesis Plan
 
@@ -75,7 +75,7 @@ Before writing any eval rows, build a short plan with these sections:
 
 For repeated or error-prone computation, prefer a script or deterministic transformation over manual mental arithmetic.
 
-Use `scripts/run_synthesize.py` to derive the canonical target paths and prompt placeholders before writing files. If the source rows already exist in CSV form, `skills/trainer-optimize/scripts/generate_jsonl.py` can bootstrap explicit `train.jsonl` and `val.jsonl` files under the modern `datasets/` layout.
+Use `scripts/run_synthesize.py` to derive the canonical target paths and prompt placeholders before writing files. If the source rows already exist in CSV form, use the repository JSONL generator utility to bootstrap explicit `train.jsonl` and `val.jsonl` files under the modern `datasets/` layout.
 
 ## Dataset contract
 
@@ -106,7 +106,7 @@ Core rule: generate, verify, filter, then keep only high-confidence rows.
 1. Inspect the prompt placeholders and derive the official `evals/evals.json` target path and any `evals/files/` assets.
 2. Build the synthesis plan before authoring any rows. Identify observed fields, derived targets, the computation recipe, and the verification method.
 3. If the computation depends on missing inputs, ask for them before continuing.
-4. Start from grounded source material such as user rows, CSV input, tables, or an approved shortlist from `trainer-research`.
+4. Start from grounded source material such as user rows, CSV input, tables, or an approved research brief.
 5. Compute target values with explicit transforms such as map, filter, reduce, grouping, joins, normalization, and rule evaluation.
 6. Keep grounded examples first; add synthetic rows only after the task pattern is established.
 7. Verify every synthetic candidate independently and discard failures.
@@ -146,7 +146,7 @@ If none are missing, say so explicitly and continue.
 
 ## Guardrails
 
-- Do not claim `trainer-optimize` will infer or synthesize missing datasets later.
+- Do not claim a downstream optimizer will infer or synthesize missing datasets later.
 - Do not route around missing rules by inventing labels, thresholds, or tie-breakers.
 - Do not add benchmark, leader-election, or optimizer-runtime behavior to this skill.
 - Do not emit empty dataset splits. If there is not enough trustworthy data for both train and validation, say so.

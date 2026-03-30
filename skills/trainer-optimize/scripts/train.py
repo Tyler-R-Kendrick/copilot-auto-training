@@ -10,6 +10,7 @@ from typing import Any
 
 from opto import trace
 
+from config import resolve_model_settings
 from run_optimize import (
     TraceSelfOptimizationPolicy,
     assess_candidates,
@@ -18,7 +19,6 @@ from run_optimize import (
     extract_placeholders,
     load_jsonl,
     parse_trace_search_budget,
-    resolve_model_settings,
     run_optimize,
 )
 
@@ -138,6 +138,29 @@ def execute_training_case(case_json: str, algorithm: str, budget_json: str) -> s
         )
     )
 
+    if optimize_result.get("mode") == "manual_followup":
+        report = {
+            "prompt_file": case["prompt_file"],
+            "train_file": case["train_file"],
+            "val_file": case["val_file"],
+            "judge_mode": case["judge_mode"],
+            "algorithm": search_budget["algorithm"],
+            "iterations": int(search_budget["iterations"]),
+            "beam_width": int(search_budget["beam_width"]),
+            "branch_factor": int(search_budget["branch_factor"]),
+            "n_runners": int(search_budget["n_runners"]),
+            "baseline_score": None,
+            "optimized_score": None,
+            "improvement": None,
+            "candidate_count": optimize_result.get("candidate_count"),
+            "optimized_prompt": optimize_result.get("optimized_prompt"),
+            "mode": "manual_followup",
+            "followup_instruction": optimize_result.get("followup_instruction"),
+            "model_prompt": optimize_result.get("model_prompt"),
+            "blocker_reason": optimize_result.get("blocker_reason"),
+        }
+        return json.dumps(report, sort_keys=True)
+
     baseline_score = asyncio.run(
         score_prompt_text(
             prompt_text,
@@ -223,13 +246,56 @@ def train_cases(
     normalized_cases = [normalize_training_case(case) for case in cases]
     model_settings = configure_trace_environment(normalized_cases[0]["prompt_file"])
     model_name = model_settings.get("inference_model")
+    policy = TraceSelfOptimizationPolicy()
     if not model_name:
-        raise ValueError("Trace training requires GITHUB_MODELS_MODEL or OPENAI_MODEL to be configured.")
+        history: list[dict[str, Any]] = []
+        for case in normalized_cases:
+            prompt_text = Path(case["prompt_file"]).read_text(encoding="utf-8")
+            train_dataset = load_jsonl(case["train_file"])
+            val_dataset = load_jsonl(case["val_file"])
+            placeholder_count = len(extract_placeholders(prompt_text))
+            case_summary = build_trace_case_summary(
+                prompt_text,
+                train_dataset,
+                val_dataset,
+                case["judge_mode"],
+                prompt_file=case["prompt_file"],
+            )
+            algorithm_node = policy.choose_algorithm(
+                len(train_dataset),
+                len(val_dataset),
+                placeholder_count,
+                case["judge_mode"],
+            )
+            budget_node = policy.choose_search_budget(
+                len(train_dataset),
+                len(val_dataset),
+                placeholder_count,
+                case["judge_mode"],
+            )
+            report = json.loads(execute_training_case(json.dumps(case, sort_keys=True), algorithm_node, budget_node).data)
+            report["epoch"] = 0
+            report["case_summary"] = case_summary
+            history.append(report)
+        result = {
+            "ok": True,
+            "mode": "manual_followup",
+            "message": "Trace training skipped external optimization because no inference model was configured; follow-up instructions were generated instead.",
+            "epochs": 0,
+            "case_count": len(normalized_cases),
+            "model_provider": model_settings["provider"],
+            "inference_model": model_name,
+            "history": history,
+            "learned_parameters": serialize_trace_parameters(policy),
+        }
+        if report_file:
+            Path(report_file).write_text(json.dumps(result, indent=2), encoding="utf-8")
+            result["report_file"] = report_file
+        return result
 
     from opto.optimizers import OptoPrime
     from opto.optimizers.optoprime import LLM
 
-    policy = TraceSelfOptimizationPolicy()
     optimizer = OptoPrime(policy.parameters(), llm=LLM(model=str(model_name)), log=False)
 
     history: list[dict[str, Any]] = []
@@ -268,6 +334,23 @@ def train_cases(
             report["epoch"] = epoch
             report["case_summary"] = case_summary
             history.append(report)
+
+            if report.get("mode") == "manual_followup":
+                result = {
+                    "ok": True,
+                    "mode": "manual_followup",
+                    "message": "Trace training stopped after the optimize runtime lost model access; follow-up instructions were generated instead.",
+                    "epochs": epoch - 1,
+                    "case_count": len(normalized_cases),
+                    "model_provider": model_settings["provider"],
+                    "inference_model": model_name,
+                    "history": history,
+                    "learned_parameters": serialize_trace_parameters(policy),
+                }
+                if report_file:
+                    Path(report_file).write_text(json.dumps(result, indent=2), encoding="utf-8")
+                    result["report_file"] = report_file
+                return result
 
             optimizer.zero_feedback()
             optimizer.backward(report_node, render_training_feedback(report))

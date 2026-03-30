@@ -300,52 +300,83 @@ def run_optimize_sync(
     validate_template_against_task(prompt_text, train_dataset[0])
     openai_client, model_settings = create_openai_client(prompt_file)
     inference_model = model_settings.get("inference_model")
-    if debug_only and inference_model is None:
-        return json.dumps({"ok": True, "mode": "debug", "message": "Dry run complete"}, indent=2)
-    if not debug_only and inference_model is None:
-        raise ValueError("Optimization requires GITHUB_MODELS_MODEL or OPENAI_MODEL to execute prompt rollouts.")
+    def manual_followup(reason: str, *, dashboard_url: str | None = None, persist_report: bool = True) -> str:
+        result = support.build_manual_followup_result(
+            prompt_file=prompt_file,
+            prompt_text=prompt_text,
+            train_file=train_file,
+            val_file=val_file,
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            model_settings=model_settings,
+            algorithm=algorithm,
+            iterations=iterations,
+            beam_width=beam_width,
+            branch_factor=branch_factor,
+            n_runners=n_runners,
+            judge_mode=judge_mode,
+            judge_prompt_file=judge_prompt_file,
+            reason=reason,
+            dashboard_url=dashboard_url,
+        )
+        if not debug_only and persist_report and report_file:
+            result["report_file"] = report_file
+            Path(report_file).write_text(json.dumps(result, indent=2), encoding="utf-8")
+        return json.dumps(result, indent=2)
+    if inference_model is None:
+        return manual_followup("No inference model was configured.")
 
     with _configure_agentlightning_server() as server_settings:
         if debug_only:
-            result = _run_debug_smoke_test(
-                prompt_text,
-                train_dataset,
-                judge_mode=judge_mode,
-                llm_client=openai_client,
-                model_name=str(inference_model),
-                judge_prompt_file=judge_prompt_file,
-            )
+            try:
+                result = _run_debug_smoke_test(
+                    prompt_text,
+                    train_dataset,
+                    judge_mode=judge_mode,
+                    llm_client=openai_client,
+                    model_name=str(inference_model),
+                    judge_prompt_file=judge_prompt_file,
+                )
+            except Exception as exc:
+                if not support.is_model_unavailable_error(exc):
+                    raise
+                return manual_followup(str(exc), dashboard_url=server_settings["dashboard_url"], persist_report=False)
             result["dashboard_url"] = server_settings["dashboard_url"]
             return json.dumps(result, indent=2)
 
         import agentlightning as agl
 
-        algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
-            openai_client,
-            beam_rounds=iterations,
-            beam_width=beam_width,
-            branch_factor=branch_factor,
-            gradient_batch_size=min(4, len(train_dataset)),
-            val_batch_size=min(16, len(val_dataset)),
-            gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
-            apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-        )
-        trainer = agl.Trainer(
-            algorithm=algo,
-            n_runners=n_runners,
-            tracer=agl.OtelTracer(),
-            initial_resources={"main_prompt": agl.PromptTemplate(template=prompt_text, engine="f-string")},
-            adapter=agl.TraceToMessages(),
-        )
-        rollout_fn = _make_rollout(
-            judge_mode,
-            llm_client=openai_client,
-            model_name=str(inference_model),
-            judge_prompt_file=judge_prompt_file,
-        )
-        trainer.fit(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
+        try:
+            algo = {"apo": agl.APO, "verl": agl.VERL}[algorithm](
+                openai_client,
+                beam_rounds=iterations,
+                beam_width=beam_width,
+                branch_factor=branch_factor,
+                gradient_batch_size=min(4, len(train_dataset)),
+                val_batch_size=min(16, len(val_dataset)),
+                gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
+                apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
+            )
+            trainer = agl.Trainer(
+                algorithm=algo,
+                n_runners=n_runners,
+                tracer=agl.OtelTracer(),
+                initial_resources={"main_prompt": agl.PromptTemplate(template=prompt_text, engine="f-string")},
+                adapter=agl.TraceToMessages(),
+            )
+            rollout_fn = _make_rollout(
+                judge_mode,
+                llm_client=openai_client,
+                model_name=str(inference_model),
+                judge_prompt_file=judge_prompt_file,
+            )
+            trainer.fit(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
 
-        optimized_prompt = _extract_best_prompt_template(algo)
+            optimized_prompt = _extract_best_prompt_template(algo)
+        except Exception as exc:
+            if not support.is_model_unavailable_error(exc):
+                raise
+            return manual_followup(str(exc), dashboard_url=server_settings["dashboard_url"])
     prompt_file_updated = False
     if in_place:
         _write_text_if_requested(prompt_file, optimized_prompt)

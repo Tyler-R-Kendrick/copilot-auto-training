@@ -126,7 +126,14 @@ class TestAgentCustomizations:
         assert '`iterations/iteration-N/optimize/`' in text
         assert '`optimized-prompt.md`' in text
         assert '`optimize-report.json`' in text
+        assert '`manual-followup-report.json`' in text
+        assert '`operator-followup.md`' in text
         assert '`decision.md`' in text
+        assert 'If `trainer-optimize` returns `mode=manual_followup`' in text
+        assert 'the current `@trainer` agent becomes the inference step' in text
+        assert 'answer the payload\'s `model_prompt` with the current `@trainer` agent' in text
+        assert 'Treat the agent-authored `optimized-prompt.md` from a `manual_followup` run as the optimize-stage candidate' in text
+        assert 'let the helper auto-record whichever optimize artifact exists when `--optimize-report` is omitted' in text
         assert 'Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals.' in text
         assert 'handoffs:' in text
         assert '- label: "Request Engineer Review"' in text
@@ -280,12 +287,14 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "agents" / "judge.agent.md")
 
         assert "agent-skills/*" in text
-        assert 'Use the `agent-skills` MCP server as the execution path for the `judge-trajectory` and `judge-outcome` skills' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `judge-rubric`, `judge-trajectory`, and `judge-outcome` skills' in text
+        rubric_idx = text.index('Call `find_agent_skill` to discover the exact `judge-rubric` skill')
         trajectory_idx = text.index('Call `find_agent_skill` to discover the exact `judge-trajectory` skill')
         outcome_idx = text.index('Call `find_agent_skill` to discover the exact `judge-outcome` skill')
         load_idx = text.index('Call `load_agent_skill` before first use')
         run_idx = text.index('Call `run_agent_skill` only when the chosen skill later exposes a deterministic helper under `scripts/`')
 
+        assert rubric_idx < load_idx < run_idx
         assert trajectory_idx < load_idx < run_idx
         assert outcome_idx < load_idx < run_idx
 
@@ -293,12 +302,23 @@ class TestAgentCustomizations:
         agent_skills_module = _load_agent_skills_module()
         monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
 
-        for skill_name in ("judge-trajectory", "judge-outcome"):
+        for skill_name in ("judge-rubric", "judge-trajectory", "judge-outcome"):
             skill = agent_skills_module._find_skill_by_name(skill_name)
             payload = agent_skills_module.load_agent_skill(skill_name)
 
             assert skill.dir == (REPO_ROOT / "skills" / skill_name).resolve().as_posix()
             assert f"Name: {skill_name}" in payload
+
+        rubric_result = agent_skills_module.run_agent_skill(
+            "judge-rubric",
+            argv=[
+                "--input-file",
+                str(REPO_ROOT / "skills" / "judge-rubric" / "assets" / "sample-contract.json"),
+            ],
+        )
+        assert rubric_result["exit_code"] == 0
+        assert "# Rubric Package" in rubric_result["stdout"]
+        assert "## Locked Rubric" in rubric_result["stdout"]
 
         with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
             agent_skills_module.run_agent_skill("judge-outcome")
@@ -341,7 +361,12 @@ class TestAgentCustomizations:
         assert any("invent benchmark claims" in item.lower() or "unseen evidence" in item.lower() for item in constraints)
         assert any("optimize-report.json" in item for item in scope)
         assert len(focus_areas) <= 4
-        assert any("judge-trajectory" in item.lower() and "judge-outcome" in item.lower() for item in focus_areas)
+        assert any(
+            "judge-rubric" in item.lower()
+            and "judge-trajectory" in item.lower()
+            and "judge-outcome" in item.lower()
+            for item in focus_areas
+        )
         assert any("decision utility" in item.lower() for item in focus_areas)
         assert any("evidence" in item.lower() for item in output)
         assert any("confidence" in item.lower() or "uncertainty" in item.lower() for item in output)
@@ -404,7 +429,7 @@ class TestAgentCustomizations:
         assert '[.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md](../../../.github/agents/.trainer-workspace/judge.agent/references/judging-techniques.md)' in text
 
     def test_judge_skills_have_eval_manifests(self):
-        for skill_name in ("judge-trajectory", "judge-outcome"):
+        for skill_name in ("judge-rubric", "judge-trajectory", "judge-outcome"):
             manifest_path = REPO_ROOT / "skills" / skill_name / "evals" / "evals.json"
             payload = json.loads(_read(manifest_path))
 
@@ -481,6 +506,46 @@ class TestHookCustomization:
         assert text.startswith("#!/usr/bin/env bash")
         assert "/evals/" in text
         assert "python -m pytest -q" in text
+
+    def test_skill_isolation_hook_exists(self):
+        hook_path = REPO_ROOT / ".github" / "hooks" / "skill-isolation-validation.json"
+        hook = json.loads(_read(hook_path))
+
+        stop_hooks = hook["hooks"]["Stop"]
+        post_tool_use = hook["hooks"]["PostToolUse"]
+        assert stop_hooks
+        assert any("validate-skill-isolation.sh --all" in entry["command"] for entry in stop_hooks)
+        assert post_tool_use
+        assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert any("validate-skill-isolation.sh" in entry["command"] for entry in post_tool_use)
+
+    def test_skill_isolation_script_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-skill-isolation.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert "skills/*/SKILL.md" in text
+        assert "continue" in text
+        assert "stopReason" in text
+
+    def test_skill_isolation_script_blocks_cross_skill_reference(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-skill-isolation.sh"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "skills") as temp_dir:
+            temp_root = Path(temp_dir)
+            skill_path = temp_root / "SKILL.md"
+            skill_path.write_text(
+                "---\nname: temp-skill\ndescription: temp\n---\n\n# Temp\n\nUse `judge-outcome` when final outputs matter.\n",
+                encoding="utf-8",
+            )
+
+            blocked = _run_shell_script(script_path, str(skill_path), check=False)
+            payload = json.loads(blocked.stdout)
+
+            assert blocked.returncode == 0
+            assert payload["continue"] is False
+            assert "judge-outcome" in payload["stopReason"]
+            assert str(skill_path.relative_to(REPO_ROOT)) in payload["stopReason"]
 
     def test_prompt_workflow_hook_exists(self):
         hook_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.json"
@@ -695,6 +760,10 @@ class TestHookCustomization:
             review_path = workspace_root / "engineer-prompt" / "review.md"
             review_path.write_text("# Review\n", encoding="utf-8")
 
+            manual_followup_path = workspace_root / "iterations" / "iteration-1" / "optimize" / "manual-followup-report.json"
+            manual_followup_path.parent.mkdir(parents=True, exist_ok=True)
+            manual_followup_path.write_text("{}\n", encoding="utf-8")
+
             update_result = _run_python_script(
                 helper_path,
                 "update",
@@ -715,8 +784,6 @@ class TestHookCustomization:
                 str((workspace_root / "inputs" / "val.jsonl").relative_to(REPO_ROOT)),
                 "--eval-manifest",
                 str((workspace_root / "inputs" / "evals.json").relative_to(REPO_ROOT)),
-                "--optimize-report",
-                str((workspace_root / "iterations" / "iteration-1" / "optimize" / "optimize-report.json").relative_to(REPO_ROOT)),
                 "--validation-log",
                 str((workspace_root / "iterations" / "iteration-1" / "validation" / "pytest.txt").relative_to(REPO_ROOT)),
                 "--decision-summary",
@@ -735,7 +802,7 @@ class TestHookCustomization:
             assert updated_status["required_artifacts"]["engineer_prompt_review"].endswith("engineer-prompt/review.md")
             assert updated_status["required_artifacts"]["latest_iteration_dir"].endswith("iterations/iteration-1")
             assert updated_status["required_artifacts"]["train_dataset"].endswith("inputs/train.jsonl")
-            assert updated_status["required_artifacts"]["optimize_report"].endswith("iterations/iteration-1/optimize/optimize-report.json")
+            assert updated_status["required_artifacts"]["optimize_report"].endswith("iterations/iteration-1/optimize/manual-followup-report.json")
             assert updated_status["required_artifacts"]["validation_log"].endswith("iterations/iteration-1/validation/pytest.txt")
 
             complete_result = _run_python_script(
@@ -750,6 +817,7 @@ class TestHookCustomization:
             )
             complete_payload = json.loads(complete_result.stdout)
             assert complete_payload["workflow_state"] == "complete"
+            assert complete_payload["required_artifacts"]["optimize_report"].endswith("iterations/iteration-1/optimize/manual-followup-report.json")
 
     def test_prompt_workflow_hook_creates_workspace_status_for_prompt_like_file(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "prompt-workflow-reminder.sh"

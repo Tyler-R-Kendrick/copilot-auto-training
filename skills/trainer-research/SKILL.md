@@ -23,7 +23,7 @@ Work primary-source-first. Resolve the task boundary and missing constraints bef
 - The user needs explicit judgment about source quality, data reliability, annotation quality, licensing, provenance, or leakage risk before authoring eval data.
 - The workflow needs to know whether no acceptable public source exists, so synthesis should stop instead of guessing.
 
-If the source material is already known and the job is to convert it into eval rows, use `trainer-synthesize` instead.
+If the source material is already known and the job is to convert it into eval rows, use a synthesis workflow instead.
 
 ## Inputs
 
@@ -94,7 +94,7 @@ If a candidate fails the bar, keep it only as a rejected lead, not an approved r
 7. Rank the approved sources, record rejection reasons for weak candidates, and summarize the evidence behind each ranking.
 8. Map approved source fields into realistic prompt rows, expected outputs, optional input files, and objective assertions, noting constraints or unresolved gaps.
 9. If no candidate clears the approval bar, say so explicitly and explain what evidence is missing instead of forcing a recommendation.
-10. Deliver the completed research brief as a self-contained artifact that another workflow can hand to `trainer-synthesize` or use directly.
+10. Deliver the completed research brief as a self-contained artifact that another workflow can consume for eval authoring, or use directly.
 
 ## Source hierarchy
 

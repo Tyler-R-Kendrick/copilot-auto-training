@@ -43,6 +43,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Keep all run artifacts under the local `.trainer-workspace/<prompt-name>/` tree, not in a repo-root sibling workspace.
 - Require `engineer-prompt/review.md` inside that workspace before optimization begins. If it is missing, stop and tell the caller to run `/engineer-prompt` first and save its output there.
 - Use `python .github/hooks/trainer-workspace.py` to initialize and update `workflow-status.json` instead of hand-editing that file.
+- Treat the optimize artifact as either `optimize-report.json` for a normal optimizer result or `manual-followup-report.json` when `trainer-optimize` returns `mode=manual_followup` because model access was unavailable. In the latter case, the current `@trainer` agent becomes the inference step by answering the returned `model_prompt` itself.
 - Maintain `workflow-status.json` at the workspace root with explicit states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
 - Keep stable cross-iteration inputs under `inputs/`. At minimum, preserve a source snapshot under `inputs/source/`, and record any reused `evals/evals.json`, `train.jsonl`, and `val.jsonl` paths in `workflow-status.json`.
 - Before editing the target prompt-like file, set `workflow-status.json` to `training`.
@@ -50,7 +51,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Use `iterations/iteration-N/` directories only for run-generated artifacts. For this repo, prefer this layout:
   - `iterations/iteration-N/research/`: public-source shortlist, research brief JSON or markdown, and source approval notes.
   - `iterations/iteration-N/synthesize/`: authored `evals/evals.json`, supporting `evals/files/`, and any generated `train.jsonl` / `val.jsonl` datasets when synthesis ran.
-  - `iterations/iteration-N/optimize/`: optimized prompt candidate markdown, `optimize-report.json`, and optional `trace-train-report.json` when `scripts/train.py` is used.
+  - `iterations/iteration-N/optimize/`: optimized prompt candidate markdown, `optimize-report.json` for a normal run or `manual-followup-report.json` for a no-model/rate-limited run, `optimized-prompt.md` when the current `@trainer` agent completes the handoff itself, `operator-followup.md` for the shortened model handoff, and optional `trace-train-report.json` when `scripts/train.py` is used.
   - `iterations/iteration-N/election/`: election summary JSON only when external leader selection is needed.
   - `iterations/iteration-N/validation/`: `pytest.txt`, eval command logs, or other deterministic validation output.
 - Keep human-readable rollup artifacts at the workspace root when they summarize the active result: `benchmark.json`, `benchmark.md`, `review.html`, and `decision.md`.
@@ -73,6 +74,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Rows that use `expected_json`, or row-level scoring such as `normalized_match`, `json_schema`, or `custom_python`, must run with `judge_mode=custom`.
 - Keep `judge_mode=deterministic` only for rows that are genuinely exact-match `expected` tasks with no dataset shape that requires a richer scorer.
 - Treat any rollout marked `failed` as a runtime exception path, not as evidence that the prompt simply scored poorly. Inspect stderr, traces, and server startup logs before judging prompt quality.
+- If `trainer-optimize` returns `mode=manual_followup`, treat that as a successful deterministic fallback path rather than a prompt-quality failure. Keep the target file unchanged, persist the JSON as `manual-followup-report.json`, use the current `@trainer` agent to answer the report's `model_prompt`, save that reply as `optimized-prompt.md`, and continue the workflow with the generated candidate plus the report's metadata.
 - If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.
 - Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
@@ -93,13 +95,15 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 6. Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present. Save those artifacts under `iterations/iteration-N/synthesize/`, and update `workflow-status.json` with the chosen dataset and manifest paths.
 7. Inspect representative dataset rows before optimization and choose `judge_mode` from the scoring shape. Use `llm_judge` when rows expose `reference` plus `criteria`, or explicitly mark `scoring: "llm_judge"`. Use `custom` when rows expose `expected_json`, or row-level scoring such as `normalized_match`, `json_schema`, or `custom_python`. Keep `deterministic` only for genuinely exact-match `expected` rows that do not signal a richer scoring contract.
 8. Run the `trainer-optimize` skill through MCP against the target file using at least 3 iterations unless the user specified a different count, pass the selected `judge_mode` explicitly, and store optimizer outputs under `iterations/iteration-N/optimize/` with repo-specific artifact names such as `optimized-prompt.md` and `optimize-report.json`.
-9. When optimization runs execute, use the returned `dashboard_url` or report metadata instead of assuming a fixed Agent Lightning port. If rollouts fail immediately, inspect stderr or traces before making prompt-quality claims. Common causes in this repo include placeholder mismatches, literal brace examples accidentally becoming placeholders, stale dashboard-port conflicts, endpoint/API mismatches on GitHub Models, and judge-mode or dataset-shape mismatches.
-10. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iterations/iteration-N/election/`.
-11. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
-12. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
-13. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step, keeping benchmarks, grading outputs, review pages, and validation logs inside the same local workspace tree.
-14. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
-15. Use `python .github/hooks/trainer-workspace.py update` to set `workflow-status.json` to `complete`, record the latest iteration path plus `decision.md`, and continue looping only if another iteration is still justified.
+9. If the optimize result is a normal run, keep `optimized-prompt.md` and `optimize-report.json` together under the optimize directory. If the optimize result is `manual_followup`, write the JSON payload to `manual-followup-report.json`, keep the target prompt unchanged, answer the payload's `model_prompt` with the current `@trainer` agent, save that reply as `optimized-prompt.md`, and save `operator-followup.md` with the blocker, the agent handoff summary, and the optional rerun command.
+10. Treat the agent-authored `optimized-prompt.md` from a `manual_followup` run as the optimize-stage candidate for the rest of the workflow. Do not stop at the handoff artifact.
+11. When optimization runs execute, use the returned `dashboard_url` or report metadata instead of assuming a fixed Agent Lightning port. If rollouts fail immediately, inspect stderr or traces before making prompt-quality claims. Common causes in this repo include placeholder mismatches, literal brace examples accidentally becoming placeholders, stale dashboard-port conflicts, endpoint/API mismatches on GitHub Models, judge-mode or dataset-shape mismatches, and temporary model-availability failures.
+12. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iterations/iteration-N/election/`.
+13. Apply the chosen optimized content to the target file only when the workflow or user explicitly requests file persistence.
+14. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation.
+15. Re-run tests, evaluations, or deterministic checks after each meaningful iteration and again after any external selection step, keeping benchmarks, grading outputs, review pages, and validation logs inside the same local workspace tree.
+16. Invoke the `conservator` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.
+17. Use `python .github/hooks/trainer-workspace.py update` to set `workflow-status.json` to `complete`, record the latest iteration path plus `decision.md`, and let the helper auto-record whichever optimize artifact exists when `--optimize-report` is omitted.
 
 ## Tool Preferences
 - Prefer `search` and `read` to understand prompts, datasets, and skill contracts before editing.
@@ -113,5 +117,6 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - State the local `.trainer-workspace/<prompt-name>/` path used for artifacts.
 - State whether datasets were reused, synthesized, or requested from the user.
 - State what optimization and election passes were run.
+- If optimization ended in `manual_followup`, include the blocker, the saved optimize artifact path, the saved `optimized-prompt.md` candidate path, and the short operator handoff text that the current `@trainer` agent used to finish the optimize stage.
 - State the validation result.
 - End with the most relevant next step only if one remains.
