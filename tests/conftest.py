@@ -159,3 +159,29 @@ if str(_research_scripts_dir) not in sys.path:
 _synthesize_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-synthesize" / "scripts"
 if str(_synthesize_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_synthesize_scripts_dir))
+
+# ---------------------------------------------------------------------------
+# Ensure run_optimize always has a non-None inference_model in tests.
+#
+# When no .env file or environment variables are present, resolve_model_settings
+# returns inference_model=None, which causes run_optimize to short-circuit into
+# manual_followup mode before running any optimization logic.  Tests that verify
+# the optimization path (including debug-only smoke tests) need a model name to
+# be present.  This wrapper falls back to a stub value only when the real
+# resolver finds no model, so tests that create a proper .env file still receive
+# the correct settings from that file.
+# ---------------------------------------------------------------------------
+
+import run_optimize as _run_optimize_module  # noqa: E402 – must come after sys.path setup
+
+_real_create_openai_client = _run_optimize_module.create_openai_client
+
+
+def _stub_create_openai_client(prompt_file: str):
+    client, settings = _real_create_openai_client(prompt_file)
+    if settings.get("inference_model") is None:
+        settings = dict(settings, inference_model="stub-model-for-tests")
+    return client, settings
+
+
+_run_optimize_module.create_openai_client = _stub_create_openai_client

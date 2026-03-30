@@ -4,9 +4,10 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+python_bin="$repo_root/.venv/bin/python"
 scan_root="${PROMPT_WORKFLOW_SCAN_ROOT:-$repo_root}"
 
-/workspaces/copilot-apo/.venv/bin/python -c '
+"$python_bin" -c '
 import json
 import os
 from pathlib import Path

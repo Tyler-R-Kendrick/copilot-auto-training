@@ -403,16 +403,22 @@ class TestRunOptimizeDebugOnly:
 class TestRunOptimizeManualFallback:
     @pytest.mark.asyncio
     async def test_missing_model_returns_manual_followup_payload(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
-        monkeypatch.delenv("OPENAI_MODEL", raising=False)
-        monkeypatch.delenv("OPENAI_GRADIENT_MODEL", raising=False)
-        monkeypatch.delenv("OPENAI_APPLY_EDIT_MODEL", raising=False)
-        monkeypatch.delenv("GITHUB_MODELS_API_KEY", raising=False)
-        monkeypatch.delenv("GITHUB_MODELS_ENDPOINT", raising=False)
-        monkeypatch.delenv("GITHUB_MODELS_MODEL", raising=False)
-        monkeypatch.delenv("GITHUB_MODELS_GRADIENT_MODEL", raising=False)
-        monkeypatch.delenv("GITHUB_MODELS_APPLY_EDIT_MODEL", raising=False)
+        monkeypatch.setattr(
+            optimize_module,
+            "create_openai_client",
+            lambda pf: (
+                sys.modules["openai"].AsyncOpenAI(),
+                {
+                    "provider": "openai",
+                    "api_key": None,
+                    "base_url": None,
+                    "inference_model": None,
+                    "gradient_model": None,
+                    "apply_edit_model": None,
+                    "repo_root": str(tmp_path),
+                },
+            ),
+        )
 
         prompt_path = tmp_path / "prompt.md"
         prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
