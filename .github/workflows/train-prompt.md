@@ -27,6 +27,10 @@ tools:
 safe-outputs:
   create-pull-request:
     max: 1
+    allowed-files:
+      - ".github/"
+      - ".agents/"
+      - "AGENTS.md"
   add-reviewer:
     max: 1
 ---
@@ -48,7 +52,6 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - `build/`
    - `coverage/`
    - `trials/`
-   - `.github/workflows/`
 3. Treat a file as prompt-like when at least one of these is true:
    - the basename is `SKILL.md` or `AGENTS.md`
    - the path ends in `.agent.md`, `.prompt.md`, `.instructions.md`, or `.prompty`
