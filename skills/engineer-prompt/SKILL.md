@@ -1,11 +1,11 @@
 ---
 name: engineer-prompt
-description: Diagnose prompt problems, choose the right prompt engineering technique, and rewrite prompts into concrete markdown instructions. Use this whenever the user wants to improve a prompt, compare prompt patterns, debug why a prompt is failing, or draft a prompting approach for grounding, structure, reasoning, or retrieval strategy.
+description: Improve broken prompts and context plans by choosing the smallest prompt-engineering technique that fits. Use this whenever the user asks how to rewrite or debug a prompt, compare prompt-design options, choose between grounding, structured output, examples, chaining, reasoning, or RAG for a prompt, or reduce prompt length by moving schemas, workflow specs, and repeated instructions into better structures.
 license: MIT
 compatibility: Requires Python 3.11+. Designed for markdown-first prompt work in VS Code agents.
 metadata:
   author: Tyler Kendrick
-  version: "0.1.0"
+  version: "0.2.0"
 
 ---
 
@@ -17,6 +17,8 @@ Your job is to diagnose the task, decide whether the problem is actually prompt-
 
 Prompt engineering is not just naming a technique. Start with the failure mode. If the real problem is stale retrieval, missing tools, bad context, or unclear business requirements, say so directly instead of pretending a prompt pattern will fix it.
 
+When the user is fighting token budget, prompt sprawl, schema-heavy output contracts, or instructions that keep getting dropped in long workflows, read `references/token-efficient-patterns.md` before recommending a rewrite.
+
 ## When to use this skill
 
 - The user wants to improve a prompt.
@@ -25,6 +27,7 @@ Prompt engineering is not just naming a technique. Start with the failure mode. 
 - The user needs a concrete markdown prompt example.
 - The user wants to debug why a prompt is underperforming.
 - The user mentions grounding, examples, output schemas, reasoning style, prompt chaining, RAG, or determinism and needs help choosing among them.
+- The user wants to reduce prompt length without losing critical instructions, or wants help placing schemas, workflow specs, or repeated constraints more effectively.
 
 Do not use this skill when the core problem is clearly application logic, retrieval freshness, source quality, tool availability, or missing product requirements rather than prompt design. In those cases, say that prompt changes are secondary.
 
@@ -61,6 +64,7 @@ Check these failure modes before recommending a technique:
 - missing output schema or format contract
 - too few examples for edge cases
 - unnecessary examples that waste context
+- the prompt is bloated by repeated policy text, giant schemas, or long workflow prose
 - reasoning path is unclear and needs decomposition
 - retrieval is missing, stale, or badly scoped
 - tools are required but unavailable
@@ -74,10 +78,11 @@ If the root cause is not mainly prompt design, say what the real blocker is.
 Use these defaults before escalating:
 
 - Simple classification, rewriting, or summarization: clear instructions plus output priming.
-- Extraction into JSON or fields: structured output first, then few-shot if edge cases are messy.
+- Extraction into JSON or fields: structured output first, then few-shot if edge cases are messy. Keep large schemas in referenced JSON Schema files when inline schema text starts to dominate the prompt.
 - Multi-step transformation: task decomposition or prompt chaining.
 - Grounded answering over provided evidence: grounding first.
 - Large-document QA: vector RAG only when the evidence cannot fit directly in context.
+- Long, stateful workflows: keep the prompt inline summary short and move the durable workflow representation into a referenced Mermaid or BPMN artifact when that reduces ambiguity and token load.
 - Global relationship questions over a corpus: graph RAG only if relationships or communities matter.
 - Tool-using workflows: ReAct when the model must inspect, search, or act.
 - Hard reasoning with alternative paths: Tree-of-Thought or Graph-of-Thought only when branching is materially useful.
@@ -313,6 +318,30 @@ Formatting:
 [How you want the answer structured]
 ```
 
+### Interspersed repetition
+
+Use when:
+- one or two instructions are genuinely high-risk and easy to forget by the time the model reaches the output stage
+- the prompt has distinct phases such as retrieval, transformation, and final formatting
+
+Avoid when:
+- you repeat whole paragraphs or policies verbatim
+- every instruction gets repeated and the repetition stops carrying signal
+
+Example:
+
+```md
+Task:
+Review the incident notes and return only confirmed causes.
+
+Critical rule:
+Do not invent causes that are not supported by the notes.
+
+Output:
+Return JSON only.
+Before emitting the final JSON, re-check that every cause is directly supported by the notes.
+```
+
 ### Output priming and syntax
 
 Use when:
@@ -382,10 +411,12 @@ Analyze climate change as an interconnected problem. Map economic impacts, renew
 Use when:
 - concise symbolic reasoning is useful
 - token efficiency matters in a structured domain
+- mathematical language, variable names, or compact invariants would compress the reasoning without hiding the result
 
 Avoid when:
 - the audience needs plain-language explanation
 - shorthand notation would make the answer harder to use
+- the notation would be more expensive to explain than the natural-language reasoning it replaces
 
 Example:
 
@@ -660,17 +691,18 @@ Use when:
 Avoid when:
 - the user wants open-ended creative output
 - the schema is so large that it overwhelms the task
+- the prompt is carrying a large canonical schema inline when a referenced JSON Schema file or URL would keep the active instructions much smaller
 
 Example:
 
 ```md
-Extract the order details and return valid JSON with this schema:
+Extract the order details and return valid JSON.
 
-{
-  "order_id": "string",
-  "status": "pending|shipped|delivered|cancelled",
-  "customer_email": "string|null"
-}
+Canonical schema: references/order.schema.json
+Critical inline constraints:
+- `order_id` is required
+- `status` must be one of `pending`, `shipped`, `delivered`, `cancelled`
+- `customer_email` may be null
 
 Input:
 ${orderText}
@@ -721,6 +753,17 @@ Apply these rules across all techniques:
 - Offer alternative paths when multiple outputs are acceptable.
 - Optimize token usage after correctness is achieved.
 - Treat prompt engineering as iterative diagnosis, not one-shot style polishing.
+
+## Token-budget guidance
+
+When token budget or instruction persistence is part of the problem, use these defaults:
+
+- Keep the live prompt focused on the task, the few constraints that truly matter, and the output contract.
+- Put bulky canonical schemas in referenced JSON Schema documents instead of pasting large schemas inline.
+- Put durable workflow structure in a referenced Mermaid or BPMN file when the workflow is long, stateful, or easier to verify as a diagram than as prose.
+- Use interspersed repetition for the smallest possible restatement of the highest-risk rule near the step where the rule matters.
+- Use sketch-of-thought or compact mathematical language only when the task is structured enough that notation shrinks the reasoning instead of obscuring it.
+- Read `references/token-efficient-patterns.md` when the user explicitly asks about token optimization, instruction persistence, schema placement, or workflow formalization.
 
 ## Decision heuristic
 

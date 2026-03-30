@@ -105,6 +105,7 @@ class TestAgentCustomizations:
         assert 'name: "trainer"' in text
         assert 'orchestrate repeated loops across the `trainer-optimize`, `trainer-research`, `trainer-synthesize`, and optional `trainer-election` skills' in text
         assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
+        assert 'Do not involve the `skill-creator` skill or its helper scripts in the `@trainer` workflow.' in text
         assert 'Do not write trainer artifacts under a sibling `*-workspace/` directory or any repo-root `**/*-workspace/` tree; that naming is reserved for other workflows.' in text
         assert 'Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.' in text
         assert 'Call `load_agent_skill` before first use of a discovered skill' in text
@@ -135,6 +136,7 @@ class TestAgentCustomizations:
         assert 'Treat the agent-authored `optimized-prompt.md` from a `manual_followup` run as the optimize-stage candidate' in text
         assert 'let the helper auto-record whichever optimize artifact exists when `--optimize-report` is omitted' in text
         assert 'Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals.' in text
+        assert 'DO NOT route any part of the `@trainer` workflow through `skill-creator`, its scripts, or its benchmark layout.' in text
         assert 'handoffs:' in text
         assert '- label: "Request Engineer Review"' in text
         assert 'prompt: "Review the current target prompt, workspace artifacts, and optimization goal. Return a concise prompt-engineering assessment with rewrite hypotheses and metric framing for the next trainer iteration."' in text

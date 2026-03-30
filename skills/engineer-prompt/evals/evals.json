@@ -60,6 +60,22 @@
         "The response avoids presenting an advanced prompting technique as the sole fix.",
         "If the response includes prompt advice, it is presented as secondary rather than primary."
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "The prompt in skills/engineer-prompt/evals/files/token_budget_prompt.md keeps ballooning because the team pasted a long JSON schema and a multi-step approval workflow directly into it. I need a rewrite strategy that stays token-efficient. Tell me whether the schema should move into a referenced JSON Schema file, whether Mermaid or BPMN is a better workflow artifact, how to use interspersed repetition without wasting tokens, and whether sketch-of-thought or mathematical notation is appropriate here. Then give me a markdown prompt.",
+      "expected_output": "The result should recommend keeping the live prompt compact, moving bulky schema or workflow artifacts into references where appropriate, explain interspersed repetition as selective restatement of critical constraints, and conditionally recommend compact symbolic reasoning only when it fits the task.",
+      "files": [
+        "evals/files/token_budget_prompt.md"
+      ],
+      "assertions": [
+        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
+        "The response recommends a referenced JSON Schema file or equivalent external schema artifact instead of keeping a large schema inline.",
+        "The response distinguishes when Mermaid versus BPMN is the better workflow formalization choice, or gives an equivalent conditional recommendation.",
+        "The response explains interspersed repetition as selective repetition of only the highest-risk constraint near the step where it matters.",
+        "The response treats sketch-of-thought or mathematical notation as conditional on task structure rather than as a default.",
+        "The response includes a markdown prompt example."
+      ]
     }
   ]
 }
