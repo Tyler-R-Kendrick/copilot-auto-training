@@ -39,27 +39,27 @@ The engineer applies state-of-the-art practices from prompt engineering and cont
 The repo exposes multiple skills to enhance the capabilities of each of the agents. For each agent, there are multiple skills implemented as agent-skills to support them.
 
 #### Trainer Skills
-- `trainer-optimize`
-- `trainer-election`
-- `trainer-research`
-- `trainer-optimize`
+- `trainer-optimize`: Runs Agent-Lightning optimization with APO or VERL
+- `trainer-election`: Creates multiple candidates with leader election.
+- `trainer-research`: Researches sources to use training data, test data, rubric generation, and data synthesis. 
+- `trainer-synthesize`: Generates new data from existing data.
 
 #### Judge Skills
-- `judge-rubric`
-- `judge-trajectory`
-- `judge-outcome`
+- `judge-rubric`: Creates a rubric for given dimensions to optimize against.
+- `judge-trajectory`: Evaluates the trajectory and provides steering recommendations.
+- `judge-outcome`: Evaluates the outcome and provides steering recommendations.
 
 #### Engineer Skills
-- `engineer-prompt`
-
-### Plugins
-
-We expose all capabilities in this repo as a single plugin.
+- `engineer-prompt`: Applies prompt-engineering best practices to the prompt as suggestions.
 
 ### GitHub Agentic Workflows
 
 We expose a single `train-prompt` agentic workflow to run these capabilities automatically.
 The workflow searches for and triages prompts that should be optimized against a repo.
+
+### Plugins
+
+We expose all capabilities in this repo as a single plugin.
 
 ### MCP servers
 
@@ -69,37 +69,7 @@ In order to make agent-skills available to tool discovery, we created an MCP ser
 
 ## Ways To Use It
 
-### 1. Using it locally
-
-Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation. Simply clone it and run locally.
-Tell Copilot to: `run @trainer on #<prompt-name>.`
-
-### 2. Using it as a GitHub Copilot Plugin
-
-Use the plugin marketplace when you want these skills available inside Copilot CLI without copying files by hand.
-
-Register the marketplace:
-
-```bash
-copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
-```
-
-Install the published plugin:
-
-```bash
-copilot plugin install copilot-training@copilot-training
-```
-
-If you prefer a direct repository import instead of marketplace registration, install from the subdirectory path:
-
-```bash
-copilot plugin install Tyler-R-Kendrick/copilot-apo:plugins/copilot-training
-```
-
-The installable plugin bundles live under `plugins/`, and the marketplace manifest lives at `.github/plugin/marketplace.json`.
-For the full import flow, see [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md).
-
-### 3. Using it as a GitHub Copilot Agentic Workflow
+### Using it as a GitHub Copilot Local Agentic Workflow
 
 Use the reusable workflow when another repository already stores prompt-like markdown in git and you want scheduled or manual optimization runs that produce reviewable pull requests.
 
@@ -130,6 +100,45 @@ The imported workflow will:
 - open a pull request only when the optimization produced a meaningful diff and `python -m pytest -q` passed
 
 The workflow source lives in [`.github/workflows/train-prompt.md`](.github/workflows/train-prompt.md). Frontmatter changes require recompiling it with `gh aw compile train-prompt`.
+
+### Using it as a Repository Template
+
+Fork the repository and use it when creating a repository.
+
+### Using it locally
+
+Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation. Simply clone it and run locally.
+Tell Copilot to: `run @trainer on #<prompt-name>.`
+
+### 2. Using it as a GitHub Copilot Plugin
+
+Use the plugin marketplace when you want these skills available inside Copilot CLI without copying files by hand.
+
+Register the marketplace:
+
+```bash
+copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
+```
+
+Install the published plugin:
+
+```bash
+copilot plugin install copilot-training@copilot-training
+```
+
+If you prefer a direct repository import instead of marketplace registration, install from the subdirectory path:
+
+```bash
+copilot plugin install Tyler-R-Kendrick/copilot-apo:plugins/copilot-training
+```
+
+The installable plugin bundles live under `plugins/`, and the marketplace manifest lives at `.github/plugin/marketplace.json`.
+For the full import flow, see [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md).
+
+### Using it as a GitHub Copilot Cross-Repo Agentic Workflow
+
+Use it locally as either a repo template or a locally cloned copy.
+Then, follow the documention [here](https://github.github.com/gh-aw/reference/cross-repository/) to point it to the repos you want to optimize.
 
 ## Requirements
 
