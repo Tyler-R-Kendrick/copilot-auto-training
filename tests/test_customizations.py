@@ -1171,21 +1171,33 @@ class TestTrainPromptWorkflow:
         assert isinstance(allowed_files, list), "Expected allowed-files to be a YAML list"
         return [str(pattern) for pattern in allowed_files]
 
+    def _reported_failure_paths(self) -> list[str]:
+        """Exact path shapes from the reported safe_outputs failure."""
+        return [
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/engineer-prompt/review.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/inputs/source/evals-dataset.instructions.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/manual-followup-report.json",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/operator-followup.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/optimized-prompt.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/research/research-brief.md",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/train.jsonl",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/val.jsonl",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/evals/evals.json",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/validation/pytest.txt",
+            ".github/instructions/.trainer-workspace/evals-dataset.instructions/workflow-status.json",
+            ".github/instructions/datasets/train.jsonl",
+            ".github/instructions/datasets/val.jsonl",
+            ".github/instructions/evals-dataset.instructions.md",
+            ".github/instructions/evals/evals.json",
+        ]
+
     def test_source_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
         """Regression test for the safe_outputs failure: gh-aw treats allowed-files
         as strict glob patterns on full paths, so bare '.github/' does not match
         nested files like '.github/instructions/evals/evals.json'."""
         allowed = self._source_allowed_files()
-        blocked_files = [
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/engineer-prompt/review.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/manual-followup-report.json",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/validation/pytest.txt",
-            ".github/instructions/datasets/train.jsonl",
-            ".github/instructions/evals/evals.json",
-            ".github/instructions/evals-dataset.instructions.md",
-        ]
-        for path in blocked_files:
+        for path in self._reported_failure_paths():
             assert _matches_gh_aw_allowed_files(path, allowed), (
                 f"'{path}' is not matched by train-prompt.md allowed-files under gh-aw "
                 f"glob semantics. allowed-files={allowed}"
@@ -1196,15 +1208,7 @@ class TestTrainPromptWorkflow:
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
             allowed = config.get("create_pull_request", {}).get("allowed_files", [])
-            blocked_files = [
-                ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
-                ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/train.jsonl",
-                ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/evals/evals.json",
-                ".github/instructions/datasets/val.jsonl",
-                ".github/instructions/evals/evals.json",
-                ".github/instructions/evals-dataset.instructions.md",
-            ]
-            for path in blocked_files:
+            for path in self._reported_failure_paths():
                 assert _matches_gh_aw_allowed_files(path, allowed), (
                     f"train-prompt.lock.yml allowed_files must match '{path}' under gh-aw "
                     f"glob semantics. got: {allowed}"
