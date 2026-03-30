@@ -28,7 +28,7 @@ safe-outputs:
   create-pull-request:
     max: 1
     allowed-files:
-      - ".github/"
+      - ".github/instructions/"
       - ".agents/"
       - "AGENTS.md"
   add-reviewer:
