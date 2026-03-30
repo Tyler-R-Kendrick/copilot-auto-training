@@ -1170,16 +1170,17 @@ class TestTrainPromptWorkflow:
                 f"'.github/' in allowed_files, got: {allowed}"
             )
 
-    def test_lock_config_github_not_in_protected_path_prefixes(self):
-        """'.github/' must not appear in protected_path_prefixes — it was the root
-        cause of the PR creation failure reported in issue #6."""
+    def test_lock_config_no_protected_path_prefixes(self):
+        """protected_path_prefixes must be empty so the trainer can create pull
+        requests modifying any prompt file — including those under .github/ and
+        .agents/ — without being blocked."""
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
             prefixes = config.get("create_pull_request", {}).get("protected_path_prefixes", [])
-            assert ".github/" not in prefixes, (
-                f"'.github/' must be removed from protected_path_prefixes so that "
-                f"allowed_files entries under .github/ are not overridden. Got: {prefixes}"
+            assert prefixes == [], (
+                f"protected_path_prefixes must be empty so any prompt file can be "
+                f"modified. Got: {prefixes}"
             )
 
     def test_lock_configs_are_consistent_with_each_other(self):
@@ -1202,9 +1203,9 @@ class TestTrainPromptWorkflow:
         )
 
     def test_trainer_workspace_files_covered_by_allowed_prefix(self):
-        """Spot-check that the specific paths blocked in the reported failure (issue #6)
-        are covered by the '.github/' allowed prefix."""
-        covered_prefix = ".github/"
+        """Spot-check that the specific paths blocked in the reported failure (issue #8)
+        are covered by the '.github/' or '.agents/' allowed prefix."""
+        covered_prefixes = (".github/", ".agents/")
         blocked_files = [
             ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
             ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/candidate-1.md",
@@ -1213,8 +1214,9 @@ class TestTrainPromptWorkflow:
             ".github/instructions/evals-dataset.instructions.md",
             ".github/instructions/evals/evals.json",
             ".github/agents/trainer.agent.md",
+            ".agents/skills/trainer-optimize/SKILL.md",
         ]
         for path in blocked_files:
-            assert path.startswith(covered_prefix), (
-                f"'{path}' is not covered by the allowed prefix '{covered_prefix}'"
+            assert any(path.startswith(p) for p in covered_prefixes), (
+                f"'{path}' is not covered by any of the allowed prefixes {covered_prefixes}"
             )
