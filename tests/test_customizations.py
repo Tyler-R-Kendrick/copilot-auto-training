@@ -1203,8 +1203,8 @@ class TestTrainPromptWorkflow:
         )
 
     def test_trainer_workspace_files_covered_by_allowed_prefix(self):
-        """Spot-check that the specific paths blocked in the reported failure (issue #8)
-        are covered by the '.github/' or '.agents/' allowed prefix."""
+        """Spot-check that the specific paths blocked in the reported failures
+        (issues #6 and #8) are covered by the '.github/' or '.agents/' allowed prefix."""
         covered_prefixes = (".github/", ".agents/")
         blocked_files = [
             ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
