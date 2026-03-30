@@ -24,17 +24,17 @@
 #
 # Resolved workflow manifest:
 #   Imports:
+#     - ../agents/trainer.agent.md
 #     - shared/agent-skills-runtime.md
+#     - shared/repo-runtime-context.md
 #     - shared/trainer-loop-contract.md
 #
-# inlined-imports: true
-#
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"16b5855e5ab9889f88e3b1e85d13d6c3881356ae3e25609fb64f185bdd526242","compiler_version":"v0.64.3","strict":true,"agent_id":"copilot"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"6e51d399ceb7c0e41ab9be4e6e3ca2b2d3f9b072d261183fe60c8540805e53a7","compiler_version":"v0.64.3","strict":true,"agent_id":"copilot"}
 
-name: "Optimize Next Prompt"
+name: "Train Prompt"
 "on":
   schedule:
-  - cron: "23 12 * * *"
+  - cron: "17 23 * * *"
     # Friendly format: daily (scattered)
   workflow_dispatch:
     inputs:
@@ -49,7 +49,7 @@ permissions: {}
 concurrency:
   group: "gh-aw-${{ github.workflow }}"
 
-run-name: "Optimize Next Prompt"
+run-name: "Train Prompt"
 
 jobs:
   activation:
@@ -76,7 +76,7 @@ jobs:
           GH_AW_INFO_VERSION: "latest"
           GH_AW_INFO_AGENT_VERSION: "latest"
           GH_AW_INFO_CLI_VERSION: "v0.64.3"
-          GH_AW_INFO_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_INFO_WORKFLOW_NAME: "Train Prompt"
           GH_AW_INFO_EXPERIMENTAL: "false"
           GH_AW_INFO_SUPPORTS_TOOLS_ALLOWLIST: "true"
           GH_AW_INFO_STAGED: "false"
@@ -110,7 +110,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "optimize-next-prompt.lock.yml"
+          GH_AW_WORKFLOW_FILE: "train-prompt.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -133,19 +133,19 @@ jobs:
         run: |
           bash ${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh
           {
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
           <system>
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
+          GH_AW_PROMPT_76a950eff399888f_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
           <safe-output-tools>
           Tools: create_pull_request, add_reviewer, missing_tool, missing_data, noop
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
+          GH_AW_PROMPT_76a950eff399888f_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_create_pull_request.md"
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
           </safe-output-tools>
           <github-context>
           The following GitHub context information is available for this workflow:
@@ -175,189 +175,26 @@ jobs:
           {{/if}}
           </github-context>
           
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
+          GH_AW_PROMPT_76a950eff399888f_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
           </system>
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
-          # Agent Skills Runtime
-          
-          Use the configured `agent-skills` MCP server to discover and run `trainer-*` skills from the current repository checkout.
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
-          # Trainer Loop Contract
-          
-          Use the repository trainer loop for the selected target without relying on repo-local helper scripts outside the selected repository checkout.
-          
-          ## Workspace Contract
-          
-          1. Derive `<prompt-name>` from the selected file path by stripping `.prompty` entirely, or otherwise stripping only the final extension.
-          2. Use the local workspace root `<target-dir>/.trainer-workspace/<prompt-name>/`.
-          3. Keep all trainer artifacts under that local workspace. Never use repo-root `*-workspace` directories for this workflow.
-          4. Before any trainer stage runs, ensure the workspace contains:
-             - `engineer-prompt/`
-             - `inputs/source/`
-             - `iterations/`
-          5. Copy the current source file to `inputs/source/<basename>` if that snapshot does not already exist.
-          6. Ensure `engineer-prompt/review.md` exists. If it is missing, create a concise review artifact that records the target goal, likely failure modes, dataset gaps, validation plan, and the next optimization hypothesis.
-          7. Maintain `workflow-status.json` at the workspace root with these fields:
-             - `target_file`
-             - `workspace_root`
-             - `prompt_name`
-             - `workflow_state`
-             - `updated_at`
-             - `required_artifacts`
-          8. Use only these workflow states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
-          9. When training starts, set `workflow_state` to `training`, create the next `iterations/iteration-N/` directory, and create these subdirectories inside it:
-             - `research/`
-             - `synthesize/`
-             - `optimize/`
-             - `election/`
-             - `validation/`
-          10. Keep `required_artifacts` updated for:
-              - `engineer_prompt_review`
-              - `source_snapshot`
-              - `latest_iteration_dir`
-              - `train_dataset`
-              - `val_dataset`
-              - `eval_manifest`
-              - `optimize_report`
-              - `validation_log`
-              - `decision_summary`
-          11. On success, set `workflow_state` to `complete`, update `latest_iteration_dir`, point `decision_summary` to the final rollup artifact, and record whichever optimize report exists for the active iteration.
-          
-          ## Skill Execution Contract
-          
-          1. Use the `agent-skills` MCP server as the execution path for the `trainer-*` skills.
-          2. Before each stage, call `find_agent_skill` to locate the exact skill.
-          3. Call `load_agent_skill` before first use of a stage and again if the stage context changes materially.
-          4. Call `run_agent_skill` to execute the chosen stage.
-          5. When required support data is missing, the default stage order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize`.
-          6. Require at least one `trainer-optimize` pass for the selected target.
-          7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
-          
-          ## Dataset And Judge Mode Rules
-          
-          1. Reuse existing train, validation, and authored eval assets when they already fit the selected target.
-          2. If any required train, validation, or authored eval assets are missing, run research first and synthesize the missing assets before optimize.
-          3. Use `judge_mode=llm_judge` for rows that expose `reference` plus `criteria`, or explicitly set `scoring: llm_judge`.
-          4. Use `judge_mode=custom` for rows that expose `expected_json`, or use row-level scoring such as `normalized_match`, `json_schema`, or `custom_python`.
-          5. Keep `judge_mode=deterministic` only for exact-match `expected` tasks that do not require a richer scorer.
-          
-          ## Optimize Output Contract
-          
-          1. Store optimizer outputs under `iterations/iteration-N/optimize/`.
-          2. For a normal optimize run, keep `optimized-prompt.md` and `optimize-report.json` together.
-          3. If optimize returns `mode=manual_followup`, save the JSON payload as `manual-followup-report.json`, answer the returned `model_prompt` yourself, save that answer as `optimized-prompt.md`, and continue using that candidate for the rest of the workflow.
-          4. Persist the chosen optimized content back to the selected source file only when the candidate is defensible and validation passes.
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
-          cat << 'GH_AW_PROMPT_933001aa7e6fe592_EOF'
-          # Optimize Next Prompt
-          
-          Select exactly one prompt-like source file in this repository, run the repository trainer loop for that target, and open a pull request for the resulting changes.
-          
-          ## Scope
-          
-          1. Search tracked repository files ending in `.md`, `.mdx`, or `.prompty`.
-          2. Exclude generated or non-source trees:
-             - `.git/`
-             - `.venv/`
-             - any path under `**/.trainer-workspace/**`
-             - any path under `**/*-workspace/**`
-             - `node_modules/`
-             - `dist/`
-             - `build/`
-             - `coverage/`
-             - `trials/`
-             - `.github/workflows/`
-          3. Treat a file as prompt-like when at least one of these is true:
-             - the basename is `SKILL.md` or `AGENTS.md`
-             - the path ends in `.agent.md`, `.prompt.md`, `.instructions.md`, or `.prompty`
-             - the file clearly contains agent or prompt instructions rather than general documentation, for example a role prompt, skill contract, or structured instruction artifact with imperative guidance
-          4. Prefer repository-owned prompt artifacts under `.github/agents/`, `.agents/skills/`, `skills/`, and `examples/` over incidental documentation elsewhere.
-          
-          ## Workspace Mapping
-          
-          1. Use these workspace naming rules:
-             - strip `.prompty` entirely
-             - otherwise strip only the final extension
-             - examples:
-               - `skills/trainer-research/SKILL.md` -> `skills/trainer-research/.trainer-workspace/SKILL/`
-               - `docs/support.prompt.md` -> `docs/.trainer-workspace/support.prompt/`
-          2. The associated workspace root is `<target-dir>/.trainer-workspace/<prompt-name>/`.
-          3. Treat the workspace as existing when that directory already exists.
-          
-          ## Selection Rules
-          
-          1. Build the candidate list and map each candidate to its associated local `.trainer-workspace` directory.
-          2. Partition candidates into:
-             - files whose associated workspace directory does not exist
-             - files whose associated workspace directory exists
-          3. If any candidates are missing a workspace, choose exactly one target from that group using this deterministic order:
-             - `.prompty`
-             - `.prompt.md`
-             - `.instructions.md`
-             - `.agent.md`
-             - `SKILL.md`
-             - `AGENTS.md`
-             - all other prompt-like markdown
-             - then repository-relative path ascending as the tiebreaker
-          4. If every candidate already has a workspace, choose the oldest trained target by sorting ascending on the last training timestamp.
-          5. Resolve the last training timestamp using this fallback order:
-             - `workflow-status.json` field `updated_at`
-             - the newest `iterations/iteration-N/` directory modification time inside the local workspace
-             - the workspace directory modification time
-             - repository-relative path ascending as the final tiebreaker
-          6. Record the selection reason in the eventual pull request body.
-          
-          ## Execution
-          
-          1. Work on exactly one selected target.
-          2. If the selected target has no local trainer workspace, initialize it by following the imported trainer loop contract: create the local `.trainer-workspace/<prompt-name>/` tree, create the required subdirectories, snapshot the source file under `inputs/source/`, and write `workflow-status.json` with state `pending_engineer_prompt`.
-          3. Inspect the selected workspace. If `engineer-prompt/review.md` is missing, create that review artifact first so the trainer loop has its required prerequisite. The review must stay in the selected local workspace.
-          4. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
-          5. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
-          6. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
-          7. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-          8. Keep the change set tightly scoped to:
-             - the selected prompt-like file
-             - its local `.trainer-workspace/<prompt-name>/` artifacts
-             - directly related supporting prompt-evaluation assets created by the trainer loop
-          9. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
-          
-          ## Validation
-          
-          1. Run repository validation with:
-          
-             ```bash
-             python -m pytest -q
-             ```
-          
-          2. If validation fails, do not open a pull request. Instead, stop after recording the failure details in the selected local workspace.
-          3. If the trainer loop produces no meaningful repository diff, do not open a pull request.
-          
-          ## Pull Request
-          
-          1. Open exactly one pull request when, and only when, the selected target produced a reviewable diff and validation passed.
-          2. The pull request body must include:
-             - the selected target file
-             - why it was selected
-             - the local `.trainer-workspace/<prompt-name>/` path used
-             - whether the target was missing a workspace or was chosen as the oldest trained prompt
-             - the validation result
-             - the key trainer artifacts produced for the selected iteration
-          3. Request Copilot as a reviewer using the `add-reviewer` safe output.
-          4. If the reviewer request fails because Copilot review is not enabled or not available for the repository, keep the pull request open and state that limitation explicitly in the pull request body. Do not substitute a different reviewer.
-          
-          ## Guardrails
-          
-          - Use the configured `agent-skills` MCP server deliberately: discover the relevant trainer skills before running them.
-          - Preserve the imported trainer loop contract for workspace layout, artifact names, and state transitions.
-          - Keep the workflow deterministic: select one target, perform one trainer loop, and produce one pull request at most.
-          - Do not guess missing datasets when the trainer contract requires research or synthesis first.
-          
-          GH_AW_PROMPT_933001aa7e6fe592_EOF
+          GH_AW_PROMPT_76a950eff399888f_EOF
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
+          {{#runtime-import .github/agents/trainer.agent.md}}
+          GH_AW_PROMPT_76a950eff399888f_EOF
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
+          {{#runtime-import .github/workflows/shared/agent-skills-runtime.md}}
+          GH_AW_PROMPT_76a950eff399888f_EOF
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
+          {{#runtime-import .github/workflows/shared/trainer-loop-contract.md}}
+          GH_AW_PROMPT_76a950eff399888f_EOF
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
+          {{#runtime-import .github/workflows/shared/repo-runtime-context.md}}
+          GH_AW_PROMPT_76a950eff399888f_EOF
+          cat << 'GH_AW_PROMPT_76a950eff399888f_EOF'
+          {{#runtime-import .github/workflows/train-prompt.md}}
+          GH_AW_PROMPT_76a950eff399888f_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -437,7 +274,7 @@ jobs:
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: optimizenextprompt
+      GH_AW_WORKFLOW_ID_SANITIZED: trainprompt
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       has_patch: ${{ steps.collect_output.outputs.has_patch }}
@@ -460,6 +297,17 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+      - name: Merge remote .github folder
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          GH_AW_AGENT_FILE: ".github/agents/trainer.agent.md"
+          GH_AW_AGENT_IMPORT_SPEC: "../agents/trainer.agent.md"
+        with:
+          script: |
+            const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
+            setupGlobals(core, github, context, exec, io);
+            const { main } = require('${{ runner.temp }}/gh-aw/actions/merge_remote_agent_github_folder.cjs');
+            await main();
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
@@ -521,12 +369,12 @@ jobs:
           mkdir -p ${RUNNER_TEMP}/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_dd7e3de0a50ddf3f_EOF'
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_02ec6bb27a30a65d_EOF'
           {"add_reviewer":{"max":1},"create_pull_request":{"max":1,"max_patch_size":1024,"protected_files":["package.json","bun.lockb","bunfig.toml","deno.json","deno.jsonc","deno.lock","global.json","NuGet.Config","Directory.Packages.props","mix.exs","mix.lock","go.mod","go.sum","stack.yaml","stack.yaml.lock","pom.xml","build.gradle","build.gradle.kts","settings.gradle","settings.gradle.kts","gradle.properties","package-lock.json","yarn.lock","pnpm-lock.yaml","npm-shrinkwrap.json","requirements.txt","Pipfile","Pipfile.lock","pyproject.toml","setup.py","setup.cfg","Gemfile","Gemfile.lock","uv.lock","CODEOWNERS"],"protected_path_prefixes":[".github/",".agents/"]},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_dd7e3de0a50ddf3f_EOF
+          GH_AW_SAFE_OUTPUTS_CONFIG_02ec6bb27a30a65d_EOF
       - name: Write Safe Outputs Tools
         run: |
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_2654c80742e6b089_EOF'
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_7e9841c8da139f3f_EOF'
           {
             "description_suffixes": {
               "add_reviewer": " CONSTRAINTS: Maximum 1 reviewer(s) can be added.",
@@ -535,8 +383,8 @@ jobs:
             "repo_params": {},
             "dynamic_tools": []
           }
-          GH_AW_SAFE_OUTPUTS_TOOLS_META_2654c80742e6b089_EOF
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_3ffb9df381f7a08d_EOF'
+          GH_AW_SAFE_OUTPUTS_TOOLS_META_7e9841c8da139f3f_EOF
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_3e4bf56bdbf5a460_EOF'
           {
             "add_reviewer": {
               "defaultMax": 3,
@@ -651,7 +499,7 @@ jobs:
               }
             }
           }
-          GH_AW_SAFE_OUTPUTS_VALIDATION_3ffb9df381f7a08d_EOF
+          GH_AW_SAFE_OUTPUTS_VALIDATION_3e4bf56bdbf5a460_EOF
           node ${RUNNER_TEMP}/gh-aw/actions/generate_safe_outputs_tools.cjs
       - name: Generate Safe Outputs MCP Server Config
         id: safe-outputs-config
@@ -719,7 +567,7 @@ jobs:
           export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e MCP_GATEWAY_PAYLOAD_DIR -e MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD -e DEBUG -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_GUARD_MIN_INTEGRITY -e GITHUB_MCP_GUARD_REPOS -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_RUN_NUMBER -e GITHUB_RUN_ATTEMPT -e GITHUB_JOB -e GITHUB_ACTION -e GITHUB_EVENT_NAME -e GITHUB_EVENT_PATH -e GITHUB_ACTOR -e GITHUB_ACTOR_ID -e GITHUB_TRIGGERING_ACTOR -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF -e GITHUB_WORKFLOW_SHA -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_REF_TYPE -e GITHUB_HEAD_REF -e GITHUB_BASE_REF -e GH_AW_SAFE_OUTPUTS_PORT -e GH_AW_SAFE_OUTPUTS_API_KEY -v /tmp/gh-aw/mcp-payloads:/tmp/gh-aw/mcp-payloads:rw -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:v0.2.8'
           
           mkdir -p /home/runner/.copilot
-          cat << GH_AW_MCP_CONFIG_be21e8f0caac93b1_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
+          cat << GH_AW_MCP_CONFIG_8a8cb07f444ce70e_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
           {
             "mcpServers": {
               "agent-skills": {
@@ -786,7 +634,7 @@ jobs:
               "payloadDir": "${MCP_GATEWAY_PAYLOAD_DIR}"
             }
           }
-          GH_AW_MCP_CONFIG_be21e8f0caac93b1_EOF
+          GH_AW_MCP_CONFIG_8a8cb07f444ce70e_EOF
       - name: Download activation artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -993,7 +841,7 @@ jobs:
       issues: write
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-optimize-next-prompt"
+      group: "gh-aw-conclusion-train-prompt"
       cancel-in-progress: false
     outputs:
       noop_message: ${{ steps.noop.outputs.noop_message }}
@@ -1024,7 +872,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: "1"
-          GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_WORKFLOW_NAME: "Train Prompt"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1038,7 +886,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_MISSING_TOOL_CREATE_ISSUE: "true"
-          GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_WORKFLOW_NAME: "Train Prompt"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1052,10 +900,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_WORKFLOW_NAME: "Train Prompt"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "optimize-next-prompt"
+          GH_AW_WORKFLOW_ID: "train-prompt"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_INFERENCE_ACCESS_ERROR: ${{ needs.agent.outputs.inference_access_error }}
@@ -1077,7 +925,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_WORKFLOW_NAME: "Train Prompt"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -1094,7 +942,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+          GH_AW_WORKFLOW_NAME: "Train Prompt"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -1172,7 +1020,7 @@ jobs:
         if: always() && steps.detection_guard.outputs.run_detection == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "Optimize Next Prompt"
+          WORKFLOW_NAME: "Train Prompt"
           WORKFLOW_DESCRIPTION: "Reusable workflow that selects one prompt-like file, runs the trainer loop, and opens a pull request when the optimized result validates."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
@@ -1253,11 +1101,11 @@ jobs:
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/optimize-next-prompt"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/train-prompt"
       GH_AW_ENGINE_ID: "copilot"
       GH_AW_ENGINE_MODEL: ${{ needs.agent.outputs.model }}
-      GH_AW_WORKFLOW_ID: "optimize-next-prompt"
-      GH_AW_WORKFLOW_NAME: "Optimize Next Prompt"
+      GH_AW_WORKFLOW_ID: "train-prompt"
+      GH_AW_WORKFLOW_NAME: "Train Prompt"
     outputs:
       add_reviewer_reviewers_added: ${{ steps.process_safe_outputs.outputs.reviewers_added }}
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}

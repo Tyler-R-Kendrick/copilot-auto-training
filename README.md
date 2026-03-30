@@ -74,13 +74,13 @@ Prerequisites for the target repository:
 Install the workflow with an explicit path:
 
 ```bash
-gh aw add Tyler-R-Kendrick/copilot-apo/.github/workflows/optimize-next-prompt.md --name optimize-next-prompt
+gh aw add Tyler-R-Kendrick/copilot-apo/.github/workflows/train-prompt.md --name train-prompt
 ```
 
 Update it later with:
 
 ```bash
-gh aw update optimize-next-prompt
+gh aw update train-prompt
 ```
 
 The imported workflow will:
@@ -90,7 +90,7 @@ The imported workflow will:
 - use packaged `trainer-research`, `trainer-synthesize`, `trainer-optimize`, and `trainer-election` skills from this repository through a bundled MCP server runtime
 - open a pull request only when the optimization produced a meaningful diff and `python -m pytest -q` passed
 
-The workflow source lives in [`.github/workflows/optimize-next-prompt.md`](.github/workflows/optimize-next-prompt.md). Frontmatter changes require recompiling it with `gh aw compile optimize-next-prompt`.
+The workflow source lives in [`.github/workflows/train-prompt.md`](.github/workflows/train-prompt.md). Frontmatter changes require recompiling it with `gh aw compile train-prompt`.
 
 ## Features
 

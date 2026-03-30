@@ -5,13 +5,13 @@ on:
 
 description: Reusable workflow that selects one prompt-like file, runs the trainer loop, and opens a pull request when the optimized result validates.
 
-labels: [prompt-optimization, automation]
-
-inlined-imports: true
+labels: [prompt-optimization, skill-optimization, agent-optimization, training]
 
 imports:
-  - shared/agent-skills-runtime.md
-  - shared/trainer-loop-contract.md
+   - ../agents/trainer.agent.md
+   - shared/agent-skills-runtime.md
+   - shared/trainer-loop-contract.md
+   - shared/repo-runtime-context.md
 
 permissions:
   contents: read
@@ -31,7 +31,7 @@ safe-outputs:
     max: 1
 ---
 
-# Optimize Next Prompt
+# Train Prompt
 
 Select exactly one prompt-like source file in this repository, run the repository trainer loop for that target, and open a pull request for the resulting changes.
 
