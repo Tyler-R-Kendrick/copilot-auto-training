@@ -177,11 +177,15 @@ class TestAgentCustomizations:
         assert 'search' in text
         assert 'execute' in text
         assert 'todo' in text
-        assert 'agent-skills/*' in text
-        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
-        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
+        assert 'agent-skills/*' not in text
+        assert 'agents: ["teacher", "engineer"]' in text
+        assert '- label: "Request Teacher Guidance"' in text
+        assert '- label: "Request Engineer Guidance"' in text
         assert 'Do not take over judging, adversarial review, or trainer-loop orchestration.' in text
-        assert 'You are a specialist in trainer-guided candidate revision.' in text
+        assert 'Do not use `engineer-prompt`, `engineer-code`, or any other engineer skills directly.' in text
+        assert 'You are a specialist in teacher-guided candidate revision.' in text
+        assert 'Use the `teacher` handoff whenever the critique is incomplete' in text
+        assert 'You may use the `engineer` handoff as another teacher-like source of guidance' in text
         assert 'Implement the smallest defensible candidate revision' in text
 
     def test_adversary_agent_contract_structure(self):
