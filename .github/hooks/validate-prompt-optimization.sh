@@ -4,7 +4,16 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-python_bin="$repo_root/.venv/bin/python"
+if [[ -x "$repo_root/.venv/bin/python" ]]; then
+  python_bin="$repo_root/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  python_bin="python3"
+elif command -v python >/dev/null 2>&1; then
+  python_bin="python"
+else
+  echo "Error: No suitable Python interpreter found. Expected '$repo_root/.venv/bin/python', 'python3', or 'python' on PATH." >&2
+  exit 1
+fi
 
 collect_candidates() {
   if [[ "$#" -gt 0 ]]; then

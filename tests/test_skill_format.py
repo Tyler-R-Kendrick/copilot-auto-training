@@ -310,6 +310,7 @@ class TestOfficialEvalFixtures:
 
     def test_engineer_code_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "engineer-code" / "evals" / "evals.json"
+        assert manifest_path.is_file(), f"Expected engineer-code eval manifest at {manifest_path}"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
 
         assert payload["skill_name"] == "engineer-code"

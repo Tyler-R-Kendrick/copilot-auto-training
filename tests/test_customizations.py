@@ -191,6 +191,7 @@ class TestAgentCustomizations:
         assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
         assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in text
         assert 'Call `find_agent_skill` to discover the exact `engineer-code` skill before giving Microsoft Trace or `trace-opt` code-optimization guidance.' in text
+        assert 'Call `load_agent_skill` before first use so the loaded `engineer-code` contract and bundled references guide the task.' in text
         assert 'Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`' in text
         assert 'DO NOT claim a performance or quality improvement without running the available benchmark, eval, test, or deterministic check.' in text
         assert 'Microsoft Trace and `trace-opt` code optimization for Python behavior' in text
@@ -213,7 +214,7 @@ class TestAgentCustomizations:
         skill = agent_skills_module._find_skill_by_name("engineer-prompt")
         payload = agent_skills_module.load_agent_skill("engineer-prompt")
 
-        assert skill.dir == (REPO_ROOT / "skills" / "engineer-prompt").resolve().as_posix()
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-prompt").resolve()
         assert "Name: engineer-prompt" in payload
         assert "The user wants to improve a prompt." in payload
         assert "Reserved for deterministic helpers if the engineer-prompt skill later needs" in payload
@@ -230,7 +231,7 @@ class TestAgentCustomizations:
         skill = agent_skills_module._find_skill_by_name("engineer-code")
         payload = agent_skills_module.load_agent_skill("engineer-code")
 
-        assert skill.dir == (REPO_ROOT / "skills" / "engineer-code").resolve().as_posix()
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-code").resolve()
         assert "Name: engineer-code" in payload
         assert "Microsoft Trace" in payload
         assert "trace-opt" in payload
