@@ -53,8 +53,8 @@ Use the repository trainer loop for the selected target without relying on repo-
 
 ## Judge Steering Contract
 
-1. Keep Judge-owned agent files, skill contracts, scripts, templates, and local references immutable during trainer runs.
-2. Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`.
+1. Keep Judge-owned agent files, skill contracts, scripts, templates, and local references (including any `references/` trees) immutable during trainer runs.
+2. When the selected target is not `.github/agents/judge.agent.md`, do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`. When `.github/agents/judge.agent.md` is the selected target, keep Judge-owned immutable content read-only but write any per-run artifacts only under `.github/agents/.trainer-workspace/judge.agent/iterations/iteration-N/`.
 3. Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree.
 4. Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle.
 5. Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
