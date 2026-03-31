@@ -1313,9 +1313,21 @@ class TestTrainPromptWorkflow:
                 "train-prompt.lock.yml should upload the exported trainer workspace stage "
                 f"directory {staged_path!r}."
             )
-        assert "/tmp/gh-aw/trainer-workspace/" in text, (
-            "train-prompt.lock.yml should retain exported trainer workspace checkpoints inside "
-            "the agent artifact so later jobs can continue from partial stage outputs."
+        assert "Download trainer workspace state artifact" in text, (
+            "train-prompt.lock.yml should make the workspace checkpoint metadata available "
+            "to downstream jobs from its dedicated GitHub artifact."
+        )
+        assert "Download trainer stage checkpoint artifacts" in text, (
+            "train-prompt.lock.yml should download dedicated trainer stage checkpoint artifacts "
+            "for downstream jobs instead of relying on the generic agent bundle."
+        )
+        assert "pattern: trainer-stage-*" in text, (
+            "train-prompt.lock.yml should download all trainer stage checkpoint artifacts with "
+            "a dedicated artifact pattern."
+        )
+        assert "merge-multiple: false" in text, (
+            "train-prompt.lock.yml should preserve per-artifact directories when downloading "
+            "trainer stage checkpoints for later inspection."
         )
 
     def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
