@@ -121,57 +121,54 @@ class TestAgentCustomizations:
 
         assert 'tools:' in text
         assert 'read' in text
-        assert 'search' in text
-        assert 'agent' in text
-        assert 'agents: ["teacher"]' in text
-        assert 'name: "trainer"' in text
-        assert 'Treat this agent as a workflow-compatible compatibility wrapper' in text
-        assert 'Delegate the full optimization loop to the `teacher` agent through the explicit handoff below.' in text
-        assert 'handoffs:' in text
-        assert '- label: "Delegate to Teacher"' in text
-        assert 'agent: "teacher"' in text
-        assert 'prompt: "Take over the prompt-optimization workflow as the canonical teacher agent.' in text
-        assert '## Workspace Contract' not in text
-        assert '## MCP Execution Contract' not in text
-        assert '## Subagent Handoffs' not in text
-
-    def test_teacher_agent_contract_structure(self):
-        agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
-        text = _read(agent_path)
-
-        assert 'name: "teacher"' in text
-        assert 'description: "Use when orchestrating a teacher-led prompt optimization loop' in text
-        assert 'tools:' in text
-        assert 'read' in text
         assert 'edit' in text
         assert 'search' in text
         assert 'execute' in text
         assert 'todo' in text
         assert 'agent' in text
         assert 'agent-skills/*' in text
-        assert 'agents: ["student", "judge", "adversary"]' in text
-        assert 'Treat this agent as the canonical orchestration contract behind the workflow-compatible `trainer` entrypoint.' in text
-        assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
-        assert 'Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.' in text
-        assert 'Call `find_agent_skill` to discover the exact `trainer-*` skill before each stage of the workflow.' in text
-        assert 'Call `load_agent_skill` before first use of a discovered skill' in text
-        assert 'Call `run_agent_skill` to execute the discovered skill runtime' in text
-        assert 'the default loop order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize`.' in text
-        assert 'Use the `trainer-synthesize` skill through MCP to convert source material, user examples, or simulated edge cases into official `evals/evals.json` content plus any supporting `evals/files/` assets, then ensure the explicit `train.jsonl` and `val.jsonl` datasets required by `trainer-optimize` are present.' in text
-        assert 'Keep stable cross-iteration inputs under `inputs/`.' in text
-        assert '`iterations/iteration-N/optimize/`' in text
-        assert '`optimized-prompt.md`' in text
-        assert '`manual-followup-report.json`' in text
+        assert 'agents: ["teacher", "student", "judge", "adversary"]' in text
+        assert 'name: "trainer"' in text
+        assert 'Treat this agent as the canonical orchestration contract for trainer-led optimization work.' in text
+        assert 'Manage all `trainer-*` skill usage yourself' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `trainer-research`, `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
+        assert 'handoffs:' in text
+        assert '- label: "Request Teacher Guidance"' in text
+        assert 'agent: "teacher"' in text
         assert '- label: "Request Student Revision"' in text
         assert '- label: "Score Candidates"' in text
         assert '- label: "Run Adversarial Review"' in text
+        assert '## Workspace Contract' in text
+        assert '## MCP Execution Contract' in text
+        assert '## Teacher Collaboration Contract' in text
+
+    def test_teacher_agent_contract_structure(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
+        text = _read(agent_path)
+
+        assert 'name: "teacher"' in text
+        assert 'description: "Use when reviewing optimization artifacts or user-supplied context' in text
+        assert 'tools:' in text
+        assert 'read' in text
+        assert 'search' in text
+        assert 'edit' not in text
+        assert 'execute' not in text
+        assert 'todo' not in text
+        assert 'agent-skills/*' not in text
+        assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`.' in text
+        assert 'Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing.' in text
+        assert 'Treat any supplied workspace steering as read-only evidence.' in text
+        assert '`optimize-report.json`' in text
+        assert '`manual-followup-report.json`' in text
+        assert '`optimized-prompt.md`' in text
+        assert 'State the strongest improvement recommendation.' in text
 
     def test_student_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "student.agent.md"
         text = _read(agent_path)
 
         assert 'name: "student"' in text
-        assert 'description: "Use when drafting or revising prompt candidates inside a teacher-led optimization loop' in text
+        assert 'description: "Use when drafting or revising prompt candidates inside a trainer-led optimization loop' in text
         assert 'tools:' in text
         assert 'read' in text
         assert 'edit' in text
@@ -182,6 +179,7 @@ class TestAgentCustomizations:
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
         assert 'Do not take over judging, adversarial review, or trainer-loop orchestration.' in text
+        assert 'You are a specialist in trainer-guided candidate revision.' in text
         assert 'Implement the smallest defensible candidate revision' in text
 
     def test_adversary_agent_contract_structure(self):
@@ -287,8 +285,8 @@ class TestAgentCustomizations:
         ):
             assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
 
-    def test_teacher_agent_declares_mcp_tool_sequence_and_loop_order(self):
-        agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
+    def test_trainer_agent_declares_mcp_tool_sequence_and_loop_order(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
         text = _read(agent_path)
 
         find_idx = text.index('Call `find_agent_skill`')
@@ -298,26 +296,15 @@ class TestAgentCustomizations:
 
         assert find_idx < load_idx < run_idx < research_idx
 
-    def test_trainer_agent_declares_frontmatter_handoff_for_teacher(self):
+    def test_trainer_agent_declares_frontmatter_handoffs_for_teacher_student_judge_and_adversary(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         frontmatter_end = text.index('---', 4)
         frontmatter = text[:frontmatter_end]
 
         handoffs_idx = frontmatter.index('handoffs:')
-        teacher_idx = frontmatter.index('- label: "Delegate to Teacher"')
+        teacher_idx = frontmatter.index('- label: "Request Teacher Guidance"')
         teacher_agent_idx = frontmatter.index('agent: "teacher"', teacher_idx)
-
-        assert handoffs_idx < teacher_idx < teacher_agent_idx
-        assert '## Subagent Handoffs' not in text
-
-    def test_teacher_agent_declares_frontmatter_handoffs_for_student_judge_and_adversary(self):
-        text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
-
-        frontmatter_end = text.index('---', 4)
-        frontmatter = text[:frontmatter_end]
-
-        handoffs_idx = frontmatter.index('handoffs:')
         student_idx = frontmatter.index('- label: "Request Student Revision"')
         student_agent_idx = frontmatter.index('agent: "student"', student_idx)
         judge_idx = frontmatter.index('- label: "Score Candidates"')
@@ -325,11 +312,30 @@ class TestAgentCustomizations:
         adversary_idx = frontmatter.index('- label: "Run Adversarial Review"')
         adversary_agent_idx = frontmatter.index('agent: "adversary"', adversary_idx)
 
-        assert handoffs_idx < student_idx < student_agent_idx < judge_idx < judge_agent_idx < adversary_idx < adversary_agent_idx
+        assert (
+            handoffs_idx
+            < teacher_idx
+            < teacher_agent_idx
+            < student_idx
+            < student_agent_idx
+            < judge_idx
+            < judge_agent_idx
+            < adversary_idx
+            < adversary_agent_idx
+        )
         assert '## Subagent Handoffs' not in text
 
-    def test_teacher_agent_optimize_contract_matches_single_shot_runtime(self):
-        agent_text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
+    def test_teacher_agent_has_no_frontmatter_handoffs(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
+
+        frontmatter_end = text.index('---', 4)
+        frontmatter = text[:frontmatter_end]
+
+        assert "handoffs:" not in frontmatter
+        assert "agents:" not in frontmatter
+
+    def test_trainer_agent_optimize_contract_matches_single_shot_runtime(self):
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
         optimize_text = _read(REPO_ROOT / "skills" / "trainer-optimize" / "SKILL.md")
 
         assert 'performs leader election or baseline comparison internally' in agent_text
@@ -339,25 +345,26 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "workflows" / "shared" / "trainer-loop-contract.md")
 
         assert "## Judge Steering Contract" in text
-        assert "Keep Judge-owned agent files, skill contracts, scripts, templates, and local references immutable during trainer runs." in text
-        assert "Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
+        assert "## Collaboration Contract" in text
+        assert "The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work." in text
+        assert "The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next." in text
+        assert "Keep Judge-owned agent files, skill contracts, scripts, templates, and local references (including any `references/` trees) immutable during trainer runs." in text
+        assert "do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`." in text.lower()
         assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
         assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
         assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
         assert "Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime." in text
 
-    def test_teacher_agent_keeps_judge_assets_immutable_and_uses_workspace_steering(self):
+    def test_teacher_agent_stays_evidence_only_and_defers_orchestration(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
 
-        assert "Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable." in text
-        assert "Do not write teacher output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
-        assert "Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
-        assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging." in text
-        assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target." in text
-        assert "Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state." in text
+        assert "The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`." in text
+        assert "Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing." in text
+        assert "Treat any supplied workspace steering as read-only evidence." in text
+        assert "DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself." in text
 
-    def test_teacher_agent_missing_data_flow_runs_research_before_optimize(self):
-        text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
+    def test_trainer_agent_missing_data_flow_runs_research_before_optimize(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         research_idx = text.index('run the `trainer-research` skill through MCP')
         synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
@@ -365,8 +372,8 @@ class TestAgentCustomizations:
 
         assert research_idx < synth_idx < optimize_idx
 
-    def test_teacher_agent_selects_llm_judge_for_reference_criteria_datasets(self):
-        text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
+    def test_trainer_agent_selects_llm_judge_for_reference_criteria_datasets(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         infer_idx = text.index('Inspect representative dataset rows before optimization and choose `judge_mode` from the scoring shape.')
         llm_idx = text.index('Rows that use `reference` and `criteria`, or otherwise declare `scoring: "llm_judge"`, must run with `judge_mode=llm_judge` rather than the deterministic default.')
@@ -375,8 +382,8 @@ class TestAgentCustomizations:
         assert llm_idx < optimize_idx
         assert infer_idx < optimize_idx
 
-    def test_teacher_agent_selects_custom_for_expected_json_and_custom_scoring_rows(self):
-        text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
+    def test_trainer_agent_selects_custom_for_expected_json_and_custom_scoring_rows(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         custom_idx = text.index('Rows that use `expected_json`, or row-level scoring such as `normalized_match`, `json_schema`, or `custom_python`, must run with `judge_mode=custom`.')
         deterministic_idx = text.index('Keep `judge_mode=deterministic` only for rows that are genuinely exact-match `expected` tasks with no dataset shape that requires a richer scorer.')
