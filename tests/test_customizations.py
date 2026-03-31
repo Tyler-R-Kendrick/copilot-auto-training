@@ -1174,9 +1174,7 @@ class TestTrainPromptWorkflow:
         config = self._source_create_pull_request_config()
         assert "allowed-files" not in config, (
             "train-prompt.md should not define allowed-files for create-pull-request; "
-            f"got {config['allowed-files']!r}"
-            if "allowed-files" in config
-            else ""
+            f"got {config.get('allowed-files')!r}"
         )
 
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
