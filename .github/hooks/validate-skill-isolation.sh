@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-python_bin="/workspaces/copilot-apo/.venv/bin/python"
+python_bin="$repo_root/.venv/bin/python"
 scan_all=0
 if [[ "${1:-}" == "--all" ]]; then
   scan_all=1
