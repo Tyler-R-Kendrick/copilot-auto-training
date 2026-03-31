@@ -1,75 +1,132 @@
-# copilot-training
+# copilot-auto-training
 
-Reference implementation and reusable workflow for optimizing prompt-like markdown files with Agent Lightning, official `evals/evals.json` manifests, and an operator-facing trainer toolchain.
+Reference implementation and reusable workflow for optimizing prompt-like markdown files, Agent Skills, and agent instruction files with Agent Lightning, official `evals/evals.json` manifests, and a multi-agent training loop.
 
-## Best Use
+## Table of Contents
+
+- [Why use this repo](#why-use-this-repo)
+- [What this repo provides](#what-this-repo-provides)
+  - [Agents](#agents)
+  - [Skills](#skills)
+  - [Optimization loop](#optimization-loop)
+- [Ways to use it](#ways-to-use-it)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Documentation](#documentation)
+- [Development](#development)
+- [License](#license)
+
+## Why use this repo
 
 Use this project when you need to:
 
-- optimize your prompts
-- optimize your agent-skills
-- optimize your agent instuctions (AGENTS.md, copilot-instructions.md. CLAUDE.md, etc)
-- enable automatic optimization in a loop or on a schedule.
+- optimize prompts and prompt-like markdown files
+- optimize Agent Skills contracts and supporting assets
+- optimize agent instruction files such as `AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or `*.agent.md`
+- run an automatic optimization loop locally, on a schedule, or through a reusable GitHub Agentic Workflow
 
-## What The Repo Provides
+## What this repo provides
 
 ### Agents
 
-The repo uses multiple agents that can be invoked as custom agents or subagents for the goal of running self-improvement loops on prompts. These agents adhere to the Copilot Custom Agents standard.
+The repository ships a coordinated set of custom agents for prompt and skill optimization workflows.
 
-#### Trainer Agent
-
-The trainer agent coordinates state-of-the-art self-improvement loops with the other agents to produce optimized prompts.
-
-#### Judge Agent
-
-The judge implements the current state-of-the-art techniques to judge, grade, and score responses using dynamic metrics and rubrics.
-The one exception is that the judge explicitly considers token usage as a metric for optimization, making sure to minimize tokens whilst not degrading performance.
-
-#### Conservator Agent
-
-The conservator inspects the training history and repo documentation to ensure we don't introduce regressions or repeat previous failures
-
-#### Engineer Agent
-
-The engineer applies state-of-the-art practices from prompt engineering and context engineering to guide and steer prompt optimization.
+| Agent | Role |
+| --- | --- |
+| `trainer` | Compatibility entrypoint for repository automation and workflow-driven optimization runs. |
+| `teacher` | Canonical orchestrator for the optimization loop and stage-to-stage handoffs. |
+| `student` | Drafts and revises candidate prompt or skill variants inside teacher-led loops. |
+| `judge` | Scores outputs, candidates, and traces with rubric-driven evaluation. |
+| `conservator` | Reviews changes against training history and repository context to avoid regressions. |
+| `adversary` | Stress-tests prompts, datasets, and evaluators for failure modes before finalization. |
+| `engineer` | Applies prompt-engineering, context-engineering, and Trace-oriented implementation guidance. |
 
 ### Skills
 
-The repo exposes multiple skills to enhance the capabilities of each of the agents. For each agent, there are multiple skills implemented as agent-skills to support them.
+The repo exposes reusable Agent Skills for workflow authoring, prompt engineering, judging, and trainer-loop execution.
 
-#### Trainer Skills
-- `trainer-optimize`: Runs Agent-Lightning optimization with APO or VERL
-- `trainer-election`: Creates multiple candidates with leader election.
-- `trainer-research`: Researches sources to use training data, test data, rubric generation, and data synthesis. 
-- `trainer-synthesize`: Generates new data from existing data.
+#### Workflow Authoring
 
-#### Judge Skills
-- `judge-rubric`: Creates a rubric for given dimensions to optimize against.
-- `judge-trajectory`: Evaluates the trajectory and provides steering recommendations.
-- `judge-outcome`: Evaluates the outcome and provides steering recommendations.
+| Skill | Purpose |
+| --- | --- |
+| [`create-workflow`](skills/create-workflow/README.md) | Create or update GitHub Agentic Workflows with `gh aw`, frontmatter, MCP setup, compilation, and validation guidance. |
 
 #### Engineer Skills
-- `engineer-prompt`: Applies prompt-engineering best practices to the prompt as suggestions.
+
+| Skill | Purpose |
+| --- | --- |
+| [`engineer-prompt`](skills/engineer-prompt/README.md) | Improve prompts and context plans with the smallest effective prompt-engineering technique. |
+| [`engineer-code`](skills/engineer-code/README.md) | Apply Microsoft Trace to train Python prompts, helpers, and agent components. |
+
+#### Judge Skills
+
+| Skill | Purpose |
+| --- | --- |
+| [`judge-rubric`](skills/judge-rubric/README.md) | Build formal rubrics before scoring candidates or artifacts. |
+| [`judge-outcome`](skills/judge-outcome/README.md) | Compare final outputs when end-state quality is the primary evidence. |
+| [`judge-trajectory`](skills/judge-trajectory/README.md) | Evaluate traces, tool usage, and side effects when process quality matters. |
+
+#### Trainer Skills
+
+| Skill | Purpose |
+| --- | --- |
+| [`trainer-research`](skills/trainer-research/README.md) | Research grounded source material, datasets, and benchmarks before synthesis. |
+| [`trainer-synthesize`](skills/trainer-synthesize/README.md) | Build official eval manifests plus explicit `train.jsonl` and `val.jsonl` datasets. |
+| [`trainer-optimize`](skills/trainer-optimize/README.md) | Run single-shot Agent Lightning optimization against explicit datasets. |
+| [`trainer-election`](skills/trainer-election/README.md) | Elect the strongest candidate from existing scored workspace artifacts. |
 
 ### GitHub Agentic Workflows
 
-We expose a single `train-prompt` agentic workflow to run these capabilities automatically.
-The workflow searches for and triages prompts that should be optimized against a repo.
+The repository publishes a reusable `train-prompt` GitHub Agentic Workflow that selects one prompt-like file, runs the trainer loop, and opens a pull request only when validation passes and the diff is meaningful.
 
 ### Plugins
 
-We expose all capabilities in this repo as a single plugin.
+The repository also publishes a single installable Copilot CLI plugin, `copilot-training`, that bundles its skills, agents, hooks, and MCP runtime assets.
 
 ### MCP servers
 
-#### agent-skills
+#### `agent-skills`
 
-In order to make agent-skills available to tool discovery, we created an MCP server that exposes agent-skills to built-in discovery for GitHub Copilot.
+The local MCP server under `tools/agent-skills-mcp` exposes repository skills to tool discovery so built-in agents and workflows can discover and invoke them consistently.
 
-## Ways To Use It
+### Optimization loop
 
-### Using it as a GitHub Copilot Local Agentic Workflow
+The optimization loop initializes a workspace, prepares an engineer review, fills any missing research or dataset gaps, runs optimization, optionally performs election, validates the result, and only then writes back the selected candidate and opens a pull request.
+
+```mermaid
+flowchart LR
+    select["Select one prompt-like file"]:::setup --> workspace["Initialize local .trainer-workspace/<prompt-name>/"]:::setup
+    workspace --> review["Engineer review
+(goal, risks, validation plan)"]:::setup
+    review --> research["Research
+trainer-research"]:::stage
+    research --> synthesize["Synthesize
+train.jsonl, val.jsonl, evals"]:::stage
+    synthesize --> optimize["Optimize
+trainer-optimize"]:::stage
+    optimize --> election{"Multiple candidates?"}:::decision
+    election -->|Yes| elect["Election
+trainer-election"]:::stage
+    election -->|No| validate["Validate
+python -m pytest -q"]:::validation
+    elect --> validate
+    validate -->|Pass + meaningful diff| writeback["Write back selected candidate"]:::success
+    validate -->|Fail or no diff| checkpoint["Keep workspace artifacts
+for resumption and review"]:::warning
+    writeback --> pr["Create pull request or fallback issue"]:::success
+
+    classDef setup fill:#E8F1FF,stroke:#2563EB,stroke-width:1.5px,color:#0F172A;
+    classDef stage fill:#EEFCE8,stroke:#16A34A,stroke-width:1.5px,color:#052E16;
+    classDef decision fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#451A03;
+    classDef validation fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#3B0764;
+    classDef success fill:#DCFCE7,stroke:#15803D,stroke-width:1.5px,color:#14532D;
+    classDef warning fill:#FEE2E2,stroke:#DC2626,stroke-width:1.5px,color:#450A0A;
+```
+
+## Ways to use it
+
+### 1. Use it as a GitHub Copilot local Agentic Workflow
 
 Use the reusable workflow when another repository already stores prompt-like markdown in git and you want scheduled or manual optimization runs that produce reviewable pull requests.
 
@@ -83,7 +140,7 @@ Prerequisites for the target repository:
 Install the workflow with an explicit path:
 
 ```bash
-gh aw add Tyler-R-Kendrick/copilot-apo/.github/workflows/train-prompt.md --name train-prompt
+gh aw add Tyler-R-Kendrick/copilot-auto-training/.github/workflows/train-prompt.md --name train-prompt
 ```
 
 Update it later with:
@@ -101,27 +158,30 @@ The imported workflow will:
 
 The workflow source lives in [`.github/workflows/train-prompt.md`](.github/workflows/train-prompt.md). Frontmatter changes require recompiling it with `gh aw compile train-prompt`.
 
-### Using it as a Repository Template
+### 2. Use it as a repository template or local clone
 
-Fork the repository and use it when creating a repository.
+Fork the repository or create a new repository from it when you want the whole toolchain, examples, workflows, skills, and docs in one place.
 
-### Using it locally
+Create a project from the template with:
 
-Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation. Simply clone it and run locally.
-Tell Copilot to: `run @trainer on #<prompt-name>.`
+```bash
+gh repo create <new-repo> --template Tyler-R-Kendrick/copilot-auto-training
+```
 
-#### Clone the repo as a template
+For local iteration inside this repository, clone it and ask Copilot to run the trainer on a prompt-like file:
 
-You can create a new repo/project from this one as a template by using ```gh repo create --template @Tyler-R-Kendrick/copilot-auto-training```.
+```text
+run @trainer on #<prompt-name>
+```
 
-### 2. Using it as a GitHub Copilot Plugin
+### 3. Use it as a GitHub Copilot plugin
 
 Use the plugin marketplace when you want these skills available inside Copilot CLI without copying files by hand.
 
 Register the marketplace:
 
 ```bash
-copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
+copilot plugin marketplace add Tyler-R-Kendrick/copilot-auto-training
 ```
 
 Install the published plugin:
@@ -133,22 +193,20 @@ copilot plugin install copilot-training@copilot-training
 If you prefer a direct repository import instead of marketplace registration, install from the subdirectory path:
 
 ```bash
-copilot plugin install Tyler-R-Kendrick/copilot-apo:plugins/copilot-training
+copilot plugin install Tyler-R-Kendrick/copilot-auto-training:plugins/copilot-training
 ```
 
-The installable plugin bundles live under `plugins/`, and the marketplace manifest lives at `.github/plugin/marketplace.json`.
-For the full import flow, see [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md).
+The installable plugin bundles live under `plugins/`, and the marketplace manifest lives at `.github/plugin/marketplace.json`. For the full import flow, see [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md).
 
-### Using it as a GitHub Copilot Cross-Repo Agentic Workflow
+### 4. Use it as a cross-repo Agentic Workflow
 
-Use it locally as either a repo template or a locally cloned copy.
-Then, follow the documention [here](https://github.github.com/gh-aw/reference/cross-repository/) to point it to the repos you want to optimize.
+Use it locally as either a repo template or a locally cloned copy, then follow the GitHub Agentic Workflows cross-repository guidance to point it at the repositories you want to optimize.
 
 ## Requirements
 
 - Python 3.11+
-- Dependencies from [requirements.txt](requirements.txt)
-- Model credentials via `OPENAI_API_KEY` or the GitHub Models variables documented in [docs/getting-started.md](docs/getting-started.md)
+- dependencies from [requirements.txt](requirements.txt)
+- model credentials via `OPENAI_API_KEY` or the GitHub Models variables documented in [docs/getting-started.md](docs/getting-started.md)
 
 ## Installation
 
@@ -158,24 +216,20 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Inside the devcontainer, `.devcontainer/post-start.sh` now repairs or recreates `.venv` with Python 3.12 and installs `requirements.txt` automatically when the environment is missing, stale, or broken. The Copilot coding-agent bootstrap workflow at `.github/workflows/copilot-setup-steps.yml` reuses that same script so the hosted agent gets the repository's shared setup, plus `gh aw`.
+Inside the devcontainer, `.devcontainer/post-start.sh` repairs or recreates `.venv` with Python 3.12 and installs `requirements.txt` automatically when the environment is missing, stale, or broken. The Copilot coding-agent bootstrap workflow at `.github/workflows/copilot-setup-steps.yml` reuses that same script so the hosted agent gets the repository's shared setup plus `gh aw`.
 
-## Quick Start
+## Quick start
 
 Run the smallest example in this repository:
 
 ```bash
-run @trainer on #:examples/first-run/prompts/classify_support.md \
-  --debug-only
+run @trainer on #:examples/first-run/prompts/classify_support.md   --debug-only
 ```
 
 Run a small optimization pass:
 
 ```bash
-run @trainer on #:examples/first-run/prompts/classify_support.md \
-  --iterations 2 \
-  --beam-width 2 \
-  --branch-factor 2
+run @trainer on #:examples/first-run/prompts/classify_support.md   --iterations 2   --beam-width 2   --branch-factor 2
 ```
 
 For the full setup, configuration, and artifact walkthrough, start with [docs/getting-started.md](docs/getting-started.md).
@@ -187,7 +241,7 @@ For the full setup, configuration, and artifact walkthrough, start with [docs/ge
 - [docs/dashboard.md](docs/dashboard.md): how to open and use the Agent Lightning dashboard
 - [docs/troubleshooting.md](docs/troubleshooting.md): common setup, dataset, runtime, and dashboard issues
 - [examples/first-run/README.md](examples/first-run/README.md): smallest runnable example in the repo
-- [skills/trainer-optimize/SKILL.md](skills/trainer-optimize/SKILL.md): skill contract and operator instructions
+- [skills/trainer-optimize/README.md](skills/trainer-optimize/README.md): overview of the prompt optimization skill
 - [skills/trainer-optimize/references/dataset-format.md](skills/trainer-optimize/references/dataset-format.md): dataset schema and scoring guidance
 
 ## Development
@@ -209,7 +263,7 @@ Skill layout:
 - The launcher at [`.github/hooks/ensure-skill-link-watcher.sh`](.github/hooks/ensure-skill-link-watcher.sh) performs an immediate sync and starts a background watcher so future additions to `~/skills` and `~/.agents/skills` are linked automatically during the session.
 - The write-time hook in [`.github/hooks/prompt-workflow-reminder.json`](.github/hooks/prompt-workflow-reminder.json) starts that launcher automatically after file edits.
 
-The repository currently ships official eval manifests for [skills/trainer-optimize/SKILL.md](skills/trainer-optimize/SKILL.md) and a smaller onboarding example under [examples/first-run](examples/first-run/README.md).
+The repository currently ships official eval manifests for the trainer and engineering skills plus a smaller onboarding example under [examples/first-run](examples/first-run/README.md).
 
 ## License
 
