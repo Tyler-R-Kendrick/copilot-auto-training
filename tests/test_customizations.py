@@ -1198,6 +1198,14 @@ class TestTrainPromptWorkflow:
         assert "add-reviewer" not in text, (
             "train-prompt.md should not instruct the agent to use add-reviewer."
         )
+        reviewer_phrases = [
+            "request copilot as a reviewer",
+            "request a reviewer using",
+            "use the `add-reviewer` safe output",
+        ]
+        assert not any(phrase in text.lower() for phrase in reviewer_phrases), (
+            "train-prompt.md should not instruct automatic reviewer behavior in natural language."
+        )
 
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()

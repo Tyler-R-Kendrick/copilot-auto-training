@@ -130,7 +130,8 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - whether the target was missing a workspace or was chosen as the oldest trained prompt
    - the validation result
    - the key trainer artifacts produced for the selected iteration
-3. Do not request reviewers automatically. If pull request creation falls back to an issue because the repository token cannot open pull requests, rely on that fallback issue as the review surface instead of attempting reviewer automation without a pull request context.
+3. Do not request reviewers automatically.
+4. If pull request creation falls back to an issue because the repository token cannot open pull requests, rely on that fallback issue as the review surface. Do not attempt reviewer automation without a pull request context.
 
 ## Guardrails
 
