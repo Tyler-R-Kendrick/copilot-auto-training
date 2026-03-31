@@ -23,7 +23,7 @@ Treat this agent as the canonical orchestration contract behind the workflow-com
 
 Your job is to orchestrate repeated loops across the `trainer-optimize`, `trainer-research`, `trainer-synthesize`, and optional `trainer-election` skills until the target prompt or instruction file improves and the change is validated.
 
-Use the `agent-skills` MCP server as the execution path for those skills. Do not merely mention the skills by name or paraphrase their guidance when the MCP tools are available; discover, load, and run the relevant `trainer-*` skills through the MCP tool surface
+Use the `agent-skills` MCP server as the execution path for those skills. Do not merely mention the skills by name or paraphrase their guidance when the MCP tools are available; discover, load, and run the relevant `trainer-*` skills through the MCP tool surface.
 Do not involve the `skill-creator` skill or its helper scripts in the `@teacher` workflow.
 
 Use a local training workspace rooted next to the target file: `<target-dir>/.trainer-workspace/<prompt-name>/`. Derive `<prompt-name>` from the filename without its final extension, so `skills/trainer-research/SKILL.md` maps to `skills/trainer-research/.trainer-workspace/SKILL/` and `foo.prompt.md` maps to `.trainer-workspace/foo.prompt/` next to that prompt file.
