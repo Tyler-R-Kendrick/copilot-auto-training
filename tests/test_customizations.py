@@ -145,16 +145,18 @@ class TestAgentCustomizations:
     def test_teacher_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
         text = _read(agent_path)
+        frontmatter_end = text.index('---', 4)
+        frontmatter = text[:frontmatter_end]
 
         assert 'name: "teacher"' in text
         assert 'description: "Use when reviewing optimization artifacts or user-supplied context' in text
-        assert 'tools:' in text
-        assert 'read' in text
-        assert 'search' in text
-        assert 'edit' not in text
-        assert 'execute' not in text
-        assert 'todo' not in text
-        assert 'agent-skills/*' not in text
+        assert 'tools:' in frontmatter
+        assert 'read' in frontmatter
+        assert 'search' in frontmatter
+        assert 'edit' not in frontmatter
+        assert 'execute' not in frontmatter
+        assert 'todo' not in frontmatter
+        assert 'agent-skills/*' not in frontmatter
         assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`.' in text
         assert 'Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing.' in text
         assert 'Treat any supplied workspace steering as read-only evidence.' in text
