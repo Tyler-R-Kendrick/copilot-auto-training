@@ -186,16 +186,25 @@ class TestAgentCustomizations:
         assert 'agent-skills/*' in text
         assert 'Use when writing, benchmarking, or improving LLM/ML prompt and context systems' in text
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
         assert 'Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.' in text
         assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
         assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in text
+        assert 'Call `find_agent_skill` to discover the exact `engineer-code` skill before giving Microsoft Trace or `trace-opt` code-optimization guidance.' in text
+        assert 'Call `load_agent_skill` before first use so the loaded `engineer-code` contract and bundled references guide the task.' in text
+        assert 'Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`' in text
         assert 'DO NOT claim a performance or quality improvement without running the available benchmark, eval, test, or deterministic check.' in text
+        assert 'Microsoft Trace and `trace-opt` code optimization for Python behavior' in text
 
-        find_idx = text.index('Call `find_agent_skill`')
-        load_idx = text.index('Call `load_agent_skill`')
-        run_idx = text.index('Call `run_agent_skill`')
+        prompt_find_idx = text.index('Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.')
+        prompt_load_idx = text.index('Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.')
+        prompt_run_idx = text.index('Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`')
+        code_find_idx = text.index('Call `find_agent_skill` to discover the exact `engineer-code` skill before giving Microsoft Trace or `trace-opt` code-optimization guidance.')
+        code_load_idx = text.index('Call `load_agent_skill` before first use so the loaded `engineer-code` contract and bundled references guide the task.')
+        code_run_idx = text.index('Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`')
 
-        assert find_idx < load_idx < run_idx
+        assert prompt_find_idx < prompt_load_idx < prompt_run_idx
+        assert code_find_idx < code_load_idx < code_run_idx
 
     def test_engineer_agent_contract_matches_discoverable_engineer_prompt_skill(self, monkeypatch):
         agent_skills_module = _load_agent_skills_module()
@@ -205,7 +214,7 @@ class TestAgentCustomizations:
         skill = agent_skills_module._find_skill_by_name("engineer-prompt")
         payload = agent_skills_module.load_agent_skill("engineer-prompt")
 
-        assert skill.dir == (REPO_ROOT / "skills" / "engineer-prompt").resolve().as_posix()
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-prompt").resolve()
         assert "Name: engineer-prompt" in payload
         assert "The user wants to improve a prompt." in payload
         assert "Reserved for deterministic helpers if the engineer-prompt skill later needs" in payload
@@ -213,6 +222,24 @@ class TestAgentCustomizations:
 
         with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
             agent_skills_module.run_agent_skill("engineer-prompt")
+
+    def test_engineer_agent_contract_matches_discoverable_engineer_code_skill(self, monkeypatch):
+        agent_skills_module = _load_agent_skills_module()
+        monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
+
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "engineer.agent.md")
+        skill = agent_skills_module._find_skill_by_name("engineer-code")
+        payload = agent_skills_module.load_agent_skill("engineer-code")
+
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-code").resolve()
+        assert "Name: engineer-code" in payload
+        assert "Microsoft Trace" in payload
+        assert "trace-opt" in payload
+        assert "Reserved for deterministic helpers if the engineer-code skill later needs" in payload
+        assert 'Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`' in agent_text
+
+        with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
+            agent_skills_module.run_agent_skill("engineer-code")
 
     def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
         mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-election"
@@ -525,15 +552,18 @@ class TestHookCustomization:
 
         post_tool_use = hook["hooks"]["PostToolUse"]
         assert post_tool_use
+        assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
         assert any("validate-prompt-optimization.sh" in entry["command"] for entry in post_tool_use)
+        assert any(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
 
     def test_prompt_validation_script_exists(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "validate-prompt-optimization.sh"
         text = _read(script_path)
 
         assert text.startswith("#!/usr/bin/env bash")
+        assert '.venv/bin/python' in text
         assert "/evals/" in text
-        assert "python -m pytest -q" in text
+        assert '"$python_bin" -m pytest -q tests/test_customizations.py' in text
 
     def test_skill_isolation_hook_exists(self):
         hook_path = REPO_ROOT / ".github" / "hooks" / "skill-isolation-validation.json"
@@ -542,9 +572,13 @@ class TestHookCustomization:
         stop_hooks = hook["hooks"]["Stop"]
         post_tool_use = hook["hooks"]["PostToolUse"]
         assert stop_hooks
+        assert all("/workspaces/" not in entry["command"] for entry in stop_hooks)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("validate-skill-isolation.sh --all" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("validate-skill-isolation.sh" in entry["command"] for entry in post_tool_use)
 
     def test_skill_isolation_script_exists(self):
@@ -582,9 +616,13 @@ class TestHookCustomization:
         stop_hooks = hook["hooks"]["Stop"]
         post_tool_use = hook["hooks"]["PostToolUse"]
         assert stop_hooks
+        assert all("/workspaces/" not in entry["command"] for entry in stop_hooks)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("block-incomplete-prompt-workflows.sh" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("prompt-workflow-reminder.sh" in entry["command"] for entry in post_tool_use)
         assert any("ensure-skill-link-watcher.sh" in entry["command"] for entry in post_tool_use)
         assert any("ensure-plugin-link-watcher.sh" in entry["command"] for entry in post_tool_use)

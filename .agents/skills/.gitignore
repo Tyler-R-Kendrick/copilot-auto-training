@@ -3,6 +3,7 @@
 *
 !.gitignore
 !create-workflow
+!engineer-code
 !engineer-prompt
 !judge-outcome
 !judge-rubric

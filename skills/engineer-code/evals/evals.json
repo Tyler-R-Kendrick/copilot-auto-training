@@ -1,0 +1,49 @@
+{
+  "skill_name": "engineer-code",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a Python support-classification helper with a fixed API client, one system prompt string, and a confidence threshold. Unit tests keep failing on edge cases. Show me the smallest Microsoft Trace design and be clear about what should stay plain Python.",
+      "expected_output": "The response should identify the optimization target, keep orchestration and I/O in plain Python, recommend trainable nodes for the mutable values, and show a repeatable feedback loop driven by tests.",
+      "assertions": [
+        "The response uses explicit Optimization target, Trainable surface, Trace pattern, Feedback loop, Implementation sketch, and Risks sections, or close equivalents.",
+        "The response keeps the API client, orchestration, or other stable business logic in plain Python.",
+        "The response recommends trace.node(..., trainable=True) or an equivalent node-based pattern for the system prompt string or threshold.",
+        "The response includes an optimization loop with zero_feedback(), backward(...), and step(), or clearly equivalent Trace loop steps."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Turn a small Python code-repair function into a trainable Microsoft Trace component. I want failing pytest cases and occasional runtime exceptions to become training feedback instead of being thrown away.",
+      "expected_output": "The response should recommend a trainable bundle for the function, use executable checks as the primary feedback source, preserve informative failures through ExecutionError or an equivalent mechanism, and sketch the loop concisely.",
+      "assertions": [
+        "The response recommends @trace.bundle(trainable=True) or an equivalent method-level Trace pattern.",
+        "The response uses tests, assertions, or validators as the primary feedback signal.",
+        "The response mentions preserving informative failures via ExecutionError or equivalent failure feedback handling.",
+        "The response includes a concise implementation sketch rather than only abstract advice."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have a coding assistant class with a trainable system prompt, a repair method, and a critique method. Should this be nodes, bundles, or a model? I want the smallest design that still lets the related parts improve together.",
+      "expected_output": "The response should recommend a small model boundary when several related trainable members belong together, distinguish nodes for values from bundles for methods, and warn against making the whole system trainable at once.",
+      "assertions": [
+        "The response recommends @trace.model or an equivalent grouped-behavior pattern for the class-level design.",
+        "The response distinguishes between nodes for editable values and bundles for trainable methods.",
+        "The response warns about graph size, noisy feedback, over-broad trainable scope, or weak credit assignment.",
+        "The response keeps the model boundary small instead of proposing whole-program mutation by default."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "My pandas and NumPy ETL job is too slow in production. Should I use Microsoft Trace or trace-opt to make it faster?",
+      "expected_output": "The response should say that Trace is not the primary tool for generic runtime performance tuning, avoid forcing a Trace design, and point the user toward conventional profiling or performance debugging instead.",
+      "assertions": [
+        "The response states that Microsoft Trace is not the main fix for plain runtime performance tuning, or uses clearly equivalent wording.",
+        "The response does not recommend trainable nodes, bundles, or models as the default solution to raw ETL slowness.",
+        "The response identifies a more appropriate primary lever such as profiling, algorithmic changes, or systems optimization.",
+        "If the response mentions Trace at all, it frames it as secondary or conditional rather than the default answer."
+      ]
+    }
+  ]
+}
