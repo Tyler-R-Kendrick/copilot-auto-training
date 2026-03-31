@@ -927,9 +927,10 @@ def test_devcontainer_post_start_syncs_agent_skills_project():
 
 def test_copilot_setup_workflow_reuses_devcontainer_bootstrap():
     workflow_text = (REPO_ROOT / ".github" / "workflows" / "copilot-setup-steps.yml").read_text(encoding="utf-8")
-    workflow = yaml.load(workflow_text, Loader=yaml.BaseLoader)
+    workflow = yaml.safe_load(workflow_text)
+    workflow_on = workflow.get("on", workflow.get(True))
 
-    assert "workflow_dispatch" in workflow["on"]
+    assert "workflow_dispatch" in workflow_on
     job = workflow["jobs"]["copilot-setup-steps"]
     assert job["permissions"]["contents"] == "read"
 
