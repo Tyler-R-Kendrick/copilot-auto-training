@@ -19,7 +19,7 @@ python -m pip install -r requirements.txt
 
 The runtime dependency set includes `poml`, which Agent Lightning APO requires during optimization.
 
-In the devcontainer, the post-start hook automatically recreates `.venv` with Python 3.12 and reinstalls dependencies when the local environment is missing, stale, or missing `pip`.
+In the devcontainer, the post-start hook automatically recreates `.venv` with Python 3.12 and reinstalls dependencies when the local environment is missing, stale, or missing `pip`. The Copilot coding-agent setup workflow at `.github/workflows/copilot-setup-steps.yml` calls the same `.devcontainer/post-start.sh` bootstrap so the hosted agent reuses the repository's devcontainer setup logic, including `gh aw`.
 
 ## Configure Model Access
 

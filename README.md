@@ -154,7 +154,7 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Inside the devcontainer, `.devcontainer/post-start.sh` now repairs or recreates `.venv` with Python 3.12 and installs `requirements.txt` automatically when the environment is missing, stale, or broken.
+Inside the devcontainer, `.devcontainer/post-start.sh` now repairs or recreates `.venv` with Python 3.12 and installs `requirements.txt` automatically when the environment is missing, stale, or broken. The Copilot coding-agent bootstrap workflow at `.github/workflows/copilot-setup-steps.yml` reuses that same script so the hosted agent gets the repository's shared setup, plus `gh aw`.
 
 ## Quick Start
 

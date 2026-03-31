@@ -8,6 +8,7 @@ import sys
 import types
 
 import pytest
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -922,3 +923,17 @@ def test_devcontainer_post_start_syncs_agent_skills_project():
     assert ".devcontainer/post-start.sh" in text
     assert "tools/agent-skills-mcp" in script
     assert "uv sync --directory" in script
+
+
+def test_copilot_setup_workflow_reuses_devcontainer_bootstrap():
+    workflow_text = (REPO_ROOT / ".github" / "workflows" / "copilot-setup-steps.yml").read_text(encoding="utf-8")
+    workflow = yaml.load(workflow_text, Loader=yaml.BaseLoader)
+
+    assert "workflow_dispatch" in workflow["on"]
+    job = workflow["jobs"]["copilot-setup-steps"]
+    assert job["permissions"]["contents"] == "read"
+
+    steps = job["steps"]
+    assert any(step.get("uses") == "actions/checkout@v5" for step in steps)
+    assert any(".devcontainer/post-start.sh" in step.get("run", "") for step in steps)
+    assert any("gh aw --help" in step.get("run", "") for step in steps)
