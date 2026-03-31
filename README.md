@@ -110,6 +110,10 @@ Fork the repository and use it when creating a repository.
 Use the local scripts when you are iterating on a prompt in this repository, or when you want full control over datasets, iterations, and validation. Simply clone it and run locally.
 Tell Copilot to: `run @trainer on #<prompt-name>.`
 
+#### Clone the repo as a template
+
+You can create a new repo/project from this one as a template by using ```gh repo create --template @Tyler-R-Kendrick/copilot-auto-training```.
+
 ### 2. Using it as a GitHub Copilot Plugin
 
 Use the plugin marketplace when you want these skills available inside Copilot CLI without copying files by hand.
