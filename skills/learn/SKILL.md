@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Capture user corrections and reusable lessons from the active conversation, then update the most relevant persistent artifact so the same mistake is less likely to happen again. Make sure to use this whenever the user corrects your workflow, says "remember this", "learn from this", or "don't do this again", asks you to apply a new requirement broadly, or wants today's fix reflected in agent memory, `.agents/MEMORY.md`, instruction files, custom agents, agent skills, `AGENTS.md`, hooks, docs, evals, or tests instead of only in the current answer.
+description: Capture user corrections and reusable lessons from the active conversation, then update the right persistent artifact so the same mistake is less likely to happen again. Use this whenever the user wants a fix reflected in agent memory, `.agents/MEMORY.md`, instruction files, custom agents, skills, `AGENTS.md`, hooks, docs, evals, or tests instead of only in the current answer.
 argument-hint: Describe the correction, where it was discovered, whether agent memory is available, and which persistent repo surfaces may need to be created, modified, or optimized.
 license: MIT
 compatibility: Works best in repositories that keep durable guidance in instruction files, skill contracts, tests, and docs.

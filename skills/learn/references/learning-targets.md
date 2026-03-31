@@ -20,7 +20,7 @@ Use this note when a user correction could plausibly belong in more than one rep
 
 Use for:
 - durable conventions
-- validated commands
+- commands that have already been rerun successfully in this repository
 - stable repository facts
 - cross-task lessons that should be recalled without re-reading many files
 

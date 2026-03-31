@@ -217,7 +217,7 @@ class TestOfficialEvalFixtures:
         assert all("expected_output" in case for case in payload["evals"])
         assert all(case.get("assertions") for case in payload["evals"])
 
-        manifest_text = json.dumps(payload).lower()
+        manifest_text = json.dumps(payload).lower()  # Lowercased for case-insensitive keyword checks.
         assert "pass-partial-fail" in manifest_text or "pass, partial, and fail" in manifest_text
         assert "tie-break" in manifest_text
         assert "confidence" in manifest_text
