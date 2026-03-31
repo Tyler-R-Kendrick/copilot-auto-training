@@ -2,24 +2,24 @@
   "hooks": {
     "Stop": [
       {
-        "command": "bash /workspaces/copilot-apo/.github/hooks/block-incomplete-prompt-workflows.sh",
+        "command": "bash .github/hooks/block-incomplete-prompt-workflows.sh",
         "timeout": 15
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
-        "command": "bash /workspaces/copilot-apo/.github/hooks/prompt-workflow-reminder.sh",
+        "command": "bash .github/hooks/prompt-workflow-reminder.sh",
         "timeout": 15
       },
       {
         "matcher": "Write|Edit|MultiEdit",
-        "command": "bash /workspaces/copilot-apo/.github/hooks/ensure-skill-link-watcher.sh",
+        "command": "bash .github/hooks/ensure-skill-link-watcher.sh",
         "timeout": 15
       },
       {
         "matcher": "Write|Edit|MultiEdit",
-        "command": "bash /workspaces/copilot-apo/.github/hooks/ensure-plugin-link-watcher.sh",
+        "command": "bash .github/hooks/ensure-plugin-link-watcher.sh",
         "timeout": 15
       }
     ]

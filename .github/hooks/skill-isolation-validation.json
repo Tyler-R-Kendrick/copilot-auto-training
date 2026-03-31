@@ -2,14 +2,14 @@
   "hooks": {
     "Stop": [
       {
-        "command": "bash /workspaces/copilot-apo/.github/hooks/validate-skill-isolation.sh --all",
+        "command": "bash .github/hooks/validate-skill-isolation.sh --all",
         "timeout": 15
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
-        "command": "bash /workspaces/copilot-apo/.github/hooks/validate-skill-isolation.sh",
+        "command": "bash .github/hooks/validate-skill-isolation.sh",
         "timeout": 15
       }
     ]
