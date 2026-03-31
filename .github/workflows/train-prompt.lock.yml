@@ -716,6 +716,115 @@ jobs:
       - name: Append agent step summary
         if: always()
         run: bash ${RUNNER_TEMP}/gh-aw/actions/append_agent_step_summary.sh
+      - name: Collect trainer workspace checkpoints
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          import subprocess
+          from pathlib import Path
+          
+          repo_root = Path("${GITHUB_WORKSPACE}")
+          export_root = Path("/tmp/gh-aw/trainer-workspace")
+          stage_names = ("research", "synthesize", "optimize", "election", "validation")
+          
+          if export_root.exists():
+              shutil.rmtree(export_root)
+          export_root.mkdir(parents=True, exist_ok=True)
+          
+          status_lines = subprocess.run(
+              ["git", "status", "--porcelain", "--untracked-files=all"],
+              cwd=repo_root,
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.splitlines()
+          
+          workspace_roots: set[Path] = set()
+          for line in status_lines:
+              if len(line) < 4:
+                  continue
+              candidate = line[3:]
+              if " -> " in candidate:
+                  candidate = candidate.split(" -> ", 1)[1]
+              parts = Path(candidate).parts
+              if ".trainer-workspace" not in parts:
+                  continue
+              idx = parts.index(".trainer-workspace")
+              if idx + 1 >= len(parts):
+                  continue
+              workspace_roots.add((repo_root / Path(*parts[: idx + 2])).resolve())
+          
+          manifest: dict[str, object] = {"workspaces": []}
+          for workspace_root in sorted(workspace_roots):
+              rel_workspace = workspace_root.relative_to(repo_root)
+              slug = "__".join(rel_workspace.parts)
+              workspace_export = export_root / slug
+              metadata_export = workspace_export / "metadata"
+              metadata_export.mkdir(parents=True, exist_ok=True)
+          
+              status_path = workspace_root / "workflow-status.json"
+              payload = {}
+              if status_path.is_file():
+                  shutil.copy2(status_path, metadata_export / "workflow-status.json")
+                  payload = json.loads(status_path.read_text(encoding="utf-8"))
+          
+              for static_path in (
+                  workspace_root / "decision.md",
+                  workspace_root / "engineer-prompt" / "review.md",
+              ):
+                  if static_path.is_file():
+                      rel_static = static_path.relative_to(workspace_root)
+                      dest = metadata_export / rel_static
+                      dest.parent.mkdir(parents=True, exist_ok=True)
+                      shutil.copy2(static_path, dest)
+          
+              source_dir = workspace_root / "inputs" / "source"
+              if source_dir.is_dir():
+                  shutil.copytree(source_dir, metadata_export / "inputs" / "source", dirs_exist_ok=True)
+          
+              latest_iteration = payload.get("required_artifacts", {}).get("latest_iteration_dir")
+              latest_iteration_abs = None
+              if isinstance(latest_iteration, str) and latest_iteration:
+                  latest_iteration_abs = (repo_root / latest_iteration).resolve()
+              else:
+                  iterations_root = workspace_root / "iterations"
+                  if iterations_root.is_dir():
+                      candidates = sorted(
+                          (path for path in iterations_root.iterdir() if path.is_dir()),
+                          key=lambda path: path.name,
+                      )
+                      if candidates:
+                          latest_iteration_abs = candidates[-1]
+          
+              workspace_manifest = {
+                  "workspace_root": str(rel_workspace),
+                  "workflow_state": payload.get("workflow_state"),
+                  "latest_iteration_dir": (
+                      str(latest_iteration_abs.relative_to(repo_root))
+                      if latest_iteration_abs is not None and latest_iteration_abs.exists()
+                      else latest_iteration
+                  ),
+                  "stages": {},
+              }
+          
+              if latest_iteration_abs is not None and latest_iteration_abs.exists():
+                  for stage_name in stage_names:
+                      stage_source = latest_iteration_abs / stage_name
+                      if not stage_source.exists():
+                          continue
+                      stage_dest = workspace_export / stage_name
+                      shutil.copytree(stage_source, stage_dest, dirs_exist_ok=True)
+                      workspace_manifest["stages"][stage_name] = {
+                          "source": str(stage_source.relative_to(repo_root)),
+                          "export": str(stage_dest.relative_to(export_root)),
+                      }
+          
+              manifest["workspaces"].append(workspace_manifest)
+          
+          (export_root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          PY
       - name: Copy Safe Outputs
         if: always()
         env:
@@ -779,6 +888,56 @@ jobs:
           if [ ! -f /tmp/gh-aw/agent_output.json ]; then
             echo '{"items":[]}' > /tmp/gh-aw/agent_output.json
           fi
+      - name: Upload trainer workspace state artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-workspace-state
+          path: |
+            /tmp/gh-aw/trainer-workspace/manifest.json
+            /tmp/gh-aw/trainer-workspace/*/metadata/
+          if-no-files-found: ignore
+      - name: Upload trainer research artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-stage-research
+          path: /tmp/gh-aw/trainer-workspace/*/research/
+          if-no-files-found: ignore
+      - name: Upload trainer synthesize artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-stage-synthesize
+          path: /tmp/gh-aw/trainer-workspace/*/synthesize/
+          if-no-files-found: ignore
+      - name: Upload trainer optimize artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-stage-optimize
+          path: /tmp/gh-aw/trainer-workspace/*/optimize/
+          if-no-files-found: ignore
+      - name: Upload trainer election artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-stage-election
+          path: /tmp/gh-aw/trainer-workspace/*/election/
+          if-no-files-found: ignore
+      - name: Upload trainer validation artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: trainer-stage-validation
+          path: /tmp/gh-aw/trainer-workspace/*/validation/
+          if-no-files-found: ignore
       - name: Upload agent artifacts
         if: always()
         continue-on-error: true
@@ -796,6 +955,7 @@ jobs:
             /tmp/gh-aw/agent_output.json
             /tmp/gh-aw/aw-*.patch
             /tmp/gh-aw/aw-*.bundle
+            /tmp/gh-aw/trainer-workspace/
           if-no-files-found: ignore
       - name: Upload firewall audit logs
         if: always()
@@ -1177,4 +1337,3 @@ jobs:
           name: safe-output-items
           path: /tmp/gh-aw/safe-output-items.jsonl
           if-no-files-found: ignore
-

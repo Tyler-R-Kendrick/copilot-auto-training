@@ -1222,6 +1222,16 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should not instruct automatic reviewer behavior in natural language."
         )
 
+    def test_source_requires_stage_checkpointable_workspace_artifacts(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "workflow can upload GitHub artifact checkpoints even when a later stage fails" in text, (
+            "train-prompt.md should require keeping workflow-status.json and iteration directories "
+            "current so the workflow can checkpoint interrupted training runs."
+        )
+        assert "upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, and validation outputs" in text, (
+            "train-prompt.md guardrails should explicitly preserve stage outputs for GitHub artifact uploads."
+        )
+
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
@@ -1272,6 +1282,40 @@ class TestTrainPromptWorkflow:
         assert "add_reviewer" not in text, (
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
+        )
+
+    def test_lock_uploads_trainer_workspace_checkpoint_artifacts(self):
+        text = self._lock_text()
+        assert "Collect trainer workspace checkpoints" in text, (
+            "train-prompt.lock.yml should collect changed .trainer-workspace checkpoints after the agent run."
+        )
+        expected_artifacts = (
+            "trainer-workspace-state",
+            "trainer-stage-research",
+            "trainer-stage-synthesize",
+            "trainer-stage-optimize",
+            "trainer-stage-election",
+            "trainer-stage-validation",
+        )
+        for artifact_name in expected_artifacts:
+            assert f"name: {artifact_name}" in text, (
+                "train-prompt.lock.yml should upload GitHub artifacts for each trainer stage "
+                f"checkpoint, missing {artifact_name!r}."
+            )
+        for staged_path in (
+            "/tmp/gh-aw/trainer-workspace/*/research/",
+            "/tmp/gh-aw/trainer-workspace/*/synthesize/",
+            "/tmp/gh-aw/trainer-workspace/*/optimize/",
+            "/tmp/gh-aw/trainer-workspace/*/election/",
+            "/tmp/gh-aw/trainer-workspace/*/validation/",
+        ):
+            assert staged_path in text, (
+                "train-prompt.lock.yml should upload the exported trainer workspace stage "
+                f"directory {staged_path!r}."
+            )
+        assert "/tmp/gh-aw/trainer-workspace/" in text, (
+            "train-prompt.lock.yml should retain exported trainer workspace checkpoints inside "
+            "the agent artifact so later jobs can continue from partial stage outputs."
         )
 
     def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
