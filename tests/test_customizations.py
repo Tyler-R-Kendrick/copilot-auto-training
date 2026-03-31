@@ -534,8 +534,9 @@ class TestHookCustomization:
         text = _read(script_path)
 
         assert text.startswith("#!/usr/bin/env bash")
+        assert '.venv/bin/python' in text
         assert "/evals/" in text
-        assert "python -m pytest -q" in text
+        assert '"$python_bin" -m pytest -q tests/test_customizations.py' in text
 
     def test_skill_isolation_hook_exists(self):
         hook_path = REPO_ROOT / ".github" / "hooks" / "skill-isolation-validation.json"

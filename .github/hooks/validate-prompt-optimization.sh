@@ -4,6 +4,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+python_bin="$repo_root/.venv/bin/python"
+
 collect_candidates() {
   if [[ "$#" -gt 0 ]]; then
     printf '%s\n' "$@"
@@ -48,4 +50,4 @@ if ! printf '%s\n' "$inputs" | should_validate; then
   exit 0
 fi
 
-python -m pytest -q tests/test_customizations.py
+"$python_bin" -m pytest -q tests/test_customizations.py
