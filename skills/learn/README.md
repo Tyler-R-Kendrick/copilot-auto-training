@@ -21,6 +21,13 @@ Capture user corrections and reusable lessons from the active conversation, then
 
 Do not use this skill for one-off stylistic preferences, ephemeral debugging notes, or corrections that are too narrow to generalize safely. In those cases, apply the correction locally without hard-coding it into durable repository guidance.
 
+## Persistent artifact selection
+
+- Prefer agent memory for stable cross-task facts when that capability is available.
+- Otherwise use `.agents/MEMORY.md` for durable file-backed memory.
+- Use instruction files for default behavior changes, custom agents for role-specific orchestration, skills for reusable capabilities, `AGENTS.md` for broad repository agent guidance, and hooks for deterministic enforcement or reminders.
+- If a specific task keeps failing because the instructions are faulty or incomplete, create or tighten an agent skill instead of only adding more generic instructions.
+
 ## Repository context
 
 - Return to the [root README](../../README.md) for repository-level installation, workflow setup, and plugin usage.

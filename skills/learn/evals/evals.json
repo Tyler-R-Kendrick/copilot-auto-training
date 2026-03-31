@@ -30,6 +30,26 @@
         "The response updates docs or instructions and adds a regression-oriented eval or test when appropriate.",
         "The response explains why the chosen update targets are the right source of truth for the learning."
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "You keep forgetting a durable repo convention between tasks. If agent memory is available and appropriate, store the lesson there. If not, create or update `.agents/MEMORY.md`. Explain why that memory surface is better than changing a random instruction file for this case.",
+      "expected_output": "The response chooses agent memory when available for stable cross-task facts, falls back to `.agents/MEMORY.md` when file-backed memory is needed, and explains why that memory surface is a better fit than unrelated instructions or docs.",
+      "assertions": [
+        "The response mentions agent memory or `.agents/MEMORY.md` explicitly.",
+        "The response distinguishes durable memory from broader instruction-file edits.",
+        "The response explains when the learning should stay in memory rather than become a new workflow contract."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "A repeated Copilot task keeps failing because the instructions are faulty and incomplete. Use this learning to decide whether to update a file-based instruction, `AGENTS.md`, a custom agent under `.github/agents/`, an agent skill under `skills/`, or a hook under `.github/hooks/`. Make the call explicit and explain why.",
+      "expected_output": "The response explicitly evaluates the persistent artifact choices, prefers creating or tightening an agent skill when a reusable capability is under-specified, and distinguishes when instructions, custom agents, `AGENTS.md`, or hooks are the better surface.",
+      "assertions": [
+        "The response explicitly evaluates more than one persistent artifact family, including `AGENTS.md`, custom agents, skills, or hooks.",
+        "The response states that a repeated task failure caused by faulty or incomplete instructions is a strong reason to create or improve an agent skill.",
+        "The response explains why the chosen surface is easier to validate or enforce than the alternatives."
+      ]
     }
   ]
 }

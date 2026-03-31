@@ -1,7 +1,7 @@
 ---
 name: learn
-description: Capture user corrections and reusable lessons from the active conversation, then update the most relevant instructions, skills, docs, evals, or tests so the same mistake is less likely to happen again. Make sure to use this whenever the user corrects your workflow, says "remember this", "learn from this", or "don't do this again", asks you to apply a new requirement broadly, or wants today's fix reflected in repository guidance instead of only in the current answer.
-argument-hint: Describe the correction, where it was discovered, what future behavior should change, and which repo surfaces may need updates.
+description: Capture user corrections and reusable lessons from the active conversation, then update the most relevant persistent artifact so the same mistake is less likely to happen again. Make sure to use this whenever the user corrects your workflow, says "remember this", "learn from this", or "don't do this again", asks you to apply a new requirement broadly, or wants today's fix reflected in agent memory, `.agents/MEMORY.md`, instruction files, custom agents, agent skills, `AGENTS.md`, hooks, docs, evals, or tests instead of only in the current answer.
+argument-hint: Describe the correction, where it was discovered, whether agent memory is available, and which persistent repo surfaces may need to be created, modified, or optimized.
 license: MIT
 compatibility: Works best in repositories that keep durable guidance in instruction files, skill contracts, tests, and docs.
 metadata:
@@ -61,6 +61,41 @@ Prefer the narrowest source of truth that can prevent the mistake:
 
 Avoid duplicating the same rule across many files unless multiple surfaces truly need it for discoverability or enforcement.
 
+## Persistent artifacts and capabilities
+
+When deciding where the learning should live, use this order of preference:
+
+1. Use agent memory when it is available and the learning is a stable, cross-task fact that should be recalled without editing repository files.
+2. If agent memory is unavailable or the repo needs a durable file-backed record, create or update `.agents/MEMORY.md` with concise, reusable facts rather than one-off task notes.
+3. Update Copilot agent instructions or other file-based instructions when the lesson should change default behavior for a broad class of tasks or files.
+4. Create or update a Copilot Custom Agent in `.github/agents/` when the repo needs a persistent specialist role, handoff contract, or multi-step workflow owner.
+5. Create or update an agent skill under `skills/` when the lesson defines a reusable capability, decision process, or invocation pattern. If a specific task keeps failing because the instructions are faulty or incomplete, prefer creating or tightening an agent skill instead of bloating global instructions.
+6. Update `AGENTS.md` when the lesson should be visible as repository-wide operating guidance for agents and contributors, especially when the rule is broader than one skill but does not need a dedicated custom agent.
+7. Create or update Copilot Hooks under `.github/hooks/` when the learning should be enforced, reminded, or validated deterministically at write time or tool-use time.
+
+## How to choose the right surface
+
+Use these heuristics:
+
+- **Agent memory or `.agents/MEMORY.md`**: stable facts, conventions, commands, or preferences that should survive across tasks but do not require a rich workflow contract.
+- **Copilot agent instructions / file-based instructions**: global or file-pattern-specific guidance that changes how the agent should behave by default while editing certain files or working in the repo.
+- **Copilot Custom Agents**: named specialists with role boundaries, handoffs, or orchestration responsibilities that should be discoverable as agents rather than ad hoc prompt text.
+- **Agent skills**: reusable workflows or capabilities that should trigger on demand. Use this especially when a repeated task is under-specified, keeps failing, or needs a stronger contract than generic instructions.
+- **`AGENTS.md`**: broad repository operating guidance, team conventions, or agent-facing expectations that should remain human-readable and easy to discover from the repo root.
+- **Copilot Hooks**: deterministic checks, reminders, sync steps, or policy enforcement that should run automatically instead of relying on the model to remember.
+
+If more than one surface could work, prefer the one that is both closest to the failure and easiest to validate automatically.
+
+## Create, modify, or optimize
+
+When applying a learning, decide whether the target needs creation, revision, or optimization:
+
+- **Create** a new file or capability when no existing surface owns the behavior and the lesson is likely to recur.
+- **Modify** an existing instruction file, custom agent, skill, `AGENTS.md`, or hook when the repository already has a clear owner for that behavior.
+- **Optimize** an existing skill or custom agent when the right surface already exists but its description, trigger conditions, examples, or workflow steps are too weak to fire reliably.
+
+When a single task is failing because the instructions are faulty or incomplete, do not keep patching the same correction into unrelated prompts. Either tighten the owning instruction file or create an agent skill that makes the capability explicit and reusable.
+
 ## Editing guidance
 
 When you encode a learning:
@@ -70,6 +105,7 @@ When you encode a learning:
 - Preserve existing placeholders, interfaces, and repository conventions.
 - Keep the update proportional to the lesson.
 - Connect the rule to validation when a regression test is practical.
+- Name the chosen persistent artifact explicitly so future readers know why that surface was selected.
 
 If several files are candidates, update the authoritative one first and only add supporting documentation where it reduces future confusion.
 

@@ -342,6 +342,10 @@ class TestOfficialEvalFixtures:
         assert "active conversation" in manifest_text or "conversation context" in manifest_text
         assert "correction" in manifest_text or "learning" in manifest_text
         assert "instructions" in manifest_text or "docs" in manifest_text
+        assert ".agents/memory.md" in manifest_text or "agent memory" in manifest_text
+        assert "agents.md" in manifest_text
+        assert "custom agent" in manifest_text or ".github/agents" in manifest_text
+        assert "hook" in manifest_text or ".github/hooks" in manifest_text
 
     def test_trainer_optimize_training_fixtures_use_local_trainer_workspace_contract(self):
         dataset_dir = SKILLS_DIR / "trainer-optimize" / "datasets"
