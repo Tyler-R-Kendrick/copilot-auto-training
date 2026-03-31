@@ -1197,8 +1197,8 @@ class TestTrainPromptWorkflow:
 
     def test_source_create_pull_request_explicitly_sets_github_token_fallback(self):
         config = self._source_create_pull_request_config()
-        expected = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
-        assert config.get("github-token") == expected, (
+        expected_token_fallback = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        assert config.get("github-token") == expected_token_fallback, (
             "train-prompt.md should explicitly set create-pull-request github-token "
             "to prefer COPILOT_GITHUB_TOKEN before falling back to GITHUB_TOKEN."
         )
