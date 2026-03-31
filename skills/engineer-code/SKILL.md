@@ -1,6 +1,7 @@
 ---
 name: engineer-code
 description: Improve Python implementations with Microsoft Trace by turning prompts, helper functions, or small agent components into trainable code. Use this whenever the user wants to apply Trace or trace-opt, optimize Python behavior from tests or feedback, make a method trainable with nodes, bundles, or models, or decide how to structure a Trace training loop for code-focused work.
+argument-hint: Describe the Python behavior, available feedback signal, candidate trainable boundary, and whether you are choosing between a Trace node, bundle, or model.
 license: MIT
 compatibility: Requires Python 3.11+. Designed for repositories that can install or already use Microsoft Trace via the `trace-opt` package.
 metadata:
@@ -13,6 +14,7 @@ metadata:
 Use this skill to help users apply Microsoft Trace to optimize Python code implementations instead of treating Trace as a generic prompt-tuning tool.
 
 Read `references/microsoft-trace-trainable-methods.md` before giving detailed guidance. It summarizes the core Trace workflow, code patterns, and caveats with citations to the Trace repository, docs, paper, examples, and generated API docs.
+When the task resembles an official Trace example pattern, map to the closest example before inventing a larger custom design.
 
 ## When to use this skill
 
@@ -22,7 +24,14 @@ Read `references/microsoft-trace-trainable-methods.md` before giving detailed gu
 - The user wants to train code from unit-test results, benchmark scores, natural-language critiques, compiler errors, or other non-scalar feedback.
 - The user wants help deciding what should stay plain Python and what should become a Trace parameter.
 
-Do not use this skill for general Python performance tuning that has nothing to do with Trace, or for broad machine learning workflows where a conventional gradient-based training stack is a better fit.
+Do not use this skill as the primary fix for generic Python runtime performance tuning, missing Trace installation, infrastructure or tooling failures, or tasks with no repeatable feedback signal. In those cases, say Trace is a bad fit or only a secondary lever.
+
+## Required inputs
+
+- The Python behavior or component to improve.
+- The candidate trainable surface, or the code boundary under consideration.
+- The feedback signal available today: tests, benchmark scores, compiler or runtime errors, or concise natural-language critiques.
+- Any repo or runtime constraints, including whether Microsoft Trace is installed and what validation can be rerun deterministically.
 
 ## Core workflow
 
@@ -54,6 +63,8 @@ When helping the user, structure the answer like this unless they ask for someth
 4. `Feedback loop`: how the optimization loop should produce and consume feedback
 5. `Implementation sketch`: concise Python code or a code-edit plan
 6. `Risks`: graph size, error handling, hidden dependencies, or over-broad trainable scope
+
+If Trace is not the main fix, say that explicitly before proposing any Trace pattern or implementation sketch.
 
 ## Heuristics for code-focused work
 

@@ -308,6 +308,23 @@ class TestOfficialEvalFixtures:
         assert "runtime failures" in manifest_text or "runtime failure" in manifest_text
         assert "chain-of-thought" in manifest_text
 
+    def test_engineer_code_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "engineer-code" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "engineer-code"
+        assert len(payload["evals"]) >= 4
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "microsoft trace" in manifest_text or "trace-opt" in manifest_text
+        assert "zero_feedback()" in manifest_text
+        assert "@trace.bundle" in manifest_text
+        assert "@trace.model" in manifest_text
+        assert "runtime performance" in manifest_text
+
     def test_trainer_optimize_training_fixtures_use_local_trainer_workspace_contract(self):
         dataset_dir = SKILLS_DIR / "trainer-optimize" / "datasets"
         train_text = (dataset_dir / "train.jsonl").read_text(encoding="utf-8")
