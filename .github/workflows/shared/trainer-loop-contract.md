@@ -38,6 +38,7 @@ Use the repository trainer loop for the selected target without relying on repo-
     - `validation_log`
     - `decision_summary`
 11. On success, set `workflow_state` to `complete`, update `latest_iteration_dir`, point `decision_summary` to the final rollup artifact, and record whichever optimize report exists for the active iteration.
+12. After each trainer stage finishes or fails, leave `workflow-status.json`, `required_artifacts`, and any stage output directories in a checkpointable state so the workflow can upload them to GitHub artifacts for downstream jobs and future resumption.
 
 ## Skill Execution Contract
 
@@ -48,6 +49,7 @@ Use the repository trainer loop for the selected target without relying on repo-
 5. When required support data is missing, the default stage order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize`.
 6. Require at least one `trainer-optimize` pass for the selected target.
 7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
+8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
 
 ## Dataset And Judge Mode Rules
 
