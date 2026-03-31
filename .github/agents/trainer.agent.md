@@ -54,7 +54,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Use `python .github/hooks/trainer-workspace.py` to initialize and update `workflow-status.json` instead of hand-editing that file.
 - Treat the optimize artifact as either `optimize-report.json` for a normal optimizer result or `manual-followup-report.json` when `trainer-optimize` returns `mode=manual_followup` because model access was unavailable. In the latter case, the current `@trainer` agent becomes the inference step by answering the returned `model_prompt` itself.
 - Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable.
-- Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`.
+- When the selected target is not `.github/agents/judge.agent.md`, do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`.
 - When optimizing `.github/agents/judge.agent.md` itself, keep judge-owned immutable subtrees (for example, any `references/` content) read-only but allow per-run artifacts only under `.github/agents/.trainer-workspace/judge.agent/iterations/`.
 - Maintain `workflow-status.json` at the workspace root with explicit states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
 - Keep stable cross-iteration inputs under `inputs/`. At minimum, preserve a source snapshot under `inputs/source/`, and record any reused `evals/evals.json`, `train.jsonl`, and `val.jsonl` paths in `workflow-status.json`.
