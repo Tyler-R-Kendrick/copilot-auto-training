@@ -195,11 +195,15 @@ class TestAgentCustomizations:
         assert 'DO NOT claim a performance or quality improvement without running the available benchmark, eval, test, or deterministic check.' in text
         assert 'Microsoft Trace and `trace-opt` code optimization for Python behavior' in text
 
-        find_idx = text.index('Call `find_agent_skill`')
-        load_idx = text.index('Call `load_agent_skill`')
-        run_idx = text.index('Call `run_agent_skill`')
+        prompt_find_idx = text.index('Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.')
+        prompt_load_idx = text.index('Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.')
+        prompt_run_idx = text.index('Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`')
+        code_find_idx = text.index('Call `find_agent_skill` to discover the exact `engineer-code` skill before giving Microsoft Trace or `trace-opt` code-optimization guidance.')
+        code_load_idx = text.index('Call `load_agent_skill` before first use so the loaded `engineer-code` contract and bundled references guide the task.')
+        code_run_idx = text.index('Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`')
 
-        assert find_idx < load_idx < run_idx
+        assert prompt_find_idx < prompt_load_idx < prompt_run_idx
+        assert code_find_idx < code_load_idx < code_run_idx
 
     def test_engineer_agent_contract_matches_discoverable_engineer_prompt_skill(self, monkeypatch):
         agent_skills_module = _load_agent_skills_module()
