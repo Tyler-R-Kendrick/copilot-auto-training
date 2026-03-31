@@ -170,7 +170,7 @@ class TestAgentCustomizations:
         text = _read(agent_path)
 
         assert 'name: "student"' in text
-        assert 'description: "Use when drafting or revising prompt candidates inside a trainer-led optimization loop' in text
+        assert 'description: "Use when drafting or revising prompt candidates from teacher guidance inside trainer-led optimization loops."' in text
         assert 'tools:' in text
         assert 'read' in text
         assert 'edit' in text

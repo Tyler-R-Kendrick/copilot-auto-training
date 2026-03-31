@@ -1,6 +1,6 @@
 ---
 name: "student"
-description: "Use when drafting or revising prompt candidates inside a trainer-led optimization loop. Works from teacher guidance, can explicitly hand off for more teacher feedback, and may consult the engineer agent as an additional teacher-like reviewer when specialized guidance is needed."
+description: "Use when drafting or revising prompt candidates from teacher guidance inside trainer-led optimization loops."
 tools: [read, edit, search, execute, todo, agent, agent/runSubagent]
 agents: ["teacher", "engineer"]
 handoffs:
