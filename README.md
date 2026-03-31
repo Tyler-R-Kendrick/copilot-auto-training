@@ -95,14 +95,16 @@ The local MCP server under `tools/agent-skills-mcp` exposes repository skills to
 The optimization loop initializes a workspace, prepares an engineer review, fills any missing research or dataset gaps, runs optimization, optionally performs election, validates the result, and only then writes back the selected candidate and opens a pull request.
 
 ```mermaid
-flowchart LR
-    select["Select one prompt-like file"]:::setup --> workspace["Initialize local .trainer-workspace/<prompt-name>/"]:::setup
+flowchart TD
+    select["Select target
+prompt file"]:::setup --> workspace["Initialize local
+.trainer-workspace"]:::setup
     workspace --> review["Engineer review
-(goal, risks, validation plan)"]:::setup
+goals, risks, plan"]:::setup
     review --> research["Research
 trainer-research"]:::stage
     research --> synthesize["Synthesize
-train.jsonl, val.jsonl, evals"]:::stage
+datasets and evals"]:::stage
     synthesize --> optimize["Optimize
 trainer-optimize"]:::stage
     optimize --> election{"Multiple candidates?"}:::decision
@@ -111,10 +113,12 @@ trainer-election"]:::stage
     election -->|No| validate["Validate
 python -m pytest -q"]:::validation
     elect --> validate
-    validate -->|Pass + meaningful diff| writeback["Write back selected candidate"]:::success
-    validate -->|Fail or no diff| checkpoint["Keep workspace artifacts
-for resumption and review"]:::warning
-    writeback --> pr["Create pull request or fallback issue"]:::success
+    validate -->|Pass + diff| writeback["Write back
+selected candidate"]:::success
+    validate -->|Fail or no diff| checkpoint["Keep artifacts
+for review/resume"]:::warning
+    writeback --> pr["Create PR
+or fallback issue"]:::success
 
     classDef setup fill:#E8F1FF,stroke:#2563EB,stroke-width:1.5px,color:#0F172A;
     classDef stage fill:#EEFCE8,stroke:#16A34A,stroke-width:1.5px,color:#052E16;
