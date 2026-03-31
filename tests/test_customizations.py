@@ -186,10 +186,14 @@ class TestAgentCustomizations:
         assert 'agent-skills/*' in text
         assert 'Use when writing, benchmarking, or improving LLM/ML prompt and context systems' in text
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
         assert 'Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.' in text
         assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
         assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in text
+        assert 'Call `find_agent_skill` to discover the exact `engineer-code` skill before giving Microsoft Trace or `trace-opt` code-optimization guidance.' in text
+        assert 'Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`' in text
         assert 'DO NOT claim a performance or quality improvement without running the available benchmark, eval, test, or deterministic check.' in text
+        assert 'Microsoft Trace and `trace-opt` code optimization for Python behavior' in text
 
         find_idx = text.index('Call `find_agent_skill`')
         load_idx = text.index('Call `load_agent_skill`')
@@ -213,6 +217,24 @@ class TestAgentCustomizations:
 
         with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
             agent_skills_module.run_agent_skill("engineer-prompt")
+
+    def test_engineer_agent_contract_matches_discoverable_engineer_code_skill(self, monkeypatch):
+        agent_skills_module = _load_agent_skills_module()
+        monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
+
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "engineer.agent.md")
+        skill = agent_skills_module._find_skill_by_name("engineer-code")
+        payload = agent_skills_module.load_agent_skill("engineer-code")
+
+        assert skill.dir == (REPO_ROOT / "skills" / "engineer-code").resolve().as_posix()
+        assert "Name: engineer-code" in payload
+        assert "Microsoft Trace" in payload
+        assert "trace-opt" in payload
+        assert "Reserved for deterministic helpers if the engineer-code skill later needs" in payload
+        assert 'Call `run_agent_skill` only when the `engineer-code` skill later exposes a runnable helper under `scripts/`' in agent_text
+
+        with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
+            agent_skills_module.run_agent_skill("engineer-code")
 
     def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
         mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-election"
