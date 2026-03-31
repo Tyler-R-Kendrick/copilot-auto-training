@@ -173,7 +173,7 @@ class TestAgentCustomizations:
         assert 'prompt: "Stress the pending prompt, dataset, evaluator, and scoring changes for likely failure modes, contract drift, hidden assumptions, or unsupported workflow behavior before finalization."' in text
         assert '## Subagent Handoffs' not in text
 
-    def test_teacher_agent_exists_and_uses_student_judge_adversary_handoffs(self):
+    def test_teacher_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
         text = _read(agent_path)
 
@@ -194,7 +194,7 @@ class TestAgentCustomizations:
         assert '- label: "Score Candidates"' in text
         assert '- label: "Run Adversarial Review"' in text
 
-    def test_student_agent_exists_and_routes_rewrite_work_through_engineer_skills(self):
+    def test_student_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "student.agent.md"
         text = _read(agent_path)
 
@@ -212,7 +212,7 @@ class TestAgentCustomizations:
         assert 'Do not take over judging, adversarial review, or trainer-loop orchestration.' in text
         assert 'Implement the smallest defensible candidate revision' in text
 
-    def test_adversary_agent_exists_and_stays_review_only(self):
+    def test_adversary_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"
         text = _read(agent_path)
 
