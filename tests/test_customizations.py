@@ -1156,6 +1156,9 @@ class TestTrainPromptWorkflow:
                     pass  # skip lines that match keyword filters but aren't valid JSON
         return configs
 
+    def _lock_text(self) -> str:
+        return _read(self.WORKFLOW_LOCK)
+
     def test_workflow_source_exists(self):
         assert self.WORKFLOW_MD.is_file(), f"train-prompt.md not found: {self.WORKFLOW_MD}"
 
@@ -1215,4 +1218,27 @@ class TestTrainPromptWorkflow:
         assert first_pp == second_pp, (
             "Both safe-outputs config blocks in train-prompt.lock.yml must have "
             f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
+        )
+
+    def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
+        text = self._lock_text()
+        expected_fallback = (
+            "secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN"
+        )
+        assert expected_fallback in text, (
+            "train-prompt.lock.yml write-back steps should prefer COPILOT_GITHUB_TOKEN "
+            "before falling back to GITHUB_TOKEN so the workflow can use the "
+            "documented prerequisite token for create_pull_request and related writes."
+        )
+        assert "token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
+            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN in checkout "
+            "or other write-back token fallbacks."
+        )
+        assert "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
+            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN in safe-output "
+            "or issue-reporting token fallbacks."
+        )
+        assert "GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
+            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN when "
+            "configuring git credentials for create_pull_request."
         )
