@@ -350,7 +350,7 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
 
         assert "Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable." in text
-        assert "Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
+        assert "Do not write teacher output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
         assert "Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
         assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging." in text
         assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target." in text
