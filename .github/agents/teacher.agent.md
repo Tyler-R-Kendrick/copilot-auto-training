@@ -43,12 +43,13 @@ Do not write teacher artifacts under a sibling `*-workspace/` directory or any r
 - `trainer-election`: optionally compare multiple externally generated prompt results when the workflow explicitly needs separate leader selection.
 
 ## Workspace Contract
-- Keep all run artifacts under the local `.trainer-workspace/<prompt-name>/` tree, not in a repo-root sibling workspace.
+- Keep all run artifacts under the local `<target-dir>/.trainer-workspace/<prompt-name>/` tree for the current target file, not in a repo-root sibling workspace.
 - Require `engineer-prompt/review.md` inside that workspace before optimization begins. If it is missing, stop and tell the caller to run `/engineer-prompt` first and save its output there.
 - Use `python .github/hooks/trainer-workspace.py` to initialize and update `workflow-status.json` instead of hand-editing that file.
 - Treat the optimize artifact as either `optimize-report.json` for a normal optimizer result or `manual-followup-report.json` when `trainer-optimize` returns `mode=manual_followup` because model access was unavailable. In the latter case, the current `@teacher` agent becomes the inference step by answering the returned `model_prompt` itself.
 - Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable.
-- Do not write teacher output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`.
+- When the current optimization target is not `.github/agents/judge.agent.md`, do not write teacher output into `.github/agents/judge.agent.md`, any `skills/judge-*/` paths, or `.github/agents/.trainer-workspace/judge.agent/`.
+- When optimizing `.github/agents/judge.agent.md` itself, keep judge-owned immutable subtrees (for example, any `references/` content) read-only but allow per-run artifacts only under `.github/agents/.trainer-workspace/judge.agent/iterations/`.
 - Maintain `workflow-status.json` at the workspace root with explicit states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
 - Keep stable cross-iteration inputs under `inputs/`. At minimum, preserve a source snapshot under `inputs/source/`, and record any reused `evals/evals.json`, `train.jsonl`, and `val.jsonl` paths in `workflow-status.json`.
 - Before editing the target prompt-like file, set `workflow-status.json` to `training`.
