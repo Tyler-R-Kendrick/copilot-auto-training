@@ -143,6 +143,8 @@ Install the workflow with an explicit path:
 gh aw add Tyler-R-Kendrick/copilot-auto-training/.github/workflows/train-prompt.md --name train-prompt
 ```
 
+If you are publishing your own fork, replace `Tyler-R-Kendrick/copilot-auto-training` with your fork's `OWNER/REPO` path in the install commands below.
+
 Update it later with:
 
 ```bash

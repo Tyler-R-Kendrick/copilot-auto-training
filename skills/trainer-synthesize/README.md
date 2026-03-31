@@ -1,6 +1,6 @@
 # Synthesize
 
-Build official `evals/evals.json` cases and explicit APO datasets from grounded or computed source data. Use whenever a prompt or skill needs eval rows, `train.jsonl`, or `val.jsonl`, especially when correct outputs must be derived from raw fields, business rules, or verifier-backed synthetic examples.
+Build official `evals/evals.json` cases and explicit APO (Automatic Prompt Optimization) datasets from grounded or computed source data. Use whenever a prompt or skill needs eval rows, `train.jsonl`, or `val.jsonl`, especially when correct outputs must be derived from raw fields, business rules, or verifier-backed synthetic examples.
 
 ## Canonical files
 
