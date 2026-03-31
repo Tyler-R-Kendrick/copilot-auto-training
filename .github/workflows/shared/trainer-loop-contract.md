@@ -30,7 +30,7 @@ Use the repository trainer loop for the selected target without relying on repo-
 10. Keep `required_artifacts` updated for:
     - `engineer_prompt_review`
     - `source_snapshot`
-    - `latest_iteration_dir` (the repo-relative path to the active `iterations/iteration-N/` directory for the current or most recent run)
+    - `latest_iteration_dir`
     - `train_dataset`
     - `val_dataset`
     - `eval_manifest`

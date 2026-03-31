@@ -1051,8 +1051,8 @@ class TestHookCustomization:
             status_payload = json.loads(status_path.read_text(encoding="utf-8"))
             assert status_payload["workflow_state"] == "pending_engineer_prompt"
             assert status_payload["required_artifacts"]["source_snapshot"].endswith("inputs/source/SKILL.md")
-            assert "iteration steering bundle" in status_payload["artifact_contract"]["iterations"]
-            assert "cross-run rollup steering bundle" in status_payload["artifact_contract"]["decision"]
+            assert "iteration steering bundle" in status_payload["artifact_contract"]["steering"]
+            assert "cross-run rollup steering bundle" in status_payload["artifact_contract"]["steering"]
             assert "Do not write trainer output into Judge-owned files" in status_payload["notes"]
 
             review_path = workspace_root / "engineer-prompt" / "review.md"
