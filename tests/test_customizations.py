@@ -1188,6 +1188,21 @@ class TestTrainPromptWorkflow:
             f"got {config.get('allowed-files')!r}"
         )
 
+    def test_source_create_pull_request_explicitly_allows_protected_prompt_paths(self):
+        config = self._source_create_pull_request_config()
+        assert config.get("protected-files") == "allowed", (
+            "train-prompt.md should set protected-files: allowed so gh aw's default "
+            "protected path prefixes do not block prompt updates under .github/ or .agents/."
+        )
+
+    def test_source_create_pull_request_explicitly_sets_github_token_fallback(self):
+        config = self._source_create_pull_request_config()
+        expected = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        assert config.get("github-token") == expected, (
+            "train-prompt.md should explicitly set create-pull-request github-token "
+            "to prefer COPILOT_GITHUB_TOKEN before falling back to GITHUB_TOKEN."
+        )
+
     def test_source_does_not_request_reviewers(self):
         safe_outputs = self._source_safe_outputs()
         assert "add-reviewer" not in safe_outputs, (
@@ -1217,15 +1232,16 @@ class TestTrainPromptWorkflow:
                 f"got {create_pr.get('allowed_files')!r}"
             )
 
-    def test_lock_config_no_protected_path_prefixes(self):
-        """protected_path_prefixes must stay empty so prompt updates are not blocked."""
+    def test_lock_config_allows_protected_files_policy(self):
+        """Compiler defaults may add protected_path_prefixes, so policy must explicitly allow them."""
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
-            prefixes = config.get("create_pull_request", {}).get("protected_path_prefixes", [])
-            assert prefixes == [], (
-                f"protected_path_prefixes must be empty so any prompt file can be "
-                f"modified. Got: {prefixes}"
+            create_pr = config.get("create_pull_request", {})
+            assert create_pr.get("protected_files_policy") == "allowed", (
+                "train-prompt.lock.yml should compile create_pull_request with "
+                "protected_files_policy=allowed so prompt updates under compiler-default "
+                "protected path prefixes remain reviewable."
             )
 
     def test_lock_configs_are_consistent_with_each_other(self):
@@ -1240,11 +1256,15 @@ class TestTrainPromptWorkflow:
             "Both safe-outputs config blocks in train-prompt.lock.yml must omit "
             f"allowed_files. Got:\n  block 1: {first_allowed}\n  block 2: {second_allowed}"
         )
-        first_pp = configs[0].get("create_pull_request", {}).get("protected_path_prefixes", [])
-        second_pp = configs[1].get("create_pull_request", {}).get("protected_path_prefixes", [])
-        assert first_pp == second_pp, (
+        first_pr = configs[0].get("create_pull_request", {})
+        second_pr = configs[1].get("create_pull_request", {})
+        assert first_pr.get("protected_files_policy") == second_pr.get("protected_files_policy"), (
             "Both safe-outputs config blocks in train-prompt.lock.yml must have "
-            f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
+            "identical protected_files_policy values."
+        )
+        assert first_pr.get("github-token") == second_pr.get("github-token"), (
+            "Both safe-outputs config blocks in train-prompt.lock.yml must have "
+            "identical create_pull_request github-token overrides."
         )
 
     def test_lock_does_not_configure_add_reviewer(self):
@@ -1264,15 +1284,16 @@ class TestTrainPromptWorkflow:
             "before falling back to GITHUB_TOKEN so the workflow can use the "
             "documented prerequisite token for create_pull_request and related writes."
         )
-        assert "token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
-            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN in checkout "
-            "or other write-back token fallbacks."
+        assert "token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+            "train-prompt.lock.yml checkout for create_pull_request should preserve "
+            "the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
-            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN in safe-output "
-            "or issue-reporting token fallbacks."
+        assert "GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+            "train-prompt.lock.yml git credential setup for create_pull_request "
+            "should preserve the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" not in text, (
-            "train-prompt.lock.yml should not bypass COPILOT_GITHUB_TOKEN when "
-            "configuring git credentials for create_pull_request."
+        assert "\"github-token\":\"${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}\"" in text, (
+            "train-prompt.lock.yml create_pull_request safe-output config should preserve "
+            "the COPILOT_GITHUB_TOKEN fallback even if some auxiliary reporting steps use "
+            "the default GH_AW_GITHUB_TOKEN || GITHUB_TOKEN fallback."
         )
