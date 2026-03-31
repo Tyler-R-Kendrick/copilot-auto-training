@@ -93,7 +93,7 @@ def artifact_contract() -> dict[str, str]:
     return {
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
-        "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/. Treat the active iteration as the iteration steering bundle for later judging.",
+        "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/. Treat latest_iteration_dir plus the active iteration's optimize/, election/, and validation/ outputs as the iteration steering bundle for later judging.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md. Treat workspace-root rollups such as decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
     }
 

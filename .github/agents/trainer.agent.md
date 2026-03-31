@@ -61,6 +61,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree.
 - Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging.
 - Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target.
+- Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state.
 - Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals. When comparison is needed, keep those eval outputs under the active `iterations/iteration-N/` directory, alongside the optimizer artifacts they justify.
 
 ## Scope
@@ -86,7 +87,6 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.
 - Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
-- Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state.
 
 ## Operational Instructions
 1. Read evidence in this order: target optimization goal first, current workspace state and prerequisites second, existing datasets, evals, and scoring shape third, supporting trainer-skill contracts and validation artifacts last.
