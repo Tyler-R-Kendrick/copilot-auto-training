@@ -1117,8 +1117,7 @@ class TestHookCustomization:
 
 
 class TestTrainPromptWorkflow:
-    """Validate that the train-prompt workflow safe-outputs configuration allows
-    the trainer to modify files under .github/instructions/ via pull requests."""
+    """Validate the Train Prompt workflow safe-outputs configuration."""
 
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
@@ -1140,7 +1139,7 @@ class TestTrainPromptWorkflow:
             # The config appears in two forms:
             # 1. Bare JSON object on its own line (the config.json heredoc)
             # 2. An escaped JSON string as a YAML env-var value
-            if "create_pull_request" not in stripped or "allowed_files" not in stripped:
+            if "create_pull_request" not in stripped:
                 continue
             if stripped.startswith("GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG:"):
                 # Env-var form: value is a JSON-escaped string (use json.loads for
@@ -1163,61 +1162,35 @@ class TestTrainPromptWorkflow:
     def test_workflow_lock_exists(self):
         assert self.WORKFLOW_LOCK.is_file(), f"train-prompt.lock.yml not found: {self.WORKFLOW_LOCK}"
 
-    def _source_allowed_files(self) -> list[str]:
+    def _source_create_pull_request_config(self) -> dict:
         text = _read(self.WORKFLOW_MD)
         frontmatter = self._parse_frontmatter_yaml(text)
         parsed = yaml.safe_load(frontmatter)
-        allowed_files = parsed["safe-outputs"]["create-pull-request"]["allowed-files"]
-        assert isinstance(allowed_files, list), "Expected allowed-files to be a YAML list"
-        return [str(pattern) for pattern in allowed_files]
+        config = parsed["safe-outputs"]["create-pull-request"]
+        assert isinstance(config, dict), "Expected create-pull-request safe output config to be a YAML mapping"
+        return config
 
-    def _reported_failure_paths(self) -> list[str]:
-        """Exact path shapes from the reported safe_outputs failure."""
-        return [
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/decision.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/engineer-prompt/review.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/inputs/source/evals-dataset.instructions.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/manual-followup-report.json",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/operator-followup.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/optimized-prompt.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/research/research-brief.md",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/train.jsonl",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/datasets/val.jsonl",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/synthesize/evals/evals.json",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/validation/pytest.txt",
-            ".github/instructions/.trainer-workspace/evals-dataset.instructions/workflow-status.json",
-            ".github/instructions/datasets/train.jsonl",
-            ".github/instructions/datasets/val.jsonl",
-            ".github/instructions/evals-dataset.instructions.md",
-            ".github/instructions/evals/evals.json",
-        ]
+    def test_source_create_pull_request_has_no_allowed_files_restriction(self):
+        config = self._source_create_pull_request_config()
+        assert "allowed-files" not in config, (
+            "train-prompt.md should not define allowed-files for create-pull-request; "
+            f"got {config['allowed-files']!r}"
+            if "allowed-files" in config
+            else ""
+        )
 
-    def test_source_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
-        """Regression test for the safe_outputs failure: gh-aw treats allowed-files
-        as strict glob patterns on full paths, so bare '.github/' does not match
-        nested files like '.github/instructions/evals/evals.json'."""
-        allowed = self._source_allowed_files()
-        for path in self._reported_failure_paths():
-            assert _matches_gh_aw_allowed_files(path, allowed), (
-                f"'{path}' is not matched by train-prompt.md allowed-files under gh-aw "
-                f"glob semantics. allowed-files={allowed}"
-            )
-
-    def test_lock_config_allowed_files_cover_reported_failure_paths_under_gh_aw_glob_semantics(self):
+    def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
-            allowed = config.get("create_pull_request", {}).get("allowed_files", [])
-            for path in self._reported_failure_paths():
-                assert _matches_gh_aw_allowed_files(path, allowed), (
-                    f"train-prompt.lock.yml allowed_files must match '{path}' under gh-aw "
-                    f"glob semantics. got: {allowed}"
-                )
+            create_pr = config.get("create_pull_request", {})
+            assert "allowed_files" not in create_pr, (
+                "train-prompt.lock.yml should not define allowed_files for create_pull_request; "
+                f"got {create_pr.get('allowed_files')!r}"
+            )
 
     def test_lock_config_no_protected_path_prefixes(self):
-        """protected_path_prefixes must be empty so the trainer can create pull
-        requests modifying any prompt file — including those under .github/ and
-        .agents/ — without being blocked."""
+        """protected_path_prefixes must stay empty so prompt updates are not blocked."""
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
         for config in configs:
@@ -1233,11 +1206,11 @@ class TestTrainPromptWorkflow:
             f"Expected exactly 2 safe-outputs config blocks in train-prompt.lock.yml, "
             f"found {len(configs)}."
         )
-        first_allowed = configs[0].get("create_pull_request", {}).get("allowed_files", [])
-        second_allowed = configs[1].get("create_pull_request", {}).get("allowed_files", [])
-        assert first_allowed == second_allowed, (
-            "Both safe-outputs config blocks in train-prompt.lock.yml must have "
-            f"identical allowed_files. Got:\n  block 1: {first_allowed}\n  block 2: {second_allowed}"
+        first_allowed = configs[0].get("create_pull_request", {}).get("allowed_files")
+        second_allowed = configs[1].get("create_pull_request", {}).get("allowed_files")
+        assert first_allowed is None and second_allowed is None, (
+            "Both safe-outputs config blocks in train-prompt.lock.yml must omit "
+            f"allowed_files. Got:\n  block 1: {first_allowed}\n  block 2: {second_allowed}"
         )
         first_pp = configs[0].get("create_pull_request", {}).get("protected_path_prefixes", [])
         second_pp = configs[1].get("create_pull_request", {}).get("protected_path_prefixes", [])
@@ -1245,33 +1218,3 @@ class TestTrainPromptWorkflow:
             "Both safe-outputs config blocks in train-prompt.lock.yml must have "
             f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
         )
-
-    def test_allowed_files_cover_prompt_targets_and_related_assets_across_repo(self):
-        """The Train Prompt workflow can target prompt-like files anywhere in the
-        repository, then write local .trainer-workspace artifacts plus adjacent
-        datasets/ and evals/ assets. The allowlist must cover those shapes."""
-        representative_paths = [
-            "AGENTS.md",
-            ".github/agents/trainer.agent.md",
-            ".agents/skills/trainer-optimize/SKILL.md",
-            "skills/trainer-optimize/SKILL.md",
-            "skills/trainer-optimize/.trainer-workspace/SKILL/decision.md",
-            "skills/trainer-optimize/datasets/train.jsonl",
-            "skills/trainer-optimize/evals/evals.json",
-            "examples/first-run/example.prompty",
-            "docs/support.prompt.md",
-        ]
-        source_allowed = self._source_allowed_files()
-        lock_configs = self._lock_safe_outputs_configs()
-        assert lock_configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
-        for path in representative_paths:
-            assert _matches_gh_aw_allowed_files(path, source_allowed), (
-                f"train-prompt.md allowed-files do not cover '{path}'. "
-                f"allowed-files={source_allowed}"
-            )
-            for config in lock_configs:
-                allowed = config.get("create_pull_request", {}).get("allowed_files", [])
-                assert _matches_gh_aw_allowed_files(path, allowed), (
-                    f"train-prompt.lock.yml allowed_files do not cover '{path}'. "
-                    f"allowed-files={allowed}"
-                )
