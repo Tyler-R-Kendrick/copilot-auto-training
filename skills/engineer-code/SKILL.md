@@ -2,7 +2,7 @@
 name: engineer-code
 description: Improve Python implementations with Microsoft Trace by turning prompts, helper functions, or small agent components into trainable code. Use this whenever the user wants to apply Trace or trace-opt, optimize Python behavior from tests or feedback, make a method trainable with nodes, bundles, or models, or decide how to structure a Trace training loop for code-focused work.
 license: MIT
-compatibility: Requires Python 3.11+. Designed for repositories that can install or already use the `trace-opt` package.
+compatibility: Requires Python 3.11+. Designed for repositories that can install or already use Microsoft Trace via the `trace-opt` package.
 metadata:
   author: Tyler Kendrick
   version: "0.1.0"

@@ -545,10 +545,12 @@ class TestHookCustomization:
         post_tool_use = hook["hooks"]["PostToolUse"]
         assert stop_hooks
         assert all("/workspaces/" not in entry["command"] for entry in stop_hooks)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("validate-skill-isolation.sh --all" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
         assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("validate-skill-isolation.sh" in entry["command"] for entry in post_tool_use)
 
     def test_skill_isolation_script_exists(self):
@@ -587,10 +589,12 @@ class TestHookCustomization:
         post_tool_use = hook["hooks"]["PostToolUse"]
         assert stop_hooks
         assert all("/workspaces/" not in entry["command"] for entry in stop_hooks)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("block-incomplete-prompt-workflows.sh" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
         assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
         assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("prompt-workflow-reminder.sh" in entry["command"] for entry in post_tool_use)
         assert any("ensure-skill-link-watcher.sh" in entry["command"] for entry in post_tool_use)
         assert any("ensure-plugin-link-watcher.sh" in entry["command"] for entry in post_tool_use)

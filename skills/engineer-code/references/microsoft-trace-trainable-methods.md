@@ -8,7 +8,7 @@ This reference summarizes the most useful ways to apply Microsoft Trace when the
 - Intro docs: <https://microsoft.github.io/Trace/intro.html>
 - Paper: <https://arxiv.org/html/2406.16218v2>
 - Examples: <https://github.com/microsoft/Trace/tree/main/examples>
-- Generated API docs: <https://github.com/microsoft/Trace/tree/main/generated_docs/opto>
+- Generated API docs index: <https://github.com/microsoft/Trace/tree/main/generated_docs/opto>
 
 ## 1. Start from ordinary Python, then mark only the trainable surface
 
@@ -26,11 +26,11 @@ That design keeps the execution graph legible and improves credit assignment. [I
 
 ### `trace.node(..., trainable=True)` for editable values
 
-The README quickstart and generated docs describe nodes as trainable values in the computation graph. This is the right default for prompts, instructions, templates, thresholds, labels, or other mutable values that should change without turning an entire method into trainable code. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
+The README quickstart and generated docs describe nodes as trainable values in the computation graph. This is the right default for prompts, instructions, templates, thresholds, labels, or other mutable values that should change without turning an entire method into trainable code. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs index](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
 
 ### `@trace.bundle(trainable=True)` for method-level optimization
 
-The README quickstart and generated `bundle` documentation show that bundled functions behave like regular Python callables while still participating in Trace's graph. For code-focused optimization, this is the most useful primitive when the user wants a helper function, planner step, transformation routine, or repair function to become trainable as a unit. The generated docs also call out that trainable bundles can catch execution errors and track external dependencies, which matters when optimizing real code rather than toy examples. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
+The README quickstart and generated `bundle` documentation show that bundled functions behave like regular Python callables while still participating in Trace's graph. For code-focused optimization, this is the most useful primitive when the user wants a helper function, planner step, transformation routine, or repair function to become trainable as a unit. The generated docs also call out that trainable bundles can catch execution errors and track external dependencies, which matters when optimizing real code rather than toy examples. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs index](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
 
 ### `@trace.model` for grouped agent behavior
 
@@ -65,11 +65,11 @@ The README quickstart, intro docs, and greeting example all use the same pattern
 4. call `optimizer.backward(node, feedback)`
 5. call `optimizer.step()`
 
-The generated optimizer docs explain that `zero_feedback()` resets feedback on managed parameters, `backward(...)` propagates feedback through the graph, and `step()` proposes and applies updates to trainable parameters. That is the core loop to preserve whenever you adapt Trace to optimize Python code. [Trace repository](https://github.com/microsoft/Trace) [Intro docs](https://microsoft.github.io/Trace/intro.html) [Generated API docs](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
+The generated optimizer docs explain that `zero_feedback()` resets feedback on managed parameters, `backward(...)` propagates feedback through the graph, and `step()` proposes and applies updates to trainable parameters. That is the core loop to preserve whenever you adapt Trace to optimize Python code. [Trace repository](https://github.com/microsoft/Trace) [Intro docs](https://microsoft.github.io/Trace/intro.html) [Generated API docs index](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
 
 ## 5. Preserve failing executions instead of throwing them away
 
-The greeting example catches `ExecutionError`, pulls out `exception_node`, and still feeds that node back into the optimizer. The generated error docs explain that `ExecutionError` packages tracing-time failures as nodes with structured context. For code optimization, this is important because parse failures, runtime exceptions, and tool-use mistakes are often the most valuable training signal. [Examples](https://github.com/microsoft/Trace/tree/main/examples) [Generated API docs](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
+The greeting example catches `ExecutionError`, pulls out `exception_node`, and still feeds that node back into the optimizer. The generated error docs explain that `ExecutionError` packages tracing-time failures as nodes with structured context. For code optimization, this is important because parse failures, runtime exceptions, and tool-use mistakes are often the most valuable training signal. [Examples](https://github.com/microsoft/Trace/tree/main/examples) [Generated API docs index](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
 
 Practical rule:
 
@@ -88,7 +88,7 @@ For Python implementations, that usually means:
 
 ## 7. Choose the optimizer with graph size and update style in mind
 
-The README notes that Trace supports multiple optimizers and describes OptoPrime as the graph-aware default. It also warns that full-graph approaches can run into context pressure on large graphs, while simpler optimizers trade off graph awareness for speed. For code optimization, OptoPrime is the default when the interaction between several trainable components matters, but smaller or more local problems may justify a lighter optimizer. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
+The README notes that Trace supports multiple optimizers and describes OptoPrime as the graph-aware default. It also warns that full-graph approaches can run into context pressure on large graphs, while simpler optimizers trade off graph awareness for speed. For code optimization, OptoPrime is the default when the interaction between several trainable components matters, but smaller or more local problems may justify a lighter optimizer. [Trace repository](https://github.com/microsoft/Trace) [Generated API docs index](https://github.com/microsoft/Trace/tree/main/generated_docs/opto)
 
 ## 8. Use examples as design templates, not just demos
 
