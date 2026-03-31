@@ -127,8 +127,9 @@ class TestAgentCustomizations:
         assert 'todo' in text
         assert 'agent' in text
         assert 'agent-skills/*' in text
-        assert 'agents: ["engineer", "judge", "conservator"]' in text
+        assert 'agents: ["student", "judge", "adversary"]' in text
         assert 'name: "trainer"' in text
+        assert 'Treat this agent as the workflow-compatible teacher entrypoint' in text
         assert 'orchestrate repeated loops across the `trainer-optimize`, `trainer-research`, `trainer-synthesize`, and optional `trainer-election` skills' in text
         assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
         assert 'Do not involve the `skill-creator` skill or its helper scripts in the `@trainer` workflow.' in text
@@ -164,13 +165,66 @@ class TestAgentCustomizations:
         assert 'Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals.' in text
         assert 'DO NOT route any part of the `@trainer` workflow through `skill-creator`, its scripts, or its benchmark layout.' in text
         assert 'handoffs:' in text
-        assert '- label: "Request Engineer Review"' in text
-        assert 'prompt: "Review the current target prompt, workspace artifacts, and optimization goal. Return a concise prompt-engineering assessment with rewrite hypotheses and metric framing for the next trainer iteration."' in text
+        assert '- label: "Request Student Revision"' in text
+        assert 'prompt: "Revise the current target prompt or instruction candidate using the workspace artifacts, optimization goal, and latest critique. Return the smallest defensible candidate update plus concise rationale for the next trainer iteration."' in text
         assert '- label: "Score Candidates"' in text
         assert 'prompt: "Compare the current prompt candidates or optimizer outputs and return a concise scoring summary with the strongest option and key tradeoffs."' in text
-        assert '- label: "Run Regression Review"' in text
-        assert 'prompt: "Review the pending prompt, dataset, evaluator, and scoring changes for regressions, contract drift, or unsupported workflow assumptions before finalization."' in text
+        assert '- label: "Run Adversarial Review"' in text
+        assert 'prompt: "Stress the pending prompt, dataset, evaluator, and scoring changes for likely failure modes, contract drift, hidden assumptions, or unsupported workflow behavior before finalization."' in text
         assert '## Subagent Handoffs' not in text
+
+    def test_teacher_agent_exists_and_uses_student_judge_adversary_handoffs(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
+        text = _read(agent_path)
+
+        assert 'name: "teacher"' in text
+        assert 'description: "Use when orchestrating a teacher-led prompt optimization loop' in text
+        assert 'tools:' in text
+        assert 'read' in text
+        assert 'edit' in text
+        assert 'search' in text
+        assert 'execute' in text
+        assert 'todo' in text
+        assert 'agent' in text
+        assert 'agent-skills/*' in text
+        assert 'agents: ["student", "judge", "adversary"]' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for those skills.' in text
+        assert 'Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.' in text
+        assert '- label: "Request Student Revision"' in text
+        assert '- label: "Score Candidates"' in text
+        assert '- label: "Run Adversarial Review"' in text
+
+    def test_student_agent_exists_and_routes_rewrite_work_through_engineer_skills(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "student.agent.md"
+        text = _read(agent_path)
+
+        assert 'name: "student"' in text
+        assert 'description: "Use when drafting or revising prompt candidates inside a teacher-led optimization loop' in text
+        assert 'tools:' in text
+        assert 'read' in text
+        assert 'edit' in text
+        assert 'search' in text
+        assert 'execute' in text
+        assert 'todo' in text
+        assert 'agent-skills/*' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
+        assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
+        assert 'Do not take over judging, adversarial review, or trainer-loop orchestration.' in text
+        assert 'Implement the smallest defensible candidate revision' in text
+
+    def test_adversary_agent_exists_and_stays_review_only(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"
+        text = _read(agent_path)
+
+        assert 'name: "adversary"' in text
+        assert 'description: "Use when stress-testing prompt, dataset, or evaluator changes for failure modes before finalization."' in text
+        assert 'tools: [read, search]' in text
+        assert 'user-invocable: true' in text
+        assert 'DO NOT edit files.' in text
+        assert 'DO NOT rerun the full optimization loop yourself.' in text
+        assert 'Report the highest-risk failure mode first' in text
+        assert 'hidden assumptions' in text
+        assert 'unsupported workflow behavior' in text
 
     def test_engineer_agent_exists_and_routes_prompt_work_through_engineer_skill(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "engineer.agent.md"
@@ -272,21 +326,21 @@ class TestAgentCustomizations:
 
         assert find_idx < load_idx < run_idx < research_idx
 
-    def test_trainer_agent_declares_frontmatter_handoffs_for_engineer_judge_and_conservator(self):
+    def test_trainer_agent_declares_frontmatter_handoffs_for_student_judge_and_adversary(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         frontmatter_end = text.index('---', 4)
         frontmatter = text[:frontmatter_end]
 
         handoffs_idx = frontmatter.index('handoffs:')
-        engineer_idx = frontmatter.index('- label: "Request Engineer Review"')
-        engineer_agent_idx = frontmatter.index('agent: "engineer"', engineer_idx)
+        student_idx = frontmatter.index('- label: "Request Student Revision"')
+        student_agent_idx = frontmatter.index('agent: "student"', student_idx)
         judge_idx = frontmatter.index('- label: "Score Candidates"')
         judge_agent_idx = frontmatter.index('agent: "judge"', judge_idx)
-        conservator_idx = frontmatter.index('- label: "Run Regression Review"')
-        conservator_agent_idx = frontmatter.index('agent: "conservator"', conservator_idx)
+        adversary_idx = frontmatter.index('- label: "Run Adversarial Review"')
+        adversary_agent_idx = frontmatter.index('agent: "adversary"', adversary_idx)
 
-        assert handoffs_idx < engineer_idx < engineer_agent_idx < judge_idx < judge_agent_idx < conservator_idx < conservator_agent_idx
+        assert handoffs_idx < student_idx < student_agent_idx < judge_idx < judge_agent_idx < adversary_idx < adversary_agent_idx
         assert '## Subagent Handoffs' not in text
 
     def test_trainer_agent_optimize_contract_matches_single_shot_runtime(self):

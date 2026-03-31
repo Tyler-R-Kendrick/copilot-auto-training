@@ -1,0 +1,1 @@
+../../../.github/agents/adversary.agent.md
