@@ -65,11 +65,11 @@ Avoid duplicating the same rule across many files unless multiple surfaces truly
 
 When you encode a learning:
 
-- restate the user's correction in neutral, reusable language
-- explain the behavior change, not just the symptom
-- preserve existing placeholders, interfaces, and repository conventions
-- keep the update proportional to the lesson
-- connect the rule to validation when a regression test is practical
+- Restate the user's correction in neutral, reusable language.
+- Explain the behavior change, not just the symptom.
+- Preserve existing placeholders, interfaces, and repository conventions.
+- Keep the update proportional to the lesson.
+- Connect the rule to validation when a regression test is practical.
 
 If several files are candidates, update the authoritative one first and only add supporting documentation where it reduces future confusion.
 

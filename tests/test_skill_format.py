@@ -63,14 +63,14 @@ class TestSkillFileExists:
     def test_expected_skills_exist(self):
         names = {path.name for path in _skill_dirs()}
         assert {
-            "learn",
-            "judge-rubric",
-            "trainer-optimize",
-            "trainer-election",
-            "trainer-research",
-            "trainer-synthesize",
             "judge-trajectory",
             "judge-outcome",
+            "judge-rubric",
+            "learn",
+            "trainer-election",
+            "trainer-optimize",
+            "trainer-research",
+            "trainer-synthesize",
         } <= names
 
     def test_old_unprefixed_skill_dirs_are_absent(self):
