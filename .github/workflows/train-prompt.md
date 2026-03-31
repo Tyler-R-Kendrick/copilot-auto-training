@@ -27,8 +27,6 @@ tools:
 safe-outputs:
   create-pull-request:
     max: 1
-  add-reviewer:
-    max: 1
 ---
 
 # Train Prompt
@@ -132,8 +130,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - whether the target was missing a workspace or was chosen as the oldest trained prompt
    - the validation result
    - the key trainer artifacts produced for the selected iteration
-3. Request Copilot as a reviewer using the `add-reviewer` safe output.
-4. If the reviewer request fails because Copilot review is not enabled or not available for the repository, keep the pull request open and state that limitation explicitly in the pull request body. Do not substitute a different reviewer.
+3. Do not request reviewers automatically. If pull request creation falls back to an issue because the repository token cannot open pull requests, rely on that fallback issue as the review surface instead of attempting reviewer automation without a pull request context.
 
 ## Guardrails
 

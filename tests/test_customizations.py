@@ -1173,11 +1173,30 @@ class TestTrainPromptWorkflow:
         assert isinstance(config, dict), "Expected create-pull-request safe output config to be a YAML mapping"
         return config
 
+    def _source_safe_outputs(self) -> dict:
+        text = _read(self.WORKFLOW_MD)
+        frontmatter = self._parse_frontmatter_yaml(text)
+        parsed = yaml.safe_load(frontmatter)
+        safe_outputs = parsed["safe-outputs"]
+        assert isinstance(safe_outputs, dict), "Expected safe-outputs to be a YAML mapping"
+        return safe_outputs
+
     def test_source_create_pull_request_has_no_allowed_files_restriction(self):
         config = self._source_create_pull_request_config()
         assert "allowed-files" not in config, (
             "train-prompt.md should not define allowed-files for create-pull-request; "
             f"got {config.get('allowed-files')!r}"
+        )
+
+    def test_source_does_not_request_reviewers(self):
+        safe_outputs = self._source_safe_outputs()
+        assert "add-reviewer" not in safe_outputs, (
+            "train-prompt.md should not configure add-reviewer because create_pull_request "
+            "can fall back to an issue and reviewer automation has no PR context then."
+        )
+        text = _read(self.WORKFLOW_MD)
+        assert "add-reviewer" not in text, (
+            "train-prompt.md should not instruct the agent to use add-reviewer."
         )
 
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
@@ -1218,6 +1237,13 @@ class TestTrainPromptWorkflow:
         assert first_pp == second_pp, (
             "Both safe-outputs config blocks in train-prompt.lock.yml must have "
             f"identical protected_path_prefixes. Got:\n  block 1: {first_pp}\n  block 2: {second_pp}"
+        )
+
+    def test_lock_does_not_configure_add_reviewer(self):
+        text = self._lock_text()
+        assert "add_reviewer" not in text, (
+            "train-prompt.lock.yml should not configure add_reviewer because fallback "
+            "issue creation leaves no pull request context for reviewer automation."
         )
 
     def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
