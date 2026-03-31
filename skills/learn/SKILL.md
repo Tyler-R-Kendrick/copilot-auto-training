@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Capture user corrections and reusable lessons from the active conversation, then update the most relevant instructions, skills, docs, evals, or tests so the same mistake is less likely to happen again. Use this whenever the user corrects your workflow, says a mistake should not happen again, asks you to apply a new requirement broadly, or wants today's fix reflected in repository guidance instead of only in the current answer.
+description: Capture user corrections and reusable lessons from the active conversation, then update the most relevant instructions, skills, docs, evals, or tests so the same mistake is less likely to happen again. Make sure to use this whenever the user corrects your workflow, says "remember this", "learn from this", or "don't do this again", asks you to apply a new requirement broadly, or wants today's fix reflected in repository guidance instead of only in the current answer.
 argument-hint: Describe the correction, where it was discovered, what future behavior should change, and which repo surfaces may need updates.
 license: MIT
 compatibility: Works best in repositories that keep durable guidance in instruction files, skill contracts, tests, and docs.
@@ -21,6 +21,7 @@ Read `references/learning-targets.md` before making broad edits when the lesson 
 
 - The user corrects your workflow and wants the correction applied going forward.
 - The user says a mistake should not happen again.
+- The user says "remember this", "learn from this", "use this going forward", or similar.
 - The user introduces a new requirement that should be reflected in durable guidance.
 - The user points out a recurring failure pattern across prompts, instructions, docs, or tests.
 - The user wants repository guidance updated to match what was learned in the active conversation.

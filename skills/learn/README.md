@@ -14,6 +14,7 @@ Capture user corrections and reusable lessons from the active conversation, then
 
 - The user corrects your workflow and wants the correction applied going forward.
 - The user says a mistake should not happen again.
+- The user says "remember this", "learn from this", "use this going forward", or similar.
 - The user introduces a new requirement that should be reflected in durable guidance.
 - The user points out a recurring failure pattern across prompts, instructions, docs, or tests.
 - The user wants repository guidance updated to match what was learned in the active conversation.
