@@ -1,0 +1,1 @@
+../../../.github/agents/student.agent.md

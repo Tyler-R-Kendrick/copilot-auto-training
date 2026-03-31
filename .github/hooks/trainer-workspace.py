@@ -93,7 +93,8 @@ def artifact_contract() -> dict[str, str]:
     return {
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
-        "iterations": "Write research, synthesis, optimize, election, benchmark, and validation outputs under iterations/iteration-N/.",
+        "iterations": "Write research, synthesis, optimize, election, and validation outputs under iterations/iteration-N/.",
+        "steering": "Use latest_iteration_dir plus the active iteration's optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }
 
@@ -131,7 +132,7 @@ def initialize_workspace(repo_root: Path, target_file: str | Path, state: str) -
             **existing.get("required_artifacts", {}),
         },
         "artifact_contract": artifact_contract(),
-        "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout.",
+        "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout. Do not write trainer output into Judge-owned files; keep judge steering as read-only workspace artifacts.",
     }
     payload["required_artifacts"]["source_snapshot"] = str(source_snapshot_abs.relative_to(repo_root))
     return write_status(status_path, payload)

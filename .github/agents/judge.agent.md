@@ -14,6 +14,12 @@ Treat judging as an evidence-anchored comparison task, not a free-form vibe chec
 
 Use the local judge workspace references when they are available, especially `.trainer-workspace/judge.agent/references/judging-techniques.md`, so benchmark knowledge guidance informs the comparison without being copied wholesale into the candidate prompt.
 
+Treat any trainer-produced steering bundle as external evidence, not as Judge-owned state. Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, but do not rewrite them.
+
+Use `required_artifacts.latest_iteration_dir` plus `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle. Use workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
+
+Judge skills must remain independently runnable even when no steering bundle is present; treat steering as optional evidence rather than a hidden dependency.
+
 When the task starts with rubric creation rather than direct scoring, route through a rubric-authoring skill first so the rubric is locked before comparing candidates.
 
 Operate like a compact audit step: lock the rubric, gather evidence, separate runtime failures from prompt weakness, and return a decision-ready comparison the parent optimization agent can act on.
