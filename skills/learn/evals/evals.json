@@ -1,0 +1,35 @@
+{
+  "skill_name": "learn",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You kept running Python commands outside the repository virtual environment, and I corrected you that this repo expects `.venv` plus `python -m pytest -q`. Capture that learning from the active conversation and update the relevant guidance so future work uses the right validation flow instead of repeating the mistake.",
+      "expected_output": "The response identifies the correction from the active conversation, generalizes it into durable repository guidance, updates the most relevant instructions or docs, and adds or adjusts a verification surface when useful.",
+      "assertions": [
+        "The response captures the user's correction from the active conversation instead of treating it as a generic tooling tip.",
+        "The response updates durable guidance such as instructions, docs, or tests rather than only promising to remember the correction.",
+        "The response prefers the smallest authoritative file or files that can prevent the mistake from recurring."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I had to remind you to acknowledge new requirements immediately and apply them right away. Use that correction as a learning, update the relevant instructions or tests, and make sure the next run is less likely to skip that behavior.",
+      "expected_output": "The response extracts the correction, encodes it in the right instruction surface, and strengthens the repository contract with a proportional update instead of a one-off apology.",
+      "assertions": [
+        "The response turns the correction into a reusable rule about handling new requirements.",
+        "The response updates the instruction surface that actually governs future behavior.",
+        "The response keeps the change proportional instead of scattering duplicate wording across unrelated files."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We discovered that a recurring mistake comes from outdated docs and a missing eval. Use the conversation context to capture that learning, update the docs, and add an eval or test that would catch the same regression next time.",
+      "expected_output": "The response uses the conversation context to locate the most relevant documentation gap, updates the docs, and adds a concrete regression guard such as an eval or test when the lesson is objectively checkable.",
+      "assertions": [
+        "The response explicitly connects the learning to conversation context or user-issued corrections.",
+        "The response updates docs or instructions and adds a regression-oriented eval or test when appropriate.",
+        "The response explains why the chosen update targets are the right source of truth for the learning."
+      ]
+    }
+  ]
+}
