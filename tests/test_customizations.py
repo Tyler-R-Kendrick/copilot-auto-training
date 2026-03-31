@@ -296,6 +296,27 @@ class TestAgentCustomizations:
         assert 'performs leader election or baseline comparison internally' in agent_text
         assert 'The runtime is single-shot' in optimize_text
 
+    def test_trainer_loop_contract_routes_steering_through_local_workspace_bundles(self):
+        text = _read(REPO_ROOT / ".github" / "workflows" / "shared" / "trainer-loop-contract.md")
+
+        assert "## Judge Steering Contract" in text
+        assert "Keep Judge-owned agent files, skill contracts, scripts, templates, and local references immutable during trainer runs." in text
+        assert "Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
+        assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
+        assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
+        assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
+        assert "Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime." in text
+
+    def test_trainer_agent_keeps_judge_assets_immutable_and_uses_workspace_steering(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
+
+        assert "Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable." in text
+        assert "Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`." in text
+        assert "Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
+        assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging." in text
+        assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target." in text
+        assert "Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state." in text
+
     def test_trainer_agent_missing_data_flow_runs_research_before_optimize(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
@@ -352,6 +373,15 @@ class TestAgentCustomizations:
         assert rubric_idx < load_idx < run_idx
         assert trajectory_idx < load_idx < run_idx
         assert outcome_idx < load_idx < run_idx
+
+    def test_judge_agent_treats_workspace_steering_as_read_only_external_input(self):
+        text = _read(REPO_ROOT / ".github" / "agents" / "judge.agent.md")
+
+        assert "Treat any trainer-produced steering bundle as external evidence, not as Judge-owned state." in text
+        assert "Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, but do not rewrite them." in text
+        assert "Use `required_artifacts.latest_iteration_dir` plus `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
+        assert "Use workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
+        assert "Judge skills must remain independently runnable even when no steering bundle is present; treat steering as optional evidence rather than a hidden dependency." in text
 
     def test_judge_agent_contract_matches_discoverable_judge_skills(self, monkeypatch):
         agent_skills_module = _load_agent_skills_module()
@@ -1021,6 +1051,9 @@ class TestHookCustomization:
             status_payload = json.loads(status_path.read_text(encoding="utf-8"))
             assert status_payload["workflow_state"] == "pending_engineer_prompt"
             assert status_payload["required_artifacts"]["source_snapshot"].endswith("inputs/source/SKILL.md")
+            assert "iteration steering bundle" in status_payload["artifact_contract"]["iterations"]
+            assert "cross-run rollup steering bundle" in status_payload["artifact_contract"]["decision"]
+            assert "Do not write trainer output into Judge-owned files" in status_payload["notes"]
 
             review_path = workspace_root / "engineer-prompt" / "review.md"
             review_path.write_text("# Review\n", encoding="utf-8")

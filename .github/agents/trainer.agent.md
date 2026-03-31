@@ -45,6 +45,8 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - Require `engineer-prompt/review.md` inside that workspace before optimization begins. If it is missing, stop and tell the caller to run `/engineer-prompt` first and save its output there.
 - Use `python .github/hooks/trainer-workspace.py` to initialize and update `workflow-status.json` instead of hand-editing that file.
 - Treat the optimize artifact as either `optimize-report.json` for a normal optimizer result or `manual-followup-report.json` when `trainer-optimize` returns `mode=manual_followup` because model access was unavailable. In the latter case, the current `@trainer` agent becomes the inference step by answering the returned `model_prompt` itself.
+- Keep Judge-owned agent files, skill contracts, scripts, prompt templates, and local judge references immutable.
+- Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`.
 - Maintain `workflow-status.json` at the workspace root with explicit states: `pending_engineer_prompt`, `pending_training`, `training`, and `complete`.
 - Keep stable cross-iteration inputs under `inputs/`. At minimum, preserve a source snapshot under `inputs/source/`, and record any reused `evals/evals.json`, `train.jsonl`, and `val.jsonl` paths in `workflow-status.json`.
 - Before editing the target prompt-like file, set `workflow-status.json` to `training`.
@@ -56,6 +58,9 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
   - `iterations/iteration-N/election/`: election summary JSON only when external leader selection is needed.
   - `iterations/iteration-N/validation/`: `pytest.txt`, eval command logs, or other deterministic validation output.
 - Keep human-readable rollup artifacts at the workspace root when they summarize the active result: `benchmark.json`, `benchmark.md`, `review.html`, and `decision.md`.
+- Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree.
+- Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging.
+- Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target.
 - Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals. When comparison is needed, keep those eval outputs under the active `iterations/iteration-N/` directory, alongside the optimizer artifacts they justify.
 
 ## Scope
@@ -81,6 +86,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 - If any required training data, validation data, or authored eval assets are missing from the supporting directory, and the user has not supplied the missing pieces directly, you MUST begin with the `trainer-research` skill before attempting synthesis or optimization.
 - Run a minimum of 3 candidate-generation iterations unless the user explicitly requests a different iteration count.
 - Do not assume `trainer-optimize` performs leader election or baseline comparison internally. Use `trainer-election` only when the workflow explicitly needs separate comparison across multiple optimize outputs.
+- Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state.
 
 ## Operational Instructions
 1. Read evidence in this order: target optimization goal first, current workspace state and prerequisites second, existing datasets, evals, and scoring shape third, supporting trainer-skill contracts and validation artifacts last.

@@ -51,6 +51,15 @@ Use the repository trainer loop for the selected target without relying on repo-
 7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
 8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
 
+## Judge Steering Contract
+
+1. Keep Judge-owned agent files, skill contracts, scripts, templates, and local references immutable during trainer runs.
+2. Do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or `.github/agents/.trainer-workspace/judge.agent/`.
+3. Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree.
+4. Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle.
+5. Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
+6. Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime.
+
 ## Dataset And Judge Mode Rules
 
 1. Reuse existing train, validation, and authored eval assets when they already fit the selected target.
