@@ -1664,8 +1664,10 @@ class TestTrainPromptWorkflow:
         )
         safe_outputs_steps = self._lock_yaml()["jobs"]["safe_outputs"]["steps"]
         process_safe_outputs = next(
-            step for step in safe_outputs_steps if step.get("name") == "Process Safe Outputs"
+            (step for step in safe_outputs_steps if step.get("name") == "Process Safe Outputs"),
+            None,
         )
+        assert process_safe_outputs is not None, "Expected Process Safe Outputs step in train-prompt.lock.yml"
         assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "

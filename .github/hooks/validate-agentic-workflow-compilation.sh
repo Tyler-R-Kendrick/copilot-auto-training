@@ -122,7 +122,9 @@ if not workflow_text.startswith("---\n"):
 try:
     _, frontmatter, _ = workflow_text.split("---", 2)
 except ValueError:
-    raise SystemExit(0)
+    raise SystemExit(
+        f"{workflow_path}: expected exactly one frontmatter block delimited by leading and closing --- lines"
+    )
 
 parsed = yaml.safe_load(frontmatter) or {}
 token_fallback = (
