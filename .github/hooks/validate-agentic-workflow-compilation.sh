@@ -14,7 +14,7 @@ if [[ "${1:-}" == "--enforce" ]]; then
 fi
 
 if [[ ! -x "$python_bin" ]]; then
-  echo "Error: expected repository Python at $python_bin so the hook can emit JSON responses." >&2
+  echo "Error: expected the repository virtualenv Python at $python_bin so the hook can emit JSON responses. Recreate the repo environment if needed (for example: python3.12 -m venv .venv && source .venv/bin/activate && python -m pip install -r requirements.txt)." >&2
   exit 1
 fi
 
@@ -125,7 +125,7 @@ if [[ -z "$recorded_targets" ]]; then
   exit 0
 fi
 
-missing_gh_message="Agentic workflow compilation enforcement could not run because \`gh aw\` is unavailable. Install or refresh the gh-aw extension, then run \`gh aw compile\` for the changed workflow files."
+missing_gh_message="Agentic workflow compilation enforcement could not run because \`gh aw\` is unavailable. Install or refresh the extension with \`gh extension install github/gh-aw\` or \`gh extension upgrade gh-aw\`, then run \`gh aw compile\` for the changed workflow files."
 if ! command -v gh >/dev/null 2>&1 || ! gh aw --help >/dev/null 2>&1; then
   render_json_message false "$missing_gh_message"
   exit 0
