@@ -153,6 +153,12 @@ class TestAgentCustomizations:
         assert 'tools:' in frontmatter
         assert 'read' in frontmatter
         assert 'search' in frontmatter
+        assert 'agent' in frontmatter
+        assert 'agent/runSubagent' in frontmatter
+        assert 'agents: ["student", "engineer", "judge"]' in text
+        assert '- label: "Request Student Forecast"' in text
+        assert '- label: "Request Engineer Guidance"' in text
+        assert '- label: "Request Judge Review"' in text
         assert 'edit' not in frontmatter
         assert 'execute' not in frontmatter
         assert 'todo' not in frontmatter
@@ -160,9 +166,11 @@ class TestAgentCustomizations:
         assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`.' in text
         assert 'Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing.' in text
         assert 'Treat any supplied workspace steering as read-only evidence.' in text
+        assert 'Use the `student` handoff to pressure-test whether the current steering is specific enough to produce a better revision' in text
         assert '`optimize-report.json`' in text
         assert '`manual-followup-report.json`' in text
         assert '`optimized-prompt.md`' in text
+        assert '`steering/<agent>/summary.md`' in text
         assert 'State the strongest improvement recommendation.' in text
 
     def test_student_agent_contract_structure(self):
@@ -187,6 +195,8 @@ class TestAgentCustomizations:
         assert 'Use the `teacher` handoff whenever the critique is incomplete' in text
         assert 'You may use the `engineer` handoff as another teacher-like source of guidance' in text
         assert 'Implement the smallest defensible candidate revision' in text
+        assert "Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration's per-agent `steering/<agent>/summary.md` files as the guidance record" in text
+        assert 'pre-emptively predict whether the `teacher` would approve the revision' in text
 
     def test_adversary_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"
@@ -331,14 +341,22 @@ class TestAgentCustomizations:
         )
         assert '## Subagent Handoffs' not in text
 
-    def test_teacher_agent_has_no_frontmatter_handoffs(self):
+    def test_teacher_agent_handoffs_structure(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
 
         frontmatter_end = text.index('---', 4)
         frontmatter = text[:frontmatter_end]
 
-        assert "handoffs:" not in frontmatter
-        assert "agents:" not in frontmatter
+        handoffs_idx = frontmatter.index('handoffs:')
+        student_idx = frontmatter.index('- label: "Request Student Forecast"')
+        student_agent_idx = frontmatter.index('agent: "student"', student_idx)
+        engineer_idx = frontmatter.index('- label: "Request Engineer Guidance"')
+        engineer_agent_idx = frontmatter.index('agent: "engineer"', engineer_idx)
+        judge_idx = frontmatter.index('- label: "Request Judge Review"')
+        judge_agent_idx = frontmatter.index('agent: "judge"', judge_idx)
+
+        assert 'agents: ["student", "engineer", "judge"]' in frontmatter
+        assert handoffs_idx < student_idx < student_agent_idx < engineer_idx < engineer_agent_idx < judge_idx < judge_agent_idx
 
     def test_trainer_agent_optimize_contract_matches_single_shot_runtime(self):
         agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -354,10 +372,11 @@ class TestAgentCustomizations:
         assert "## Collaboration Contract" in text
         assert "The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work." in text
         assert "The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next." in text
+        assert "The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop" in text
         assert "Keep Judge-owned agent files, skill contracts, scripts, templates, and local references (including any `references/` trees) immutable during trainer runs." in text
         assert "When the selected target is not `.github/agents/judge.agent.md`, do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`." in text
-        assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/` tree." in text
-        assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
+        assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/turn-N/STEERING.md` path" in text
+        assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
         assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
         assert "Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime." in text
 
@@ -368,6 +387,7 @@ class TestAgentCustomizations:
         assert "Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing." in text
         assert "Treat any supplied workspace steering as read-only evidence." in text
         assert "DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself." in text
+        assert "predict how the `student` would respond" in text
 
     def test_trainer_agent_missing_data_flow_runs_research_before_optimize(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -430,8 +450,8 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "agents" / "judge.agent.md")
 
         assert "Treat any trainer-produced steering bundle as external evidence, not as Judge-owned state." in text
-        assert "Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, but do not rewrite them." in text
-        assert "Use `required_artifacts.latest_iteration_dir` plus `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
+        assert "Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, including turn-scoped `steering/<agent>/turn-N/STEERING.md` files and per-agent `steering/<agent>/summary.md` files under the active iteration, but do not rewrite them." in text
+        assert "Use `required_artifacts.latest_iteration_dir` plus `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
         assert "Use workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
         assert "Judge skills must remain independently runnable even when no steering bundle is present; treat steering as optional evidence rather than a hidden dependency." in text
 
@@ -1058,6 +1078,7 @@ class TestHookCustomization:
         assert "@trainer" in text
         assert ".trainer-workspace" in text
         assert "inputs/source" in text
+        assert "steering/<agent>/summary.md" in text
         assert "decision.md" in text
         assert "systemMessage" in text
 
@@ -1105,6 +1126,7 @@ class TestHookCustomization:
             assert status_payload["required_artifacts"]["source_snapshot"].endswith("inputs/source/SKILL.md")
             assert "iteration steering bundle" in status_payload["artifact_contract"]["steering"]
             assert "cross-run rollup steering bundle" in status_payload["artifact_contract"]["steering"]
+            assert status_payload["required_artifacts"]["steering_summary_dir"] is None
             assert "Do not write trainer output into Judge-owned files" in status_payload["notes"]
 
             review_path = workspace_root / "engineer-prompt" / "review.md"
@@ -1113,6 +1135,9 @@ class TestHookCustomization:
             manual_followup_path = workspace_root / "iterations" / "iteration-1" / "optimize" / "manual-followup-report.json"
             manual_followup_path.parent.mkdir(parents=True, exist_ok=True)
             manual_followup_path.write_text("{}\n", encoding="utf-8")
+            steering_turn_path = workspace_root / "iterations" / "iteration-1" / "steering" / "teacher" / "turn-2" / "STEERING.md"
+            steering_turn_path.parent.mkdir(parents=True, exist_ok=True)
+            steering_turn_path.write_text("# Steering\n", encoding="utf-8")
 
             update_result = _run_python_script(
                 helper_path,
@@ -1146,6 +1171,7 @@ class TestHookCustomization:
             assert (workspace_root / "iterations" / "iteration-1" / "synthesize").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "optimize").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "election").is_dir()
+            assert (workspace_root / "iterations" / "iteration-1" / "steering").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "validation").is_dir()
 
             updated_status = json.loads(status_path.read_text(encoding="utf-8"))
@@ -1153,6 +1179,8 @@ class TestHookCustomization:
             assert updated_status["required_artifacts"]["latest_iteration_dir"].endswith("iterations/iteration-1")
             assert updated_status["required_artifacts"]["train_dataset"].endswith("inputs/train.jsonl")
             assert updated_status["required_artifacts"]["optimize_report"].endswith("iterations/iteration-1/optimize/manual-followup-report.json")
+            assert updated_status["required_artifacts"]["latest_steering_turn"].endswith("iterations/iteration-1/steering/teacher/turn-2/STEERING.md")
+            assert updated_status["required_artifacts"]["steering_summary_dir"].endswith("iterations/iteration-1/steering")
             assert updated_status["required_artifacts"]["validation_log"].endswith("iterations/iteration-1/validation/pytest.txt")
 
             complete_result = _run_python_script(
@@ -1192,6 +1220,7 @@ class TestHookCustomization:
 
             status_payload = json.loads(status_path.read_text(encoding="utf-8"))
             assert status_payload["workflow_state"] == "pending_engineer_prompt"
+            assert status_payload["required_artifacts"]["steering_summary_dir"] is None
             assert status_payload["required_artifacts"]["decision_summary"].endswith("decision.md")
 
     def test_prompt_workflow_block_script_blocks_incomplete_and_allows_complete(self):
@@ -1351,7 +1380,8 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should require keeping workflow-status.json and iteration directories "
             "current so the workflow can checkpoint interrupted training runs."
         )
-        assert "upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, and validation outputs" in text, (
+        assert "`steering/<agent>/turn-N/STEERING.md` artifacts and per-agent `steering/<agent>/summary.md` files" in text
+        assert "upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, steering, and validation outputs" in text, (
             "train-prompt.md guardrails should explicitly preserve stage outputs for GitHub artifact uploads."
         )
 
