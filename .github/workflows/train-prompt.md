@@ -101,7 +101,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
       - `optimize/optimized-prompt.md` exists → optimize stage complete.
       - `validation/pytest.txt` exists → validation stage complete.
    c. Resume from the first incomplete stage (research → synthesize → optimize → validation → pull request) without creating a new `iterations/iteration-N/` directory.
-   d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails.
+   d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails, including any turn-scoped `steering/turn-N/STEERING.md` artifacts and the rolling workspace-root `STEERING.md`.
 5. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
 6. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
 7. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
@@ -140,6 +140,6 @@ Select exactly one prompt-like source file in this repository, run the repositor
 
 - Use the configured `agent-skills` MCP server deliberately: discover the relevant trainer skills before running them.
 - Preserve the imported trainer loop contract for workspace layout, artifact names, and state transitions.
-- Keep stage artifacts organized so the workflow can upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, and validation outputs.
+- Keep stage artifacts organized so the workflow can upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, steering, and validation outputs.
 - Keep the workflow deterministic: select one target, perform one trainer loop, and produce one pull request at most.
 - Do not guess missing datasets when the trainer contract requires research or synthesis first.

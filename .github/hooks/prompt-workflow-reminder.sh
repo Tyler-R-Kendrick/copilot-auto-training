@@ -115,7 +115,7 @@ while IFS= read -r raw_path; do
   next_step="Run /engineer-prompt, save its review to $workspace_rel/engineer-prompt/review.md, update workflow-status.json to pending_training, then run @trainer."
   if [[ "$current_state" == "pending_training" ]]; then
     next_state="pending_training"
-    next_step="Run @trainer and have it use $workspace_rel for iterations/iteration-N artifacts, summaries, benchmarks, and workflow-status.json updates."
+    next_step="Run @trainer and have it use $workspace_rel for iterations/iteration-N artifacts, per-turn steering/turn-N/STEERING.md files, the rolling STEERING.md summary, benchmarks, and workflow-status.json updates."
   fi
 
   "$python_bin" "$workspace_helper" init \
@@ -143,7 +143,7 @@ message = (
     "Required follow-up workflow:\n"
   "1. Run /engineer-prompt against each changed prompt-like file and save the review under engineer-prompt/review.md inside the local .trainer-workspace folder.\n"
   "2. Keep stable prompt snapshots and any reused dataset references under inputs/, including the copied source snapshot under inputs/source/, and update workflow-status.json to pending_training once the review artifact is saved.\n"
-  "3. Then run @trainer, which must reuse that same .trainer-workspace tree for repo-specific iterations/iteration-N artifacts: research notes, synthesized evals/datasets, optimize reports, validation logs, and the final decision summary in decision.md.\n\n"
+  "3. Then run @trainer, which must reuse that same .trainer-workspace tree for repo-specific iterations/iteration-N artifacts: research notes, synthesized evals/datasets, optimize reports, per-turn steering/turn-N/STEERING.md files, the rolling STEERING.md summary, validation logs, and the final decision summary in decision.md.\n\n"
     "This hook injects the workflow and local workspace path because hooks can run shell commands and system messages, but cannot directly launch slash skills or @agents on their own."
 )
 print(json.dumps({"continue": True, "systemMessage": message}))
