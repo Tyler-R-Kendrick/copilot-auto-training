@@ -231,9 +231,10 @@ def update_workspace(
             detected_steering_artifact = detect_latest_steering_artifact(repo_root, iteration_abs)
             if detected_steering_artifact is not None:
                 required["latest_steering_turn"] = detected_steering_artifact
-        detected_steering_summary_dir = detect_steering_summary_dir(repo_root, iteration_abs)
-        if detected_steering_summary_dir is not None:
-            required["steering_summary_dir"] = detected_steering_summary_dir
+        if steering_summary_dir is None:
+            detected_steering_summary_dir = detect_steering_summary_dir(repo_root, iteration_abs)
+            if detected_steering_summary_dir is not None:
+                required["steering_summary_dir"] = detected_steering_summary_dir
 
     if required.get("latest_iteration_dir") and optimize_report is None and required.get("optimize_report") is None:
         latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
