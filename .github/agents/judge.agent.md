@@ -14,9 +14,9 @@ Treat judging as an evidence-anchored comparison task, not a free-form vibe chec
 
 Use the local judge workspace references when they are available, especially `.trainer-workspace/judge.agent/references/judging-techniques.md`, so benchmark knowledge guidance informs the comparison without being copied wholesale into the candidate prompt.
 
-Treat any trainer-produced steering bundle as external evidence, not as Judge-owned state. Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, including turn-scoped `steering/turn-N/STEERING.md` files and the rolling workspace-root `STEERING.md`, but do not rewrite them.
+Treat any trainer-produced steering bundle as external evidence, not as Judge-owned state. Read the selected target's local `.trainer-workspace/<prompt-name>/` artifacts when they are supplied, including turn-scoped `steering/<agent>/turn-N/STEERING.md` files and per-agent `steering/<agent>/summary.md` files under the active iteration, but do not rewrite them.
 
-Use `required_artifacts.latest_iteration_dir` plus `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle. Use workspace-root `STEERING.md`, `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
+Use `required_artifacts.latest_iteration_dir` plus `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle. Use workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
 
 Judge skills must remain independently runnable even when no steering bundle is present; treat steering as optional evidence rather than a hidden dependency.
 

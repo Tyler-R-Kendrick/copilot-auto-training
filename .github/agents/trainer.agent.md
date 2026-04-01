@@ -6,10 +6,10 @@ agents: ["teacher", "student", "judge", "adversary"]
 handoffs:
   - label: "Request Teacher Guidance"
     agent: "teacher"
-    prompt: "Review the supplied optimization artifacts, workspace evidence, or user-provided context and return concise steering for the next turn's `steering/turn-N/STEERING.md`, plus the key update the trainer should add to the rolling workspace-root `STEERING.md`. Include whether another student turn is warranted. Do not orchestrate or run trainer skills."
+    prompt: "Review the supplied optimization artifacts, workspace evidence, or user-provided context and return concise steering for the next turn's `steering/teacher/turn-N/STEERING.md`, plus the key update the trainer should add to `steering/teacher/summary.md` inside the active iteration. Include whether another student turn is warranted. Do not orchestrate or run trainer skills."
   - label: "Request Student Revision"
     agent: "student"
-    prompt: "Revise the current target prompt or instruction candidate using the workspace artifacts, optimization goal, and latest `STEERING.md` critique. Return the smallest defensible candidate update, a teacher-approval forecast, and concise rationale for the next trainer turn."
+    prompt: "Revise the current target prompt or instruction candidate using the workspace artifacts, optimization goal, and latest teacher steering critique from the active iteration. Return the smallest defensible candidate update, a teacher-approval forecast, and concise rationale for the next trainer turn."
   - label: "Score Candidates"
     agent: "judge"
     prompt: "Compare the current prompt candidates, optimizer outputs, or steering notes and return a concise scoring summary with the strongest option, key tradeoffs, and any correctness blocker the teacher should incorporate."
@@ -66,12 +66,13 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
   - `iterations/iteration-N/optimize/`: optimized prompt candidate markdown, `optimize-report.json` for a normal run or `manual-followup-report.json` for a no-model/rate-limited run, `optimized-prompt.md` when the current `@trainer` agent completes the handoff itself, `operator-followup.md` for the shortened model handoff, and optional `trace-train-report.json` when `scripts/train.py` is used.
   - `iterations/iteration-N/election/`: election summary JSON only when external leader selection is needed.
   - `iterations/iteration-N/validation/`: `pytest.txt`, eval command logs, or other deterministic validation output.
-- `iterations/iteration-N/steering/turn-N/STEERING.md`: one teacher-owned steering artifact per loop turn, including the evidence used, predicted student response, requested revision, stop-or-continue decision, and any judge or engineer notes folded into that turn.
-- Keep human-readable rollup artifacts at the workspace root when they summarize the active result: `STEERING.md`, `benchmark.json`, `benchmark.md`, `review.html`, and `decision.md`.
-- Record `required_artifacts.latest_steering_turn` for the newest turn-scoped `STEERING.md` and `required_artifacts.rolling_steering_summary` for the workspace-root `STEERING.md`.
+- `iterations/iteration-N/steering/<agent>/turn-N/STEERING.md`: one steering artifact per agent turn, including the evidence used, predicted response, requested revision or verdict, stop-or-continue decision, and any judge or engineer notes folded into that turn.
+- `iterations/iteration-N/steering/<agent>/summary.md`: a rolling summary for that agent within the active iteration.
+- Keep human-readable rollup artifacts at the workspace root when they summarize the active result: `benchmark.json`, `benchmark.md`, `review.html`, and `decision.md`.
+- Record `required_artifacts.latest_steering_turn` for the newest turn-scoped `STEERING.md` and `required_artifacts.steering_summary_dir` for the active iteration's per-agent steering summaries.
 - Publish iteration-scoped steering in the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/` tree.
 - Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle for later judging or teacher review.
-- Treat workspace-root `STEERING.md`, `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target.
+- Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle for that target.
 - Skills and agents must stay independently runnable: steering bundles are read-only workspace artifacts, not imported prompt text or mutable judge-owned state.
 - Do not copy a generic `with_skill` / `without_skill` tree unless the workflow actually runs comparative evals. When comparison is needed, keep those eval outputs under the active `iterations/iteration-N/` directory, alongside the optimizer artifacts they justify.
 
@@ -106,7 +107,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 3. Use the `teacher` handoff when the next step is to interpret optimization artifacts or user-supplied context into actionable critique for the next iteration.
 4. Use the `student` handoff when the next step is to draft or revise a candidate, the `judge` handoff when multiple candidates or conflicting evidence need comparison, and the `adversary` handoff when pending changes need stress testing for failure modes, hidden assumptions, or unsupported workflow behavior.
 5. Keep each iteration decision-ready: record the blocking prerequisite, chosen `judge_mode`, datasets in play, validation plan, and any teacher guidance before calling the next skill or editing the target file.
-6. Persist every teacher turn as `iterations/iteration-N/steering/turn-N/STEERING.md` and keep the workspace-root `STEERING.md` updated as a rolling summary of what each turn taught the loop.
+6. Persist every steering turn under `iterations/iteration-N/steering/<agent>/turn-N/STEERING.md` and keep per-agent `summary.md` files in that same iteration directory tree updated as rolling summaries of what each agent turn taught the loop.
 7. Prefer the smallest defensible rewrite that improves trainer workflow execution or clarity without changing the prompt interface or expanding scope.
 
 ## Approach
@@ -124,7 +125,7 @@ Do not write trainer artifacts under a sibling `*-workspace/` directory or any r
 12. When optimization runs execute, use the returned `dashboard_url` or report metadata instead of assuming a fixed Agent Lightning port. If rollouts fail immediately, inspect stderr or traces before making prompt-quality claims. Common causes in this repo include placeholder mismatches, literal brace examples accidentally becoming placeholders, stale dashboard-port conflicts, endpoint/API mismatches on GitHub Models, judge-mode or dataset-shape mismatches, and temporary model-availability failures.
 13. If the workflow explicitly needs comparison across multiple optimize outputs, run the `trainer-election` skill through MCP as a separate selection step using the validation dataset and authored evals as supporting validation when available. Save those artifacts under `iterations/iteration-N/election/`.
 14. Use the `teacher` handoff to turn optimize reports, workspace steering, user observations, or comparison outputs into concise recommendations for the next loop turn.
-15. After each teacher response, persist the turn to `iterations/iteration-N/steering/turn-N/STEERING.md`, update the rolling workspace-root `STEERING.md`, and record the newest turn path in `workflow-status.json`.
+15. After each teacher response, persist the turn to `iterations/iteration-N/steering/teacher/turn-N/STEERING.md`, update `iterations/iteration-N/steering/teacher/summary.md`, and record the newest turn path plus steering summary directory in `workflow-status.json`.
 16. Invoke the `student` subagent when a targeted candidate rewrite or follow-up revision is needed after teacher critique, optimization output, or a manual-followup handoff, and let that loop continue until the teacher would likely approve or the exit criteria triggers.
 17. Invoke the `judge` subagent to score candidate quality and write concise summaries when a comparison needs explanation or the teacher needs correctness evidence before another student turn.
 18. Invoke the `adversary` subagent before finalizing changes that touch prompts, datasets, evaluators, or scoring logic.

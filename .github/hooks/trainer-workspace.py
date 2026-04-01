@@ -37,7 +37,7 @@ def detect_latest_steering_artifact(repo_root: Path, iteration_abs: Path) -> str
     steering_dir = iteration_abs / "steering"
     if not steering_dir.is_dir():
         return None
-    candidates = sorted(steering_dir.glob(f"turn-*/{STEERING_FILENAME}"))
+    candidates = sorted(steering_dir.glob(f"*/turn-*/{STEERING_FILENAME}"))
     if not candidates:
         return None
     return str(candidates[-1].relative_to(repo_root))
@@ -97,7 +97,7 @@ def artifact_defaults(workspace_rel: str, source_snapshot_rel: str) -> dict[str,
         "eval_manifest": None,
         "optimize_report": None,
         "latest_steering_turn": None,
-        "rolling_steering_summary": f"{workspace_rel}/{STEERING_FILENAME}",
+        "steering_summary_dir": None,
         "validation_log": None,
         "decision_summary": f"{workspace_rel}/decision.md",
     }
@@ -108,7 +108,7 @@ def artifact_contract() -> dict[str, str]:
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
         "iterations": "Write research, synthesis, optimize, election, steering, and validation outputs under iterations/iteration-N/.",
-        "steering": "Write one teacher-owned steering artifact per loop turn to iterations/iteration-N/steering/turn-N/STEERING.md and keep the rolling workspace-root STEERING.md current. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root STEERING.md, decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
+        "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }
 
@@ -164,7 +164,7 @@ def update_workspace(
     eval_manifest: str | None,
     optimize_report: str | None,
     latest_steering_turn: str | None,
-    rolling_steering_summary: str | None,
+    steering_summary_dir: str | None,
     validation_log: str | None,
     decision_summary: str | None,
     iteration: str | None,
@@ -200,7 +200,7 @@ def update_workspace(
         "eval_manifest": eval_manifest,
         "optimize_report": optimize_report,
         "latest_steering_turn": latest_steering_turn,
-        "rolling_steering_summary": rolling_steering_summary,
+        "steering_summary_dir": steering_summary_dir,
         "validation_log": validation_log,
         "decision_summary": decision_summary,
     }.items():
@@ -221,6 +221,7 @@ def update_workspace(
             detected_steering_artifact = detect_latest_steering_artifact(repo_root, iteration_abs)
             if detected_steering_artifact is not None:
                 required["latest_steering_turn"] = detected_steering_artifact
+        required["steering_summary_dir"] = str((iteration_abs / "steering").relative_to(repo_root))
 
     if required.get("latest_iteration_dir") and optimize_report is None and required.get("optimize_report") is None:
         latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
@@ -259,7 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--eval-manifest")
     update_parser.add_argument("--optimize-report")
     update_parser.add_argument("--latest-steering-turn")
-    update_parser.add_argument("--rolling-steering-summary")
+    update_parser.add_argument("--steering-summary-dir")
     update_parser.add_argument("--validation-log")
     update_parser.add_argument("--decision-summary")
     update_parser.add_argument("--iteration")
@@ -287,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
             eval_manifest=args.eval_manifest,
             optimize_report=args.optimize_report,
             latest_steering_turn=args.latest_steering_turn,
-            rolling_steering_summary=args.rolling_steering_summary,
+            steering_summary_dir=args.steering_summary_dir,
             validation_log=args.validation_log,
             decision_summary=args.decision_summary,
             iteration=args.iteration,

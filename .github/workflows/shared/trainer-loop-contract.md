@@ -37,7 +37,7 @@ Use the repository trainer loop for the selected target without relying on repo-
     - `eval_manifest`
     - `optimize_report`
     - `latest_steering_turn`
-    - `rolling_steering_summary`
+    - `steering_summary_dir`
     - `validation_log`
     - `decision_summary`
 11. On success, set `workflow_state` to `complete`, update `latest_iteration_dir`, point `decision_summary` to the final rollup artifact, and record whichever optimize report exists for the active iteration.
@@ -66,10 +66,10 @@ Use the repository trainer loop for the selected target without relying on repo-
 
 1. Keep Judge-owned agent files, skill contracts, scripts, templates, and local references (including any `references/` trees) immutable during trainer runs.
 2. When the selected target is not `.github/agents/judge.agent.md`, do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`. When `.github/agents/judge.agent.md` is the selected target, keep Judge-owned immutable content read-only but write any per-run artifacts only under `.github/agents/.trainer-workspace/judge.agent/iterations/iteration-N/`.
-3. Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/turn-N/STEERING.md` path so every loop turn gets its own artifact.
-4. Keep a rolling steering summary at workspace-root `STEERING.md` that aggregates the active run's turn history, accepted guidance, and unresolved blockers.
+3. Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/turn-N/STEERING.md` path so every agent turn gets its own artifact.
+4. Keep rolling steering summaries under `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/summary.md` so each agent has an iteration-local summary for that prompt workspace.
 5. Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle.
-6. Treat workspace-root `STEERING.md`, `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
+6. Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
 7. Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime.
 
 ## Dataset And Judge Mode Rules
