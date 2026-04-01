@@ -34,9 +34,9 @@ The repository ships a coordinated set of custom agents for prompt and skill opt
 
 | Agent | Role |
 | --- | --- |
-| `trainer` | Compatibility entrypoint for repository automation and workflow-driven optimization runs. |
-| `teacher` | Canonical orchestrator for the optimization loop and stage-to-stage handoffs. |
-| `student` | Drafts and revises candidate prompt or skill variants inside teacher-led loops. |
+| `trainer` | Canonical orchestrator for trainer-skill execution, workspace coordination, and optimization-loop handoffs. |
+| `teacher` | Reviews optimization artifacts or user-supplied context and recommends what should improve next. |
+| `student` | Drafts and revises candidates from teacher guidance, with optional engineer-agent coaching when specialized advice is needed. |
 | `judge` | Scores outputs, candidates, and traces with rubric-driven evaluation. |
 | `conservator` | Reviews changes against training history and repository context to avoid regressions. |
 | `adversary` | Stress-tests prompts, datasets, and evaluators for failure modes before finalization. |
