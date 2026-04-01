@@ -680,6 +680,7 @@ class TestHookCustomization:
         assert ".github/workflows/*.md" in text
         assert "gh aw compile" in text
         assert ".git/copilot-agentic-workflows.txt" in text
+        assert "normalize_lockfile_writeback_tokens" in text
 
     def test_agentic_workflow_validation_script_records_changed_workflows(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
@@ -737,6 +738,52 @@ exit 1
                     original_lock,
                     encoding="utf-8",
                 )
+                state_path.unlink(missing_ok=True)
+
+    def test_agentic_workflow_validation_script_normalizes_writeback_token_fallback(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
+        state_path = REPO_ROOT / ".git" / "copilot-agentic-workflows.txt"
+        state_path.write_text(".github/workflows/train-prompt.md\n", encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            gh_path = temp_root / "gh"
+            gh_path.write_text(
+                """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "aw" && "${2:-}" == "--help" ]]; then
+  exit 0
+fi
+if [[ "${1:-}" == "aw" && "${2:-}" == "compile" ]]; then
+  cat <<'EOF' > "$PWD/.github/workflows/train-prompt.lock.yml"
+jobs:
+  safe_outputs:
+    steps:
+      - name: Process Safe Outputs
+        with:
+          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+EOF
+  exit 0
+fi
+exit 1
+""",
+                encoding="utf-8",
+            )
+            gh_path.chmod(0o755)
+            lock_path = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
+            original_lock = lock_path.read_text(encoding="utf-8")
+            env = {"PATH": f"{temp_root}:{os.environ['PATH']}"}
+            try:
+                blocked = _run_shell_script(script_path, "--enforce", check=False, env=env)
+                payload = json.loads(blocked.stdout)
+                assert blocked.returncode == 0
+                assert payload["continue"] is False
+                assert (
+                    "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+                    in lock_path.read_text(encoding="utf-8")
+                )
+            finally:
+                lock_path.write_text(original_lock, encoding="utf-8")
                 state_path.unlink(missing_ok=True)
 
     def test_prompt_validation_hook_exists(self):
@@ -1609,4 +1656,11 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml create_pull_request safe-output config should preserve "
             "the COPILOT_GITHUB_TOKEN fallback even if some auxiliary reporting steps use "
             "the default GH_AW_GITHUB_TOKEN || GITHUB_TOKEN fallback."
+        )
+        safe_outputs_block = text.split("- name: Process Safe Outputs", 1)[1]
+        safe_outputs_block = safe_outputs_block.split("- name: Upload Safe Output Items", 1)[0]
+        assert "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in safe_outputs_block, (
+            "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
+            "Process Safe Outputs github-script step so create_pull_request does not fall "
+            "back to a token that cannot open pull requests."
         )
