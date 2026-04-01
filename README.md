@@ -52,6 +52,12 @@ The repo exposes reusable Agent Skills for workflow authoring, prompt engineerin
 | --- | --- |
 | [`create-workflow`](skills/create-workflow/README.md) | Create or update GitHub Agentic Workflows with `gh aw`, frontmatter, MCP setup, compilation, and validation guidance. |
 
+#### Repository Learning
+
+| Skill | Purpose |
+| --- | --- |
+| [`learn`](skills/learn/README.md) | Capture user corrections from the active conversation and update the most relevant instructions, docs, evals, or tests so the same mistake is less likely to happen again. |
+
 #### Engineer Skills
 
 | Skill | Purpose |

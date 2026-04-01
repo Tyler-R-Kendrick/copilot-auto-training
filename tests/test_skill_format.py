@@ -63,13 +63,14 @@ class TestSkillFileExists:
     def test_expected_skills_exist(self):
         names = {path.name for path in _skill_dirs()}
         assert {
-            "judge-rubric",
-            "trainer-optimize",
-            "trainer-election",
-            "trainer-research",
-            "trainer-synthesize",
             "judge-trajectory",
             "judge-outcome",
+            "judge-rubric",
+            "learn",
+            "trainer-election",
+            "trainer-optimize",
+            "trainer-research",
+            "trainer-synthesize",
         } <= names
 
     def test_old_unprefixed_skill_dirs_are_absent(self):
@@ -216,7 +217,7 @@ class TestOfficialEvalFixtures:
         assert all("expected_output" in case for case in payload["evals"])
         assert all(case.get("assertions") for case in payload["evals"])
 
-        manifest_text = json.dumps(payload).lower()
+        manifest_text = json.dumps(payload).lower()  # Lowercased for case-insensitive keyword checks.
         assert "pass-partial-fail" in manifest_text or "pass, partial, and fail" in manifest_text
         assert "tie-break" in manifest_text
         assert "confidence" in manifest_text
@@ -325,6 +326,26 @@ class TestOfficialEvalFixtures:
         assert "@trace.bundle" in manifest_text
         assert "@trace.model" in manifest_text
         assert "runtime performance" in manifest_text
+
+    def test_learn_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "learn" / "evals" / "evals.json"
+        assert manifest_path.is_file(), f"Expected learn eval manifest at {manifest_path}"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "learn"
+        assert len(payload["evals"]) >= 3
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "active conversation" in manifest_text or "conversation context" in manifest_text
+        assert "correction" in manifest_text or "learning" in manifest_text
+        assert "instructions" in manifest_text or "docs" in manifest_text
+        assert ".agents/memory.md" in manifest_text or "agent memory" in manifest_text
+        assert "agents.md" in manifest_text
+        assert "custom agent" in manifest_text or ".github/agents" in manifest_text
+        assert "hook" in manifest_text or ".github/hooks" in manifest_text
 
     def test_trainer_optimize_training_fixtures_use_local_trainer_workspace_contract(self):
         dataset_dir = SKILLS_DIR / "trainer-optimize" / "datasets"
