@@ -34,7 +34,7 @@ Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active
 2. If the next revision target is unclear, explicitly hand off to `teacher` for refreshed guidance before editing.
 3. If the task needs specialized prompt or Trace-oriented coaching, explicitly hand off to `engineer` for additional guidance without delegating the revision itself.
 4. Apply the smallest revision that advances the current iteration goal.
-5. Predict whether the `teacher` would approve the revision and recursively reflect until the answer is yes or you can justify why another teacher turn is needed.
+5. Predict whether the `teacher` would approve the revision and do at most one extra self-check pass before finalizing; if approval still looks unlikely, justify why another teacher turn is needed instead of looping indefinitely.
 6. Run the relevant validation or measurement step and report what changed.
 
 ## Output Format

@@ -6,7 +6,7 @@ agents: ["student", "engineer", "judge"]
 handoffs:
   - label: "Request Student Forecast"
     agent: "student"
-    prompt: "Read the supplied steering draft, current candidate, and workspace evidence. Predict how a student revision would likely respond, where the guidance is still too vague, and the smallest next revision objective that would help."
+    prompt: "Read the supplied steering draft, current candidate, and workspace evidence. Predict how a student would likely respond to the revision, where the guidance is still too vague, and the smallest next revision objective that would help."
   - label: "Request Engineer Guidance"
     agent: "engineer"
     prompt: "Review the supplied prompt, workspace evidence, or implementation details and return concise technical guidance the teacher can fold into steering for the student."
