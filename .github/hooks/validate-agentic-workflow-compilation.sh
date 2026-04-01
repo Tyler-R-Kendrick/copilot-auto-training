@@ -6,10 +6,16 @@ cd "$repo_root"
 
 state_dir="$repo_root/.git"
 state_file="$repo_root/.git/copilot-agentic-workflows.txt"
+python_bin="$repo_root/.venv/bin/python"
 enforce=0
 if [[ "${1:-}" == "--enforce" ]]; then
   enforce=1
   shift
+fi
+
+if [[ ! -x "$python_bin" ]]; then
+  echo "Error: expected repository Python at $python_bin so the hook can emit JSON responses." >&2
+  exit 1
 fi
 
 collect_candidates() {
@@ -84,7 +90,7 @@ render_json_message() {
   local continue_value="$1"
   local message="$2"
 
-  REPO_HOOK_MESSAGE="$message" REPO_HOOK_CONTINUE="$continue_value" "$repo_root/.venv/bin/python" - <<'PY'
+  REPO_HOOK_MESSAGE="$message" REPO_HOOK_CONTINUE="$continue_value" "$python_bin" - <<'PY'
 import json
 import os
 
