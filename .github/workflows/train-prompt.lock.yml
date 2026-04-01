@@ -29,7 +29,7 @@
 #     - shared/repo-runtime-context.md
 #     - shared/trainer-loop-contract.md
 #
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"9c7c4723b7b9d90c6e1c685b101169814a16ad8e7c24bb5f1d75d268988415d0","compiler_version":"v0.65.0","strict":true,"agent_id":"copilot"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"3be0fa3759fba7234a1bfc7c16c49b53bc9c11d1646441c8aa511fbcf9cac058","compiler_version":"v0.65.0","strict":true,"agent_id":"copilot"}
 
 name: "Train Prompt"
 "on":
