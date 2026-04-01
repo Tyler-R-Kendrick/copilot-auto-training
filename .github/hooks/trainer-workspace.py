@@ -43,6 +43,16 @@ def detect_latest_steering_artifact(repo_root: Path, iteration_abs: Path) -> str
     return str(candidates[-1].relative_to(repo_root))
 
 
+def detect_steering_summary_dir(repo_root: Path, iteration_abs: Path) -> str | None:
+    """Return the steering directory when iteration-scoped agent steering artifacts exist."""
+    steering_dir = iteration_abs / "steering"
+    if not steering_dir.is_dir():
+        return None
+    if not any(steering_dir.iterdir()):
+        return None
+    return str(steering_dir.relative_to(repo_root))
+
+
 def prompt_name_for(path: str | Path) -> str:
     base = Path(path).name
     if base.endswith(".prompty"):
@@ -107,7 +117,7 @@ def artifact_contract() -> dict[str, str]:
     return {
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
-        "iterations": "Write research, synthesis, optimize, election, steering, and validation outputs under iterations/iteration-N/.",
+        "iterations": "Write research, synthesize, optimize, election, steering, and validation outputs under iterations/iteration-N/.",
         "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }
@@ -221,7 +231,9 @@ def update_workspace(
             detected_steering_artifact = detect_latest_steering_artifact(repo_root, iteration_abs)
             if detected_steering_artifact is not None:
                 required["latest_steering_turn"] = detected_steering_artifact
-        required["steering_summary_dir"] = str((iteration_abs / "steering").relative_to(repo_root))
+        detected_steering_summary_dir = detect_steering_summary_dir(repo_root, iteration_abs)
+        if detected_steering_summary_dir is not None:
+            required["steering_summary_dir"] = detected_steering_summary_dir
 
     if required.get("latest_iteration_dir") and optimize_report is None and required.get("optimize_report") is None:
         latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])

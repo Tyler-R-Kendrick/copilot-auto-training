@@ -195,7 +195,7 @@ class TestAgentCustomizations:
         assert 'Use the `teacher` handoff whenever the critique is incomplete' in text
         assert 'You may use the `engineer` handoff as another teacher-like source of guidance' in text
         assert 'Implement the smallest defensible candidate revision' in text
-        assert 'Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration\'s per-agent `steering/<agent>/summary.md` files as the guidance record' in text
+        assert "Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration's per-agent `steering/<agent>/summary.md` files as the guidance record" in text
         assert 'pre-emptively predict whether the `teacher` would approve the revision' in text
 
     def test_adversary_agent_contract_structure(self):
