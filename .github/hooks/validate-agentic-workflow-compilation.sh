@@ -102,6 +102,47 @@ print(json.dumps(payload))
 PY
 }
 
+normalize_lockfile_writeback_tokens() {
+  local workflow_path="$1"
+  local lock_path="$2"
+
+  "$python_bin" - "$repo_root/$workflow_path" "$lock_path" <<'PY'
+from pathlib import Path
+import sys
+
+import yaml
+
+workflow_path = Path(sys.argv[1])
+lock_path = Path(sys.argv[2])
+
+workflow_text = workflow_path.read_text(encoding="utf-8")
+if not workflow_text.startswith("---\n"):
+    raise SystemExit(0)
+
+try:
+    _, frontmatter, _ = workflow_text.split("---", 2)
+except ValueError:
+    raise SystemExit(
+        f"{workflow_path}: expected exactly one frontmatter block delimited by leading and closing --- lines"
+    )
+
+parsed = yaml.safe_load(frontmatter) or {}
+token_fallback = (
+    ((parsed.get("safe-outputs") or {}).get("create-pull-request") or {}).get("github-token")
+)
+# Only workflows that explicitly opt into the COPILOT_GITHUB_TOKEN fallback need
+# post-compile normalization; leave all other lockfiles untouched.
+if not token_fallback or "COPILOT_GITHUB_TOKEN" not in token_fallback:
+    raise SystemExit(0)
+
+lock_text = lock_path.read_text(encoding="utf-8")
+compiler_default = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+normalized = lock_text.replace(compiler_default, token_fallback)
+if normalized != lock_text:
+    lock_path.write_text(normalized, encoding="utf-8")
+PY
+}
+
 recorded_targets="$(load_recorded_targets | normalize_targets)"
 
 if [[ "$enforce" -eq 0 ]]; then
@@ -147,6 +188,8 @@ while IFS= read -r workflow_path; do
     lockfile_updates+=("- $workflow_path -> missing $lock_path after compile")
     continue
   fi
+
+  normalize_lockfile_writeback_tokens "$workflow_path" "$lock_path"
 
   if ! git diff --quiet -- "$lock_path" || ! git diff --cached --quiet -- "$lock_path"; then
     lockfile_updates+=("- $workflow_path -> $lock_path")
