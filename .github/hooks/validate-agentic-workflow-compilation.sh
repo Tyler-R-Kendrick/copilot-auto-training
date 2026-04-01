@@ -130,6 +130,8 @@ parsed = yaml.safe_load(frontmatter) or {}
 token_fallback = (
     ((parsed.get("safe-outputs") or {}).get("create-pull-request") or {}).get("github-token")
 )
+# Only workflows that explicitly opt into the COPILOT_GITHUB_TOKEN fallback need
+# post-compile normalization; leave all other lockfiles untouched.
 if not token_fallback or "COPILOT_GITHUB_TOKEN" not in token_fallback:
     raise SystemExit(0)
 
