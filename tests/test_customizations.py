@@ -779,7 +779,7 @@ exit 1
                 assert blocked.returncode == 0
                 assert payload["continue"] is False
                 assert (
-                    "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+                    "github-token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
                     in lock_path.read_text(encoding="utf-8")
                 )
             finally:
@@ -1504,10 +1504,11 @@ class TestTrainPromptWorkflow:
 
     def test_source_create_pull_request_explicitly_sets_github_token_fallback(self):
         config = self._source_create_pull_request_config()
-        expected_token_fallback = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        expected_token_fallback = "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
         assert config.get("github-token") == expected_token_fallback, (
             "train-prompt.md should explicitly set create-pull-request github-token "
-            "to prefer COPILOT_GITHUB_TOKEN before falling back to GITHUB_TOKEN."
+            "to prefer COPILOT_GITHUB_TOKEN before GH_AW_GITHUB_TOKEN so PR creation "
+            "does not stop on a PAT that can push but cannot open pull requests."
         )
 
     def test_source_does_not_request_reviewers(self):
@@ -1639,25 +1640,25 @@ class TestTrainPromptWorkflow:
             "trainer stage checkpoints for later inspection."
         )
 
-    def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
+    def test_lock_writeback_steps_prefer_copilot_token_before_gh_aw_token(self):
         text = self._lock_text()
         expected_fallback = (
-            "secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN"
+            "secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN"
         )
         assert expected_fallback in text, (
             "train-prompt.lock.yml write-back steps should prefer COPILOT_GITHUB_TOKEN "
-            "before falling back to GITHUB_TOKEN so the workflow can use the "
-            "documented prerequisite token for create_pull_request and related writes."
+            "before GH_AW_GITHUB_TOKEN so the workflow reaches a token that can open "
+            "pull requests instead of stopping at a push-only PAT."
         )
-        assert "token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+        assert "token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
             "train-prompt.lock.yml checkout for create_pull_request should preserve "
             "the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+        assert "GIT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
             "train-prompt.lock.yml git credential setup for create_pull_request "
             "should preserve the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "\"github-token\":\"${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}\"" in text, (
+        assert "\"github-token\":\"${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}\"" in text, (
             "train-prompt.lock.yml create_pull_request safe-output config should preserve "
             "the COPILOT_GITHUB_TOKEN fallback even if some auxiliary reporting steps use "
             "the default GH_AW_GITHUB_TOKEN || GITHUB_TOKEN fallback."
@@ -1668,7 +1669,7 @@ class TestTrainPromptWorkflow:
             None,
         )
         assert process_safe_outputs is not None, "Expected Process Safe Outputs step in train-prompt.lock.yml"
-        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "
             "back to a token that cannot open pull requests."
