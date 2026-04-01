@@ -58,9 +58,9 @@ Use the repository trainer loop for the selected target without relying on repo-
 
 1. The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work.
 2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next.
-3. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop until the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion ends the conversation.
-4. The `student` agent applies targeted revisions when the trainer requests implementation help.
-5. The `adversary` agent stress-tests pending changes before finalization.
+3. The `student` agent applies targeted revisions when the trainer requests implementation help.
+4. The `adversary` agent stress-tests pending changes before finalization.
+5. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop until the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion ends the conversation.
 
 ## Judge Steering Contract
 

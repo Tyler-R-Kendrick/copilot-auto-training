@@ -341,7 +341,7 @@ class TestAgentCustomizations:
         )
         assert '## Subagent Handoffs' not in text
 
-    def test_teacher_agent_has_student_engineer_judge_handoffs(self):
+    def test_teacher_agent_handoffs_structure(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
 
         frontmatter_end = text.index('---', 4)

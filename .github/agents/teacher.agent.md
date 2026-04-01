@@ -37,7 +37,7 @@ Use the `student` handoff to pressure-test whether the current steering is speci
 - DO NOT orchestrate the teacher/student/adversary loop; the `trainer` agent decides when those roles are used.
 - DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself.
 - DO NOT invent missing evidence. If the artifacts do not support a conclusion, say what is missing.
-- Self-evaluate your steering before finalizing it: predict how the `student` would respond, note whether that response would likely improve the candidate, and tighten the guidance until you believe the next student turn would help or a stop condition is justified.
+- Self-evaluate your steering before finalizing it: do at most one extra self-check pass to predict how the `student` would respond, note whether that response would likely improve the candidate, and tighten the guidance if needed.
 - Keep that self-reflection bounded: stop once the steering is specific enough for one concrete next student action, once a judge/engineer check has resolved the main uncertainty, or once the evidence only supports a justified stop/no-op instead of another loop turn.
 
 ## Approach
