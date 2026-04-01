@@ -656,6 +656,89 @@ class TestInstructionCustomization:
 
 
 class TestHookCustomization:
+    def test_agentic_workflow_validation_hook_exists(self):
+        hook_path = REPO_ROOT / ".github" / "hooks" / "agentic-workflow-validation.json"
+        hook = json.loads(_read(hook_path))
+
+        stop_hooks = hook["hooks"]["Stop"]
+        post_tool_use = hook["hooks"]["PostToolUse"]
+        assert stop_hooks
+        assert all("/workspaces/" not in entry["command"] for entry in stop_hooks)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
+        assert any("validate-agentic-workflow-compilation.sh --enforce" in entry["command"] for entry in stop_hooks)
+        assert post_tool_use
+        assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
+        assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
+        assert any("validate-agentic-workflow-compilation.sh" in entry["command"] for entry in post_tool_use)
+
+    def test_agentic_workflow_validation_script_exists(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
+        text = _read(script_path)
+
+        assert text.startswith("#!/usr/bin/env bash")
+        assert ".github/workflows/*.md" in text
+        assert "gh aw compile" in text
+        assert ".git/copilot-agentic-workflows.txt" in text
+
+    def test_agentic_workflow_validation_script_records_changed_workflows(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
+        workflow_path = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
+        state_path = REPO_ROOT / ".git" / "copilot-agentic-workflows.txt"
+        if state_path.exists():
+            state_path.unlink()
+
+        result = _run_shell_script(script_path, str(workflow_path))
+        payload = json.loads(result.stdout)
+
+        assert payload["continue"] is True
+        assert "train-prompt.md" in payload["systemMessage"]
+        assert state_path.read_text(encoding="utf-8").strip() == ".github/workflows/train-prompt.md"
+
+        state_path.unlink(missing_ok=True)
+
+    def test_agentic_workflow_validation_script_blocks_when_compile_updates_lockfile(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
+        workflow_path = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
+        state_path = REPO_ROOT / ".git" / "copilot-agentic-workflows.txt"
+        state_path.write_text(".github/workflows/train-prompt.md\n", encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            gh_path = temp_root / "gh"
+            gh_path.write_text(
+                """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "aw" && "${2:-}" == "--help" ]]; then
+  exit 0
+fi
+if [[ "${1:-}" == "aw" && "${2:-}" == "compile" ]]; then
+  cat <<'EOF' > "$PWD/.github/workflows/train-prompt.lock.yml"
+compiled by hook
+EOF
+  exit 0
+fi
+exit 1
+""",
+                encoding="utf-8",
+            )
+            gh_path.chmod(0o755)
+            original_lock = (REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml").read_text(encoding="utf-8")
+            env = {"PATH": f"{temp_root}:{os.environ['PATH']}"}
+            try:
+                blocked = _run_shell_script(script_path, "--enforce", check=False, env=env)
+                payload = json.loads(blocked.stdout)
+                assert blocked.returncode == 0
+                assert payload["continue"] is False
+                assert "required recompilation" in payload["stopReason"]
+                assert "train-prompt.lock.yml" in payload["stopReason"]
+            finally:
+                (REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml").write_text(
+                    original_lock,
+                    encoding="utf-8",
+                )
+                state_path.unlink(missing_ok=True)
+
     def test_prompt_validation_hook_exists(self):
         hook_path = REPO_ROOT / ".github" / "hooks" / "prompt-optimization-validation.json"
         hook = json.loads(_read(hook_path))
