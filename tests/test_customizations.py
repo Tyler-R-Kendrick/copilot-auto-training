@@ -198,7 +198,7 @@ class TestAgentCustomizations:
         assert "Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration's per-agent `steering/<agent>/summary.md` files as the guidance record" in text
         assert 'pre-emptively predict whether the `teacher` would approve the revision' in text
         assert 'Do not return answer-only output; expose the plan, reasoning trajectory, tradeoffs, and uncertainty' in text
-        assert 'chain-of-thought, tree-of-thought, chain-of-uncertain-thought, sketch-of-thought' in text
+        assert 'chain-of-thought, tree-of-thought, chain-of-uncertainty-thought, sketch-of-thought' in text
 
     def test_adversary_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"

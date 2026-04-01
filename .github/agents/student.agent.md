@@ -41,7 +41,7 @@ Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active
 
 ## Output Format
 - State the current steering artifact(s) you followed.
-- State the reasoning trajectory, plan, tradeoffs, and uncertainty that informed the revision, using chain-of-thought, tree-of-thought, chain-of-uncertain-thought, sketch-of-thought, or another explicit reasoning format when useful.
+- State the reasoning trajectory, plan, tradeoffs, and uncertainty that informed the revision, using chain-of-thought, tree-of-thought, chain-of-uncertainty-thought, sketch-of-thought, or another explicit reasoning format when useful.
 - State the revision or justified no-op.
 - State how the `engineer` handoff, if used, improved the formatting of the reasoning or solution plan for the `teacher`.
 - State the predicted `teacher` approval outcome and any blocker that still requires another loop turn.
