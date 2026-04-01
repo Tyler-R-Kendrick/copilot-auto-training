@@ -15,7 +15,8 @@ WORKFLOW_STATES = (
     "training",
     "complete",
 )
-ITERATION_SUBDIRS = ("research", "synthesize", "optimize", "election", "steering", "validation")
+ITERATION_SUBDIRS = ("research", "synthesize", "optimize", "election", "candidates", "steering", "validation")
+ITERATION_CANDIDATE_SUBDIRS = ("original", "student", "adversary")
 ITERATIONS_DIRNAME = "iterations"
 STEERING_FILENAME = "STEERING.md"
 
@@ -51,6 +52,31 @@ def detect_steering_summary_dir(repo_root: Path, iteration_abs: Path) -> str | N
     if not any(steering_dir.iterdir()):
         return None
     return str(steering_dir.relative_to(repo_root))
+
+
+def detect_candidate_dir(repo_root: Path, iteration_abs: Path) -> str | None:
+    """Return the staged candidate directory when iteration candidates exist."""
+    candidates_dir = iteration_abs / "candidates"
+    if not candidates_dir.is_dir():
+        return None
+    if not any(candidates_dir.iterdir()):
+        return None
+    return str(candidates_dir.relative_to(repo_root))
+
+
+def detect_candidate_manifest(repo_root: Path, iteration_abs: Path) -> str | None:
+    """Return the candidate manifest path for an iteration, if present."""
+    candidates_dir = iteration_abs / "candidates"
+    if not candidates_dir.is_dir():
+        return None
+    candidates = (
+        candidates_dir / "candidates.json",
+        candidates_dir / "candidate-manifest.json",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate.relative_to(repo_root))
+    return None
 
 
 def prompt_name_for(path: str | Path) -> str:
@@ -106,6 +132,8 @@ def artifact_defaults(workspace_rel: str, source_snapshot_rel: str) -> dict[str,
         "val_dataset": None,
         "eval_manifest": None,
         "optimize_report": None,
+        "candidate_dir": None,
+        "candidate_manifest": None,
         "latest_steering_turn": None,
         "steering_summary_dir": None,
         "validation_log": None,
@@ -117,7 +145,8 @@ def artifact_contract() -> dict[str, str]:
     return {
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
-        "iterations": "Write research, synthesize, optimize, election, steering, and validation outputs under iterations/iteration-N/.",
+        "iterations": "Write research, synthesize, optimize, election, candidates, steering, and validation outputs under iterations/iteration-N/.",
+        "candidates": "Stage original, student, and adversary prompt candidates under iterations/iteration-N/candidates/<source>/ together with candidate descriptions, predicted judge responses, and reflection artifacts before judge review or election.",
         "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }
@@ -173,6 +202,8 @@ def update_workspace(
     val_dataset: str | None,
     eval_manifest: str | None,
     optimize_report: str | None,
+    candidate_dir: str | None,
+    candidate_manifest: str | None,
     latest_steering_turn: str | None,
     steering_summary_dir: str | None,
     validation_log: str | None,
@@ -209,6 +240,8 @@ def update_workspace(
         "val_dataset": val_dataset,
         "eval_manifest": eval_manifest,
         "optimize_report": optimize_report,
+        "candidate_dir": candidate_dir,
+        "candidate_manifest": candidate_manifest,
         "latest_steering_turn": latest_steering_turn,
         "steering_summary_dir": steering_summary_dir,
         "validation_log": validation_log,
@@ -222,11 +255,21 @@ def update_workspace(
         if create_iteration_layout:
             for name in ITERATION_SUBDIRS:
                 (iteration_abs / name).mkdir(parents=True, exist_ok=True)
+            for name in ITERATION_CANDIDATE_SUBDIRS:
+                (iteration_abs / "candidates" / name).mkdir(parents=True, exist_ok=True)
         required["latest_iteration_dir"] = str(iteration_abs.relative_to(repo_root))
         if optimize_report is None:
             detected_optimize_artifact = detect_optimize_artifact(repo_root, iteration_abs)
             if detected_optimize_artifact is not None:
                 required["optimize_report"] = detected_optimize_artifact
+        if candidate_dir is None:
+            detected_candidate_dir = detect_candidate_dir(repo_root, iteration_abs)
+            if detected_candidate_dir is not None:
+                required["candidate_dir"] = detected_candidate_dir
+        if candidate_manifest is None:
+            detected_candidate_manifest = detect_candidate_manifest(repo_root, iteration_abs)
+            if detected_candidate_manifest is not None:
+                required["candidate_manifest"] = detected_candidate_manifest
         if latest_steering_turn is None:
             detected_steering_artifact = detect_latest_steering_artifact(repo_root, iteration_abs)
             if detected_steering_artifact is not None:
@@ -241,6 +284,16 @@ def update_workspace(
         detected_optimize_artifact = detect_optimize_artifact(repo_root, latest_iteration_abs)
         if detected_optimize_artifact is not None:
             required["optimize_report"] = detected_optimize_artifact
+    if required.get("latest_iteration_dir") and candidate_dir is None and required.get("candidate_dir") is None:
+        latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
+        detected_candidate_dir = detect_candidate_dir(repo_root, latest_iteration_abs)
+        if detected_candidate_dir is not None:
+            required["candidate_dir"] = detected_candidate_dir
+    if required.get("latest_iteration_dir") and candidate_manifest is None and required.get("candidate_manifest") is None:
+        latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
+        detected_candidate_manifest = detect_candidate_manifest(repo_root, latest_iteration_abs)
+        if detected_candidate_manifest is not None:
+            required["candidate_manifest"] = detected_candidate_manifest
     if required.get("latest_iteration_dir") and latest_steering_turn is None and required.get("latest_steering_turn") is None:
         latest_iteration_abs = resolve_repo_path(repo_root, required["latest_iteration_dir"])
         detected_steering_artifact = detect_latest_steering_artifact(repo_root, latest_iteration_abs)
@@ -272,6 +325,8 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--val-dataset")
     update_parser.add_argument("--eval-manifest")
     update_parser.add_argument("--optimize-report")
+    update_parser.add_argument("--candidate-dir")
+    update_parser.add_argument("--candidate-manifest")
     update_parser.add_argument("--latest-steering-turn")
     update_parser.add_argument("--steering-summary-dir")
     update_parser.add_argument("--validation-log")
@@ -300,6 +355,8 @@ def main(argv: list[str] | None = None) -> int:
             val_dataset=args.val_dataset,
             eval_manifest=args.eval_manifest,
             optimize_report=args.optimize_report,
+            candidate_dir=args.candidate_dir,
+            candidate_manifest=args.candidate_manifest,
             latest_steering_turn=args.latest_steering_turn,
             steering_summary_dir=args.steering_summary_dir,
             validation_log=args.validation_log,

@@ -378,6 +378,9 @@ class TestAgentCustomizations:
         assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/turn-N/STEERING.md` path" in text
         assert "Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle." in text
         assert "Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle." in text
+        assert "Populate `iterations/iteration-N/candidates/` with judge-ready entries for `original`, `student`, and `adversary`" in text
+        assert "If an adversary candidate wins or reveals a credible exploit, add extra steering guidance for later judge turns" in text
+        assert "If the old prompt wins, add extra steering guidance for the teacher" in text
         assert "Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime." in text
 
     def test_teacher_agent_stays_evidence_only_and_defers_orchestration(self):
@@ -1124,8 +1127,10 @@ class TestHookCustomization:
             status_payload = json.loads(status_path.read_text(encoding="utf-8"))
             assert status_payload["workflow_state"] == "pending_engineer_prompt"
             assert status_payload["required_artifacts"]["source_snapshot"].endswith("inputs/source/SKILL.md")
+            assert "candidate descriptions, predicted judge responses, and reflection artifacts" in status_payload["artifact_contract"]["candidates"]
             assert "iteration steering bundle" in status_payload["artifact_contract"]["steering"]
             assert "cross-run rollup steering bundle" in status_payload["artifact_contract"]["steering"]
+            assert status_payload["required_artifacts"]["candidate_dir"] is None
             assert status_payload["required_artifacts"]["steering_summary_dir"] is None
             assert "Do not write trainer output into Judge-owned files" in status_payload["notes"]
 
@@ -1135,6 +1140,9 @@ class TestHookCustomization:
             manual_followup_path = workspace_root / "iterations" / "iteration-1" / "optimize" / "manual-followup-report.json"
             manual_followup_path.parent.mkdir(parents=True, exist_ok=True)
             manual_followup_path.write_text("{}\n", encoding="utf-8")
+            candidate_manifest_path = workspace_root / "iterations" / "iteration-1" / "candidates" / "candidates.json"
+            candidate_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            candidate_manifest_path.write_text("{}\n", encoding="utf-8")
             steering_turn_path = workspace_root / "iterations" / "iteration-1" / "steering" / "teacher" / "turn-2" / "STEERING.md"
             steering_turn_path.parent.mkdir(parents=True, exist_ok=True)
             steering_turn_path.write_text("# Steering\n", encoding="utf-8")
@@ -1171,6 +1179,10 @@ class TestHookCustomization:
             assert (workspace_root / "iterations" / "iteration-1" / "synthesize").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "optimize").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "election").is_dir()
+            assert (workspace_root / "iterations" / "iteration-1" / "candidates").is_dir()
+            assert (workspace_root / "iterations" / "iteration-1" / "candidates" / "original").is_dir()
+            assert (workspace_root / "iterations" / "iteration-1" / "candidates" / "student").is_dir()
+            assert (workspace_root / "iterations" / "iteration-1" / "candidates" / "adversary").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "steering").is_dir()
             assert (workspace_root / "iterations" / "iteration-1" / "validation").is_dir()
 
@@ -1179,6 +1191,8 @@ class TestHookCustomization:
             assert updated_status["required_artifacts"]["latest_iteration_dir"].endswith("iterations/iteration-1")
             assert updated_status["required_artifacts"]["train_dataset"].endswith("inputs/train.jsonl")
             assert updated_status["required_artifacts"]["optimize_report"].endswith("iterations/iteration-1/optimize/manual-followup-report.json")
+            assert updated_status["required_artifacts"]["candidate_dir"].endswith("iterations/iteration-1/candidates")
+            assert updated_status["required_artifacts"]["candidate_manifest"].endswith("iterations/iteration-1/candidates/candidates.json")
             assert updated_status["required_artifacts"]["latest_steering_turn"].endswith("iterations/iteration-1/steering/teacher/turn-2/STEERING.md")
             assert updated_status["required_artifacts"]["steering_summary_dir"].endswith("iterations/iteration-1/steering")
             assert updated_status["required_artifacts"]["validation_log"].endswith("iterations/iteration-1/validation/pytest.txt")
@@ -1215,6 +1229,7 @@ class TestHookCustomization:
             assert payload["continue"] is True
             assert "/engineer-prompt" in payload["systemMessage"]
             assert "@trainer" in payload["systemMessage"]
+            assert "candidates/<source>/" in payload["systemMessage"]
             assert workspace_root.is_dir()
             assert status_path.is_file()
 
@@ -1380,8 +1395,9 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should require keeping workflow-status.json and iteration directories "
             "current so the workflow can checkpoint interrupted training runs."
         )
+        assert "staged `candidates/<source>/` entries" in text
         assert "`steering/<agent>/turn-N/STEERING.md` artifacts and per-agent `steering/<agent>/summary.md` files" in text
-        assert "upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, steering, and validation outputs" in text, (
+        assert "upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, candidates, steering, and validation outputs" in text, (
             "train-prompt.md guardrails should explicitly preserve stage outputs for GitHub artifact uploads."
         )
 

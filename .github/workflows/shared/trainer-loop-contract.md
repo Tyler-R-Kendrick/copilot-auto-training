@@ -26,6 +26,7 @@ Use the repository trainer loop for the selected target without relying on repo-
    - `synthesize/`
    - `optimize/`
    - `election/`
+   - `candidates/`
    - `steering/`
    - `validation/`
 10. Keep `required_artifacts` updated for:
@@ -36,6 +37,8 @@ Use the repository trainer loop for the selected target without relying on repo-
     - `val_dataset`
     - `eval_manifest`
     - `optimize_report`
+    - `candidate_dir`
+    - `candidate_manifest`
     - `latest_steering_turn`
     - `steering_summary_dir`
     - `validation_log`
@@ -52,15 +55,16 @@ Use the repository trainer loop for the selected target without relying on repo-
 5. When required support data is missing, the default stage order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize`.
 6. Require at least one `trainer-optimize` pass for the selected target.
 7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
-8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, `steering/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
+8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, `candidates/`, `steering/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
 
 ## Collaboration Contract
 
 1. The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work.
 2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next.
 3. The `student` agent applies targeted revisions when the trainer requests implementation help.
-4. The `adversary` agent stress-tests pending changes before finalization.
-5. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
+4. The `adversary` agent stress-tests pending changes before finalization by generating several distinct exploit or judge-gaming approaches, plus candidate descriptions for each approach, rather than only reporting a single failure mode.
+5. The adversary should model the judge's likely response to each candidate, recursively reflect on that forecast, and persist intermediary artifacts for each reflection turn until it converges on the strongest exploit attempt or exhausts the search.
+6. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
 
 ## Judge Steering Contract
 
@@ -70,7 +74,11 @@ Use the repository trainer loop for the selected target without relying on repo-
 4. Keep rolling steering summaries under `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/summary.md` so each agent has an iteration-local summary for that prompt workspace.
 5. Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle.
 6. Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
-7. Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime.
+7. Populate `iterations/iteration-N/candidates/` with judge-ready entries for `original`, `student`, and `adversary`, including the original prompt, revised prompt candidates, candidate descriptions, predicted judge responses, and reflection artifacts.
+8. Treat `required_artifacts.candidate_dir` and `required_artifacts.candidate_manifest` as the canonical handoff for the staged judge candidate set when they are present.
+9. If an adversary candidate wins or reveals a credible exploit, add extra steering guidance for later judge turns that explicitly blocks the newly identified exploit pattern.
+10. If the old prompt wins, add extra steering guidance for the teacher that explains why the revised candidates regressed and what the student should learn before the next revision.
+11. Judge agents and judge skills must read those steering bundles as external, read-only inputs at runtime.
 
 ## Dataset And Judge Mode Rules
 
@@ -85,4 +93,5 @@ Use the repository trainer loop for the selected target without relying on repo-
 1. Store optimizer outputs under `iterations/iteration-N/optimize/`.
 2. For a normal optimize run, keep `optimized-prompt.md` and `optimize-report.json` together.
 3. If optimize returns `mode=manual_followup`, save the JSON payload as `manual-followup-report.json`, answer the returned `model_prompt` yourself, save that answer as `optimized-prompt.md`, and continue using that candidate for the rest of the workflow.
-4. Persist the chosen optimized content back to the selected source file only when the candidate is defensible and validation passes.
+4. Before judge review or election, stage the original prompt, the strongest student candidate, and the strongest adversary candidate under `candidates/original/`, `candidates/student/`, and `candidates/adversary/`.
+5. Persist the chosen optimized content back to the selected source file only when the candidate is defensible and validation passes.

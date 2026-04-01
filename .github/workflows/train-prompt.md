@@ -101,16 +101,18 @@ Select exactly one prompt-like source file in this repository, run the repositor
       - `optimize/optimized-prompt.md` exists → optimize stage complete.
       - `validation/pytest.txt` exists → validation stage complete.
    c. Resume from the first incomplete stage (research → synthesize → optimize → validation → pull request) without creating a new `iterations/iteration-N/` directory.
-   d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails, including any `steering/<agent>/turn-N/STEERING.md` artifacts and per-agent `steering/<agent>/summary.md` files inside the active iteration.
+    d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails, including any staged `candidates/<source>/` entries, `steering/<agent>/turn-N/STEERING.md` artifacts, and per-agent `steering/<agent>/summary.md` files inside the active iteration.
 5. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
 6. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
 7. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
-8. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-9. Keep the change set tightly scoped to:
-   - the selected prompt-like file
-   - its local `.trainer-workspace/<prompt-name>/` artifacts
-   - directly related supporting prompt-evaluation assets created by the trainer loop
-10. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
+8. Ensure the active iteration stages the original prompt, the strongest student candidate, and the strongest adversary candidate under `candidates/original/`, `candidates/student/`, and `candidates/adversary/`, along with candidate descriptions, predicted judge responses, and reflection artifacts that the judge can inspect.
+9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
+10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
+11. Keep the change set tightly scoped to:
+    - the selected prompt-like file
+    - its local `.trainer-workspace/<prompt-name>/` artifacts
+    - directly related supporting prompt-evaluation assets created by the trainer loop
+12. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
 
 ## Validation
 
@@ -140,6 +142,6 @@ Select exactly one prompt-like source file in this repository, run the repositor
 
 - Use the configured `agent-skills` MCP server deliberately: discover the relevant trainer skills before running them.
 - Preserve the imported trainer loop contract for workspace layout, artifact names, and state transitions.
-- Keep stage artifacts organized so the workflow can upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, steering, and validation outputs.
+- Keep stage artifacts organized so the workflow can upload separate GitHub artifact checkpoints for workspace state plus research, synthesize, optimize, election, candidates, steering, and validation outputs.
 - Keep the workflow deterministic: select one target, perform one trainer loop, and produce one pull request at most.
 - Do not guess missing datasets when the trainer contract requires research or synthesis first.
