@@ -42,7 +42,7 @@ Use the repository trainer loop for the selected target without relying on repo-
 
 ## Skill Execution Contract
 
-1. Use the `agent-skills` MCP server as the execution path for the `trainer-*` skills.
+1. The `trainer` agent uses the `agent-skills` MCP server as the execution path for the `trainer-*` skills.
 2. Before each stage, call `find_agent_skill` to locate the exact skill.
 3. Call `load_agent_skill` before first use of a stage and again if the stage context changes materially.
 4. Call `run_agent_skill` to execute the chosen stage.
@@ -50,6 +50,13 @@ Use the repository trainer loop for the selected target without relying on repo-
 6. Require at least one `trainer-optimize` pass for the selected target.
 7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
 8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
+
+## Collaboration Contract
+
+1. The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work.
+2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next.
+3. The `student` agent applies targeted revisions when the trainer requests implementation help.
+4. The `adversary` agent stress-tests pending changes before finalization.
 
 ## Judge Steering Contract
 
