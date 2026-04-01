@@ -60,11 +60,11 @@ Use the repository trainer loop for the selected target without relying on repo-
 ## Collaboration Contract
 
 1. The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work.
-2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next.
-3. The `student` agent applies targeted revisions when the trainer requests implementation help.
-4. The `adversary` agent stress-tests pending changes before finalization by generating several distinct exploit or judge-gaming approaches, plus candidate descriptions for each approach, rather than only reporting a single failure mode.
-5. The adversary should model the judge's likely response to each candidate, recursively reflect on that forecast, and persist per-turn artifacts such as `candidate.md`, `description.md`, `predicted-judge-response.md`, and `reflection.md` alongside the staged candidate until it converges on the strongest exploit attempt or exhausts the search.
-6. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
+2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next, and must forecast likely student mistakes itself before using any student handoff.
+3. The `student` agent applies targeted revisions when the trainer requests implementation help, then returns the reasoning trajectory, plan, and justification behind the chosen response.
+4. The `adversary` agent stress-tests pending changes before finalization by generating several distinct exploit or judge-gaming artifacts intended to trick the judge, rather than only reporting a single failure mode.
+5. The adversary should model the judge's likely response to each exploit candidate, recursively reflect on that forecast, and persist per-turn exploit artifacts such as `candidate.md`, `description.md`, `predicted-judge-response.md`, and `reflection.md` alongside the staged candidate until it converges on the strongest exploit attempt or exhausts the search.
+6. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop, but within a teacher turn the teacher should finalize steering first and use any student handoff only at the end to elicit a concrete response or solution. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
 
 ## Judge Steering Contract
 
@@ -74,7 +74,7 @@ Use the repository trainer loop for the selected target without relying on repo-
 4. Keep rolling steering summaries under `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/summary.md` so each agent has an iteration-local summary for that prompt workspace.
 5. Treat `required_artifacts.latest_iteration_dir` plus the active iteration's `steering/`, `optimize/`, `election/`, and `validation/` outputs as the iteration steering bundle.
 6. Treat workspace-root `decision.md`, optional `benchmark.json`, `benchmark.md`, and `review.html` as the cross-run rollup steering bundle.
-7. Populate `iterations/iteration-N/candidates/` with judge-ready entries for `original`, `student`, and `adversary`, where each entry contains the prompt candidate plus companion artifacts such as `description.md`, `predicted-judge-response.md`, and `reflection.md`.
+7. Populate `iterations/iteration-N/candidates/` with judge-ready entries for `original`, `student`, and `adversary`, where each entry contains the staged candidate plus companion artifacts such as `description.md`, `predicted-judge-response.md`, and `reflection.md`; adversary entries should represent concrete exploit attempts rather than risk summaries.
 8. Treat `required_artifacts.candidate_dir` and `required_artifacts.candidate_manifest` as the canonical handoff for the staged judge candidate set when they are present. Prefer `candidates.json` as the manifest filename, and have it map each candidate source to its prompt artifact, description artifact, predicted judge response artifact, reflection artifact, and any selection notes.
 9. If an adversary candidate wins or reveals a credible exploit, add extra steering guidance for later judge turns that explicitly blocks the newly identified exploit pattern.
    - Treat an exploit as credible when the adversary predicts the judge would rank it at or above the strongest student candidate.
