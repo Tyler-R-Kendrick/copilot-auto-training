@@ -156,9 +156,9 @@ class TestAgentCustomizations:
         assert 'agent' in frontmatter
         assert 'agent/runSubagent' in frontmatter
         assert 'agents: ["student", "engineer", "judge"]' in text
-        assert '- label: "Request Student Forecast"' in text
         assert '- label: "Request Engineer Guidance"' in text
         assert '- label: "Request Judge Review"' in text
+        assert '- label: "Request Student Response"' in text
         assert 'edit' not in frontmatter
         assert 'execute' not in frontmatter
         assert 'todo' not in frontmatter
@@ -166,7 +166,7 @@ class TestAgentCustomizations:
         assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`.' in text
         assert 'Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing.' in text
         assert 'Treat any supplied workspace steering as read-only evidence.' in text
-        assert 'Use the `student` handoff to pressure-test whether the current steering is specific enough to produce a better revision' in text
+        assert 'Forecast likely student mistakes yourself before you ask the `student` for anything.' in text
         assert '`optimize-report.json`' in text
         assert '`manual-followup-report.json`' in text
         assert '`optimized-prompt.md`' in text
@@ -178,7 +178,7 @@ class TestAgentCustomizations:
         text = _read(agent_path)
 
         assert 'name: "student"' in text
-        assert 'description: "Use when drafting or revising prompt candidates from teacher guidance inside trainer-led optimization loops."' in text
+        assert 'description: "Use when drafting or revising prompt candidates from teacher guidance inside trainer-led optimization loops, with explicit reasoning trajectory for the teacher."' in text
         assert 'tools:' in text
         assert 'read' in text
         assert 'edit' in text
@@ -193,22 +193,26 @@ class TestAgentCustomizations:
         assert 'Do not use `engineer-prompt`, `engineer-code`, or any other engineer skills directly.' in text
         assert 'You are a specialist in teacher-guided candidate revision.' in text
         assert 'Use the `teacher` handoff whenever the critique is incomplete' in text
-        assert 'You may use the `engineer` handoff as another teacher-like source of guidance' in text
+        assert 'Use the `engineer` handoff to format your reasoning trajectory and solution plan into a clearer teacher-ready explanation' in text
         assert 'Implement the smallest defensible candidate revision' in text
         assert "Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration's per-agent `steering/<agent>/summary.md` files as the guidance record" in text
         assert 'pre-emptively predict whether the `teacher` would approve the revision' in text
+        assert 'Do not return answer-only output; expose the plan, reasoning trajectory, tradeoffs, and uncertainty' in text
+        assert 'chain-of-thought, tree-of-thought, chain-of-uncertainty-thought, sketch-of-thought' in text
 
     def test_adversary_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"
         text = _read(agent_path)
 
         assert 'name: "adversary"' in text
-        assert 'description: "Use when stress-testing prompt, dataset, or evaluator changes for failure modes before finalization."' in text
+        assert 'description: "Use when stress-testing prompt, dataset, or evaluator changes by producing exploit artifacts intended to trick the judge before finalization."' in text
         assert 'tools: [read, search]' in text
         assert 'user-invocable: true' in text
         assert 'DO NOT edit files.' in text
         assert 'DO NOT rerun the full optimization loop yourself.' in text
-        assert 'Report the highest-risk failure mode first' in text
+        assert 'build artifact-ready exploit attempts and judge-gaming candidates' in text
+        assert '`candidate.md`' in text
+        assert '`predicted-judge-response.md`' in text
         assert 'hidden assumptions' in text
         assert 'unsupported workflow behavior' in text
 
@@ -225,6 +229,7 @@ class TestAgentCustomizations:
         assert 'todo' in text
         assert 'agent-skills/*' in text
         assert 'Use when writing, benchmarking, or improving LLM/ML prompt and context systems' in text
+        assert 'formatting student reasoning and solution plans for teacher review' in text
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-prompt` skill' in text
         assert 'Use the `agent-skills` MCP server as the execution path for the `engineer-code` skill' in text
         assert 'Call `find_agent_skill` to discover the exact `engineer-prompt` skill before doing prompt-engineering work.' in text
@@ -348,15 +353,15 @@ class TestAgentCustomizations:
         frontmatter = text[:frontmatter_end]
 
         handoffs_idx = frontmatter.index('handoffs:')
-        student_idx = frontmatter.index('- label: "Request Student Forecast"')
-        student_agent_idx = frontmatter.index('agent: "student"', student_idx)
         engineer_idx = frontmatter.index('- label: "Request Engineer Guidance"')
         engineer_agent_idx = frontmatter.index('agent: "engineer"', engineer_idx)
         judge_idx = frontmatter.index('- label: "Request Judge Review"')
         judge_agent_idx = frontmatter.index('agent: "judge"', judge_idx)
+        student_idx = frontmatter.index('- label: "Request Student Response"')
+        student_agent_idx = frontmatter.index('agent: "student"', student_idx)
 
         assert 'agents: ["student", "engineer", "judge"]' in frontmatter
-        assert handoffs_idx < student_idx < student_agent_idx < engineer_idx < engineer_agent_idx < judge_idx < judge_agent_idx
+        assert handoffs_idx < engineer_idx < engineer_agent_idx < judge_idx < judge_agent_idx < student_idx < student_agent_idx
 
     def test_trainer_agent_optimize_contract_matches_single_shot_runtime(self):
         agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -371,8 +376,8 @@ class TestAgentCustomizations:
         assert "## Judge Steering Contract" in text
         assert "## Collaboration Contract" in text
         assert "The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work." in text
-        assert "The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next." in text
-        assert "The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop" in text
+        assert "The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next, and must forecast likely student mistakes itself before using any student handoff." in text
+        assert "The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop, but within a teacher turn the teacher should finalize steering first and use any student handoff only at the end to elicit a concrete response or solution." in text
         assert "Keep Judge-owned agent files, skill contracts, scripts, templates, and local references (including any `references/` trees) immutable during trainer runs." in text
         assert "When the selected target is not `.github/agents/judge.agent.md`, do not write trainer output into `.github/agents/judge.agent.md`, `skills/judge-*/`, or any path under `.github/agents/.trainer-workspace/judge.agent/`." in text
         assert "Publish iteration-scoped steering under the selected target's local `.trainer-workspace/<prompt-name>/iterations/iteration-N/steering/<agent>/turn-N/STEERING.md` path" in text
@@ -390,7 +395,7 @@ class TestAgentCustomizations:
         assert "Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing." in text
         assert "Treat any supplied workspace steering as read-only evidence." in text
         assert "DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself." in text
-        assert "predict how the `student` would respond" in text
+        assert "forecast how the `student` would likely misunderstand" in text
 
     def test_trainer_agent_missing_data_flow_runs_research_before_optimize(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
