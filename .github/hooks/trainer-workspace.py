@@ -69,13 +69,13 @@ def detect_candidate_manifest(repo_root: Path, iteration_abs: Path) -> str | Non
     candidates_dir = iteration_abs / "candidates"
     if not candidates_dir.is_dir():
         return None
-    candidates = (
+    potential_manifest_files = (
         candidates_dir / "candidates.json",
         candidates_dir / "candidate-manifest.json",
     )
-    for candidate in candidates:
-        if candidate.is_file():
-            return str(candidate.relative_to(repo_root))
+    for manifest_path in potential_manifest_files:
+        if manifest_path.is_file():
+            return str(manifest_path.relative_to(repo_root))
     return None
 
 
@@ -146,7 +146,7 @@ def artifact_contract() -> dict[str, str]:
         "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
         "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
         "iterations": "Write research, synthesize, optimize, election, candidates, steering, and validation outputs under iterations/iteration-N/.",
-        "candidates": "Stage original, student, and adversary prompt candidates under iterations/iteration-N/candidates/<source>/ together with candidate descriptions, predicted judge responses, and reflection artifacts before judge review or election.",
+        "candidates": "Stage original, student, and adversary prompt candidates under iterations/iteration-N/candidates/<source>/ together with candidate descriptions, predicted judge responses, and reflection artifacts, plus a preferred candidates.json manifest, before judge review or election.",
         "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
         "decision": "Summarize the winning prompt decision and validation outcome in decision.md.",
     }

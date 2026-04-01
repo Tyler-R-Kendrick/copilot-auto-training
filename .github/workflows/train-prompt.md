@@ -101,7 +101,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
       - `optimize/optimized-prompt.md` exists → optimize stage complete.
       - `validation/pytest.txt` exists → validation stage complete.
    c. Resume from the first incomplete stage (research → synthesize → optimize → validation → pull request) without creating a new `iterations/iteration-N/` directory.
-    d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails, including any staged `candidates/<source>/` entries, `steering/<agent>/turn-N/STEERING.md` artifacts, and per-agent `steering/<agent>/summary.md` files inside the active iteration.
+    d. Keep `workflow-status.json`, `required_artifacts`, and the active iteration directories current after each stage so the workflow can upload GitHub artifact checkpoints even when a later stage fails, including any staged `candidates/<source>/` entries plus `steering/<agent>/turn-N/STEERING.md` artifacts and per-agent `steering/<agent>/summary.md` files inside the active iteration.
 5. Run the repository's trainer loop for the selected file by following the imported trainer loop contract and by using the configured `agent-skills` MCP server.
 6. Use the trainer loop exactly for the selected target. Do not scatter artifacts into repo-root `*-workspace` directories. Keep them under the selected local `.trainer-workspace/<prompt-name>/` tree.
 7. Allow the trainer loop to decide whether research, synthesis, optimize, and election are needed, but require at least one optimize pass for the selected target.
