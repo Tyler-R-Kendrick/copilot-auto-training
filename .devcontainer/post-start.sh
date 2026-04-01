@@ -88,7 +88,9 @@ if command -v uv >/dev/null 2>&1; then
 fi
 
 if command -v gh >/dev/null 2>&1; then
-    if ! gh extension list 2>/dev/null | awk '{print $1}' | grep -Eq '(^|/)gh-aw$'; then
+    if gh extension list 2>/dev/null | awk '{print $1}' | grep -Eq '(^|/)gh-aw$'; then
+        gh extension upgrade gh-aw
+    else
         gh extension install github/gh-aw
     fi
 fi
