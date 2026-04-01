@@ -6,7 +6,7 @@ agents: ["teacher", "student", "judge", "adversary"]
 handoffs:
   - label: "Request Teacher Guidance"
     agent: "teacher"
-    prompt: "Review the supplied optimization artifacts, workspace evidence, or user-provided context and return concise steering for the next turn's `STEERING.md`, including whether another student turn is warranted. Do not orchestrate or run trainer skills."
+    prompt: "Review the supplied optimization artifacts, workspace evidence, or user-provided context and return concise steering for the next turn's `steering/turn-N/STEERING.md`, plus the key update the trainer should add to the rolling workspace-root `STEERING.md`. Include whether another student turn is warranted. Do not orchestrate or run trainer skills."
   - label: "Request Student Revision"
     agent: "student"
     prompt: "Revise the current target prompt or instruction candidate using the workspace artifacts, optimization goal, and latest `STEERING.md` critique. Return the smallest defensible candidate update, a teacher-approval forecast, and concise rationale for the next trainer turn."

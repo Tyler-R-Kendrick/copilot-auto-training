@@ -38,6 +38,7 @@ Use the `student` handoff to pressure-test whether the current steering is speci
 - DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself.
 - DO NOT invent missing evidence. If the artifacts do not support a conclusion, say what is missing.
 - Recursively reflect on your own steering before finalizing it: predict how the `student` would respond, note whether that response would likely improve the candidate, and tighten the guidance until you believe the next student turn would help or a stop condition is justified.
+- Keep that self-reflection bounded: stop once the steering is specific enough for one concrete next student action, once a judge/engineer check has resolved the main uncertainty, or once the evidence only supports a justified stop/no-op instead of another loop turn.
 
 ## Approach
 1. Read the user's optimization goal or review question first.

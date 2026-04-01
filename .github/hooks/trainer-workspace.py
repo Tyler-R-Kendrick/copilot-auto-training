@@ -33,6 +33,7 @@ def detect_optimize_artifact(repo_root: Path, iteration_abs: Path) -> str | None
 
 
 def detect_latest_steering_artifact(repo_root: Path, iteration_abs: Path) -> str | None:
+    """Return the newest turn-scoped STEERING.md path for an iteration, if present."""
     steering_dir = iteration_abs / "steering"
     if not steering_dir.is_dir():
         return None
