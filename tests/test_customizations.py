@@ -1461,6 +1461,11 @@ class TestTrainPromptWorkflow:
     def _lock_text(self) -> str:
         return _read(self.WORKFLOW_LOCK)
 
+    def _lock_yaml(self) -> dict:
+        parsed = yaml.safe_load(self._lock_text())
+        assert isinstance(parsed, dict), "Expected train-prompt.lock.yml to parse as a YAML mapping"
+        return parsed
+
     def test_workflow_source_exists(self):
         assert self.WORKFLOW_MD.is_file(), f"train-prompt.md not found: {self.WORKFLOW_MD}"
 
@@ -1657,9 +1662,11 @@ class TestTrainPromptWorkflow:
             "the COPILOT_GITHUB_TOKEN fallback even if some auxiliary reporting steps use "
             "the default GH_AW_GITHUB_TOKEN || GITHUB_TOKEN fallback."
         )
-        safe_outputs_block = text.split("- name: Process Safe Outputs", 1)[1]
-        safe_outputs_block = safe_outputs_block.split("- name: Upload Safe Output Items", 1)[0]
-        assert "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in safe_outputs_block, (
+        safe_outputs_steps = self._lock_yaml()["jobs"]["safe_outputs"]["steps"]
+        process_safe_outputs = next(
+            step for step in safe_outputs_steps if step.get("name") == "Process Safe Outputs"
+        )
+        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "
             "back to a token that cannot open pull requests."
