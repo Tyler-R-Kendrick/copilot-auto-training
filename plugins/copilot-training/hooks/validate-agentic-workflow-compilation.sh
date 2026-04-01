@@ -1,0 +1,1 @@
+../../../.github/hooks/validate-agentic-workflow-compilation.sh

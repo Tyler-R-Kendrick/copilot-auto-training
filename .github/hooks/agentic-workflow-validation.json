@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "command": "bash .github/hooks/validate-agentic-workflow-compilation.sh --enforce",
+        "timeout": 15
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "command": "bash .github/hooks/validate-agentic-workflow-compilation.sh",
+        "timeout": 15
+      }
+    ]
+  }
+}
