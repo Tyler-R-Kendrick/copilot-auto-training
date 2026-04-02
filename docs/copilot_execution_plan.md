@@ -26,19 +26,19 @@ COPILOT_INFERENCE_MODE=local_cli
 COPILOT_MODEL=default
 ```
 
-The runtime then looks for a signed-in Copilot CLI:
+The runtime initializes the Python Copilot SDK and uses the logged-in Copilot user session managed by that SDK.
 
-1. `COPILOT_INFERENCE_COMMAND` when explicitly provided
-2. a bundled CLI path when `COPILOT_INFERENCE_MODE=bundled_cli`
-3. `copilot` on `PATH`
+- `COPILOT_INFERENCE_MODE=local_cli` uses the default SDK subprocess transport with the signed-in user session.
+- `COPILOT_INFERENCE_MODE=bundled_cli` points the SDK at `COPILOT_BUNDLED_CLI_PATH`.
+- `COPILOT_INFERENCE_MODE=oauth` still uses the SDK's logged-in user path instead of provider API keys.
 
 No provider API key fields are used for this mode. If `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, or similar provider secrets are present, the Copilot provider fails fast so the run stays keyless.
 
 ## Supported environments
 
-- Local CLI mode: the `copilot` executable is installed and already signed in
-- Bundled CLI mode: a repo-managed or external Copilot CLI is supplied through `COPILOT_BUNDLED_CLI_PATH`
-- OAuth mode: reserved for signed-in Copilot runtimes that expose the same local CLI contract
+- Local SDK mode: the Python Copilot SDK can reach the signed-in Copilot runtime for the current user
+- Bundled SDK mode: the SDK is pointed at a bundled Copilot runtime through `COPILOT_BUNDLED_CLI_PATH`
+- OAuth mode: the provider still routes through the SDK and uses the logged-in session flow rather than provider keys
 
 ## Runtime shape
 
@@ -50,7 +50,8 @@ run_optimize.py / train.py
   -> config.create_openai_client()
   -> training.lightning_integration.ProviderBackedOpenAIClient
   -> inference.copilot_provider.CopilotInferenceProvider
-  -> signed-in Copilot CLI
+  -> GitHub Copilot SDK
+  -> signed-in Copilot session
 ```
 
 `ProviderBackedOpenAIClient` preserves the minimal OpenAI-compatible methods used by the current optimizer:
@@ -64,10 +65,10 @@ That keeps Agent Lightning integration pluggable without changing the optimizati
 ## Session management
 
 - Episode/session IDs can be passed through request metadata.
-- The Copilot provider keeps per-session message history.
+- The Copilot provider keeps one SDK session per episode/session ID.
 - Calling `reset_session(session_id)` clears state at episode boundaries.
 
-The existing optimizer mostly uses single-message prompt execution, so session history matters most for future multi-turn integrations and the optional local adapter service.
+The existing optimizer mostly uses single-message prompt execution, so the SDK session mapping matters most for future multi-turn integrations and the optional local adapter service.
 
 ## Reliability controls
 
@@ -128,8 +129,8 @@ and forwards requests into the same Copilot-backed provider.
 
 ## Current limitations
 
-- The repository does not bundle a Copilot CLI binary; local or bundled runtime setup is still required.
-- The exact CLI command can vary by environment, so `COPILOT_INFERENCE_COMMAND` is the escape hatch when the default `copilot chat --json --stdio` contract is not correct.
+- The current implementation now depends on `github-copilot-sdk` and assumes the signed-in Copilot runtime that the SDK talks to is available.
+- The SDK still depends on the logged-in Copilot user session, so environments without that session will fail fast.
 - Legacy OpenAI and GitHub Models support remains in the repo for backward compatibility; Copilot mode is the keyless path, not a destructive removal of the old providers.
 
 ## Future provider switching

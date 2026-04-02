@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
 import types
 
@@ -62,12 +61,8 @@ class TestCopilotConfig:
             "INFERENCE_PROVIDER=github_copilot",
             "COPILOT_INFERENCE_MODE=local_cli",
             "COPILOT_MODEL=default",
-            "COPILOT_INFERENCE_COMMAND=fake-copilot --json",
         )
-        monkeypatch.setattr(
-            "inference.copilot_provider.CopilotInferenceProvider._resolve_command",
-            lambda self: ("fake-copilot", "--json"),
-        )
+        monkeypatch.setattr("inference.copilot_provider.CopilotInferenceProvider._init_client", lambda self: object())
 
         client, settings = optimize_config.create_openai_client(str(prompt_path))
 
@@ -76,34 +71,60 @@ class TestCopilotConfig:
 
 
 class TestCopilotProvider:
+    class _FakeSDKSession:
+        def __init__(self, session_id: str | None = None):
+            self.session_id = session_id
+            self.prompts: list[str] = []
+            self.disconnected = False
+
+        async def send_and_wait(self, prompt: str, *, timeout: float):
+            self.prompts.append(prompt)
+            return types.SimpleNamespace(
+                data=types.SimpleNamespace(
+                    content=" | ".join(self.prompts),
+                    finish_reason="stop",
+                    usage={"prompt_tokens": len(self.prompts), "output_tokens": len(self.prompts) + 1},
+                )
+            )
+
+        async def disconnect(self):
+            self.disconnected = True
+
+    class _FakeSDKClient:
+        def __init__(self):
+            self.started = False
+            self.created_sessions: list[object] = []
+
+        async def start(self):
+            self.started = True
+
+        async def create_session(self, **kwargs):
+            session = TestCopilotProvider._FakeSDKSession(kwargs.get("session_id"))
+            self.created_sessions.append(session)
+            return session
+
+    @staticmethod
+    def _patch_sdk(monkeypatch, client: _FakeSDKClient | None = None):
+        fake_client = client or TestCopilotProvider._FakeSDKClient()
+        monkeypatch.setattr("inference.copilot_provider.CopilotClient", lambda *args, **kwargs: fake_client)
+        monkeypatch.setattr("inference.copilot_provider.PermissionHandler", types.SimpleNamespace(approve_all=object()))
+        monkeypatch.setattr("inference.copilot_provider.SubprocessConfig", lambda **kwargs: types.SimpleNamespace(**kwargs))
+        return fake_client
+
     def test_provider_rejects_model_provider_keys(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "secret")
 
         with pytest.raises(ValueError, match="refuses provider API keys"):
-            CopilotInferenceProvider(InferenceConfig(cli_command=("fake-copilot",)))
+            CopilotInferenceProvider(InferenceConfig())
 
     @pytest.mark.asyncio
-    async def test_generate_uses_cli_json_and_preserves_session_history(self, monkeypatch):
+    async def test_generate_uses_sdk_session_and_preserves_session_history(self, monkeypatch):
         _clear_provider_keys(monkeypatch)
         events: list[dict[str, object]] = []
-
-        class FakeProcess:
-            returncode = 0
-
-            async def communicate(self, payload: bytes):
-                body = json.loads(payload.decode("utf-8"))
-                content = [message["content"] for message in body["messages"]]
-                return json.dumps({"text": " | ".join(content), "usage": {"prompt_tokens": len(content)}}).encode(
-                    "utf-8"
-                ), b""
-
-        async def fake_exec(*args, **kwargs):
-            return FakeProcess()
-
-        monkeypatch.setattr("inference.copilot_provider.asyncio.create_subprocess_exec", fake_exec)
+        fake_client = self._patch_sdk(monkeypatch)
 
         provider = CopilotInferenceProvider(
-            InferenceConfig(cli_command=("fake-copilot", "--json")),
+            InferenceConfig(),
             logger=events.append,
         )
 
@@ -123,28 +144,31 @@ class TestCopilotProvider:
         )
 
         assert first.text == "hello"
-        assert second.text == "hello | hello | again"
+        assert second.text == "hello | again"
         assert events[-1]["status"] == "ok"
         assert events[-1]["episode_id"] == "episode-1"
+        assert fake_client.started is True
+        assert len(fake_client.created_sessions) == 1
 
     @pytest.mark.asyncio
     async def test_generate_surfaces_authentication_errors_without_retry(self, monkeypatch):
         _clear_provider_keys(monkeypatch)
         attempts = {"count": 0}
 
-        class FakeProcess:
-            returncode = 1
-
-            async def communicate(self, payload: bytes):
+        class AuthFailSession(self._FakeSDKSession):
+            async def send_and_wait(self, prompt: str, *, timeout: float):
                 attempts["count"] += 1
-                return b"", b"Please sign in to Copilot"
+                raise RuntimeError("Please sign in to Copilot")
 
-        async def fake_exec(*args, **kwargs):
-            return FakeProcess()
+        class AuthFailClient(self._FakeSDKClient):
+            async def create_session(self, **kwargs):
+                session = AuthFailSession(kwargs.get("session_id"))
+                self.created_sessions.append(session)
+                return session
 
-        monkeypatch.setattr("inference.copilot_provider.asyncio.create_subprocess_exec", fake_exec)
+        self._patch_sdk(monkeypatch, AuthFailClient())
 
-        provider = CopilotInferenceProvider(InferenceConfig(cli_command=("fake-copilot",)))
+        provider = CopilotInferenceProvider(InferenceConfig())
 
         with pytest.raises(CopilotAuthenticationError):
             await provider.generate(
@@ -156,21 +180,9 @@ class TestCopilotProvider:
     @pytest.mark.asyncio
     async def test_reset_session_clears_episode_history(self, monkeypatch):
         _clear_provider_keys(monkeypatch)
+        fake_client = self._patch_sdk(monkeypatch)
 
-        class FakeProcess:
-            returncode = 0
-
-            async def communicate(self, payload: bytes):
-                body = json.loads(payload.decode("utf-8"))
-                content = [message["content"] for message in body["messages"]]
-                return json.dumps({"text": " | ".join(content)}).encode("utf-8"), b""
-
-        async def fake_exec(*args, **kwargs):
-            return FakeProcess()
-
-        monkeypatch.setattr("inference.copilot_provider.asyncio.create_subprocess_exec", fake_exec)
-
-        provider = CopilotInferenceProvider(InferenceConfig(cli_command=("fake-copilot",)))
+        provider = CopilotInferenceProvider(InferenceConfig())
         await provider.generate(
             InferenceRequest(
                 messages=[{"role": "user", "content": "first"}],
@@ -179,6 +191,7 @@ class TestCopilotProvider:
             )
         )
         provider.reset_session("episode-2")
+        await asyncio.sleep(0)
 
         result = await provider.generate(
             InferenceRequest(
@@ -189,6 +202,21 @@ class TestCopilotProvider:
         )
 
         assert result.text == "second"
+        assert len(fake_client.created_sessions) == 2
+        assert fake_client.created_sessions[0].disconnected is True
+
+    @pytest.mark.asyncio
+    async def test_ephemeral_requests_disconnect_sdk_session(self, monkeypatch):
+        _clear_provider_keys(monkeypatch)
+        fake_client = self._patch_sdk(monkeypatch)
+
+        provider = CopilotInferenceProvider(InferenceConfig())
+        result = await provider.generate(
+            InferenceRequest(messages=[{"role": "user", "content": "hi"}], model="default")
+        )
+
+        assert result.text == "hi"
+        assert fake_client.created_sessions[0].disconnected is True
 
 
 def test_local_adapter_response_shape_matches_chat_completions():

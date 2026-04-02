@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import shlex
 from typing import Any
 
 from inference.config import InferenceConfig
@@ -77,7 +76,6 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
             "COPILOT_INFERENCE_MODE",
             "COPILOT_MODEL",
             "COPILOT_BUNDLED_CLI_PATH",
-            "COPILOT_INFERENCE_COMMAND",
         )
     )
 
@@ -134,7 +132,6 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
             "repo_root": str(repo_root),
             "copilot_mode": copilot_mode,
             "copilot_bundled_cli_path": pick("COPILOT_BUNDLED_CLI_PATH"),
-            "copilot_cli_command": pick("COPILOT_INFERENCE_COMMAND"),
         }
 
     return {
@@ -153,7 +150,6 @@ def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
 
     model_settings = resolve_model_settings(prompt_file)
     if model_settings.get("provider") == "github_copilot":
-        cli_command = model_settings.get("copilot_cli_command")
         provider_config = InferenceConfig(
             provider="github_copilot",
             mode=str(model_settings.get("copilot_mode") or "local_cli"),
@@ -161,7 +157,6 @@ def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
             bundled_cli_path=str(model_settings["copilot_bundled_cli_path"])
             if model_settings.get("copilot_bundled_cli_path")
             else None,
-            cli_command=tuple(shlex.split(cli_command)) if isinstance(cli_command, str) and cli_command.strip() else None,
         )
         return build_runtime_client(model_settings, provider_config=provider_config)
     client_kwargs: dict[str, str] = {}
