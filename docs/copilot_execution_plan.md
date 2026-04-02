@@ -129,7 +129,7 @@ and forwards requests into the same Copilot-backed provider.
 
 ## Current limitations
 
-- The current implementation now depends on `github-copilot-sdk` and assumes the signed-in Copilot runtime that the SDK talks to is available.
+- The implementation depends on `github-copilot-sdk` and assumes the signed-in Copilot runtime that the SDK talks to is available.
 - The SDK still depends on the logged-in Copilot user session, so environments without that session will fail fast.
 - Legacy OpenAI and GitHub Models support remains in the repo for backward compatibility; Copilot mode is the keyless path, not a destructive removal of the old providers.
 

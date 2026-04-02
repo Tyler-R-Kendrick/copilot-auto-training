@@ -8,6 +8,8 @@ from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
 from inference.copilot_provider import CopilotInferenceProvider
 
+CHARS_PER_TOKEN_ESTIMATE = 4
+
 
 def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
     if not usage:
@@ -31,11 +33,15 @@ def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
 
 def _estimate_tokens_from_text(text: str) -> int:
     """Fallback heuristic when the provider does not return token usage."""
-    return max(1, len(text) // 4) if text else 0
+    return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
 
 
 def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
-    return sum(_estimate_tokens_from_text(str(message.get("content", ""))) for message in messages if message.get("content"))
+    return sum(
+        _estimate_tokens_from_text(str(message["content"]))
+        for message in messages
+        if isinstance(message.get("content"), str) and message["content"]
+    )
 
 
 def _as_choice_message(text: str) -> Any:

@@ -35,6 +35,7 @@ AUTHENTICATION_ERROR_MARKERS = (
     "not authenticated",
     "login required",
 )
+PRESERVE_HISTORY_DEFAULT = True
 
 
 class CopilotInferenceError(RuntimeError):
@@ -101,6 +102,11 @@ def _extract_text_from_payload(payload: Any) -> str:
         if parts:
             return "\n".join(parts)
     raise CopilotInferenceError("Copilot SDK response did not include any text.")
+
+
+def _retry_delay_seconds(base_delay: float, attempt: int) -> float:
+    # Returns the delay for retry attempt N, starting with base_delay and doubling thereafter.
+    return base_delay * (2 ** (attempt - 1))
 
 
 class CopilotInferenceProvider:
@@ -190,7 +196,9 @@ class CopilotInferenceProvider:
         async with self._session_lock:
             existing = self._sessions.get(session_id)
             existing_model = self._session_models.get(session_id)
-            if existing is not None and existing_model == model_name and (request.metadata or {}).get("preserve_history", True):
+            if existing is not None and existing_model == model_name and (
+                request.metadata or {}
+            ).get("preserve_history", PRESERVE_HISTORY_DEFAULT):
                 return session_id, existing, False
             if existing is not None:
                 await self._disconnect_session(existing)
@@ -309,7 +317,7 @@ class CopilotInferenceProvider:
                     )
                     if isinstance(normalized, CopilotAuthenticationError) or attempt >= attempts:
                         raise normalized
-                    await asyncio.sleep(self.config.retry_backoff_seconds * (2 ** max(0, attempt - 1)))
+                    await asyncio.sleep(_retry_delay_seconds(self.config.retry_backoff_seconds, attempt))
             raise CopilotInferenceError(str(last_error) if last_error else "Copilot inference failed.")
         finally:
             if ephemeral:

@@ -158,7 +158,7 @@ class TestCopilotProvider:
         class AuthFailSession(self._FakeSDKSession):
             async def send_and_wait(self, prompt: str, *, timeout: float):
                 attempts["count"] += 1
-                raise RuntimeError("Please sign in to Copilot")
+                raise RuntimeError("please sign in to copilot")
 
         class AuthFailClient(self._FakeSDKClient):
             async def create_session(self, **kwargs):

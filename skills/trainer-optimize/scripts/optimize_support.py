@@ -339,8 +339,7 @@ async def _call_with_optional_metadata(call: Any, **kwargs: Any) -> Any:
     except TypeError as exc:
         if "metadata" not in kwargs or not _metadata_not_supported(exc):
             raise
-        fallback_kwargs = dict(kwargs)
-        fallback_kwargs.pop("metadata", None)
+        fallback_kwargs = {key: value for key, value in kwargs.items() if key != "metadata"}
         return await call(**fallback_kwargs)
 
 
@@ -351,6 +350,9 @@ async def _complete_text_with_metadata_fallback(
     *,
     metadata: dict[str, Any] | None = None,
 ) -> str:
+    # _complete_text already downgrades client calls that reject metadata, but this
+    # wrapper preserves compatibility with tests or stubs that replace _complete_text
+    # itself with a simpler signature.
     try:
         return await _complete_text(llm_client, model_name, prompt, metadata=metadata)
     except TypeError as exc:
@@ -404,6 +406,8 @@ def _extract_score(text: str) -> float:
 
 def _request_metadata(task: dict[str, Any]) -> dict[str, Any]:
     metadata = task.get("metadata") if isinstance(task.get("metadata"), dict) else {}
+    # Metadata wins over task-level fields when both are present because callers may
+    # attach per-request tracing identifiers without mutating the dataset row itself.
     episode_id = metadata.get("episode_id") or task.get("episode_id") or task.get("id") or "episode"
     step_id = metadata.get("step_id") or task.get("step_id") or "candidate"
     training_run_id = metadata.get("training_run_id") or task.get("training_run_id")

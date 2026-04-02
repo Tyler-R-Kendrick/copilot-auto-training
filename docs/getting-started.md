@@ -6,7 +6,7 @@ This guide covers installation, model configuration, the first run, and the opti
 
 - Python 3.11 or newer
 - A virtual environment for the repository
-- Either a signed-in Copilot CLI runtime or model credentials through `OPENAI_API_KEY` / GitHub Models configuration in the repository root `.env`
+- Either an authenticated Copilot session managed by the SDK or model credentials through `OPENAI_API_KEY` / GitHub Models configuration in the repository root `.env`
 - A model name through `OPENAI_MODEL`, `GITHUB_MODELS_MODEL`, or `COPILOT_MODEL`
 
 ## Install Dependencies
