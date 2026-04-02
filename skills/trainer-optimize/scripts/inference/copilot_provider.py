@@ -123,6 +123,7 @@ class CopilotInferenceProvider:
             raise CopilotInferenceError(
                 "github-copilot-sdk is required for Copilot inference. Install repository dependencies first."
             )
+        # Copilot inference is always bound to the existing signed-in user session.
         sdk_subprocess_config = SubprocessConfig(use_logged_in_user=True)
         return CopilotClient(sdk_subprocess_config, auto_start=False)
 

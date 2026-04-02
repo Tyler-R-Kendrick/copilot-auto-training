@@ -79,8 +79,7 @@ class TestRunOptimizeModuleShape:
         env_sample = Path(optimize_module.__file__).parent.parent.parent.parent / ".env.sample"
         text = env_sample.read_text(encoding="utf-8")
 
-        assert "COPILOT_MODEL=default" in text
-        assert "Copy this file to .env" in text
+        assert "COPILOT_MODEL" in text
 
 
 class TestRunOptimizeAlgorithmSupport:

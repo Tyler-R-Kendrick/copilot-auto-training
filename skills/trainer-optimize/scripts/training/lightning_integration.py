@@ -24,6 +24,7 @@ def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
 def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
     if not usage:
         return _estimate_tokens_from_text(text)
+    # Prefer completion_tokens when present; some Copilot SDK responses only expose output_tokens.
     value = usage.get("completion_tokens", usage.get("output_tokens", 0))
     try:
         return max(0, int(value))
