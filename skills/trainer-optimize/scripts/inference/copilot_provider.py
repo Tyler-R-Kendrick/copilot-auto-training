@@ -105,7 +105,7 @@ def _extract_text_from_payload(payload: Any) -> str:
 
 
 def _retry_delay_seconds(base_delay: float, attempt: int) -> float:
-    # Returns the delay for retry attempt N, starting with base_delay and doubling thereafter.
+    # attempt is 1-indexed: attempt=1 waits base_delay, then doubles on each later retry.
     return base_delay * (2 ** (attempt - 1))
 
 
@@ -141,8 +141,8 @@ class CopilotInferenceProvider:
             raise CopilotInferenceError(
                 "github-copilot-sdk is required for github_copilot inference. Install repository dependencies first."
             )
-        client_config = SubprocessConfig(use_logged_in_user=True)
-        return CopilotClient(client_config, auto_start=False)
+        sdk_subprocess_config = SubprocessConfig(use_logged_in_user=True)
+        return CopilotClient(sdk_subprocess_config, auto_start=False)
 
     async def _ensure_client_started(self) -> Any:
         async with self._client_lock:

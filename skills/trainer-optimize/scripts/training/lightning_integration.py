@@ -141,7 +141,8 @@ class ProviderBackedOpenAIClient:
         )
         prompt_tokens = _estimate_prompt_tokens(messages)
         usage = dict(result.usage or {})
-        usage.setdefault("prompt_tokens", _usage_to_prompt_tokens(result.usage) or prompt_tokens)
+        reported_prompt_tokens = _usage_to_prompt_tokens(result.usage)
+        usage.setdefault("prompt_tokens", reported_prompt_tokens or prompt_tokens)
         usage.setdefault("completion_tokens", _usage_to_completion_tokens(result.usage, result.text))
         usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
         return SimpleNamespace(

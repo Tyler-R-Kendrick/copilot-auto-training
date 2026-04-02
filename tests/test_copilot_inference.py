@@ -38,6 +38,10 @@ def _write_repo_env(tmp_path: Path, *lines: str) -> Path:
 
 
 class TestCopilotConfig:
+    class _StubSDKClient:
+        async def start(self):
+            return None
+
     def test_resolve_model_settings_supports_copilot_provider(self, tmp_path):
         prompt_path = _write_repo_env(
             tmp_path,
@@ -60,7 +64,10 @@ class TestCopilotConfig:
             "INFERENCE_PROVIDER=github_copilot",
             "COPILOT_MODEL=default",
         )
-        monkeypatch.setattr("inference.copilot_provider.CopilotInferenceProvider._init_client", lambda self: object())
+        monkeypatch.setattr(
+            "inference.copilot_provider.CopilotInferenceProvider._init_client",
+            lambda self: TestCopilotConfig._StubSDKClient(),
+        )
 
         client, settings = optimize_config.create_openai_client(str(prompt_path))
 
