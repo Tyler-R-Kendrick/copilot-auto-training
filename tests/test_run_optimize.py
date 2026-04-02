@@ -153,9 +153,7 @@ class TestCopilotConfiguration:
             )
         )
 
-        assert result["inference_model"] == "default"
-        assert result["gradient_model"] == "default"
-        assert result["apply_edit_model"] == "default"
+        assert result["model"] == "default"
 
 
 class TestRunOptimizeInputValidation:
@@ -336,9 +334,7 @@ class TestRunOptimizeManualFallback:
             lambda pf: (
                 sys.modules["openai"].AsyncOpenAI(),
                 {
-                    "inference_model": None,
-                    "gradient_model": None,
-                    "apply_edit_model": None,
+                    "model": None,
                     "repo_root": str(tmp_path),
                 },
             ),
@@ -637,9 +633,7 @@ class TestRunOptimizeNormalRun:
             "output_file",
             "report_file",
             "prompt_file_updated",
-            "inference_model",
-            "gradient_model",
-            "apply_edit_model",
+            "model",
             "iterations",
             "train_size",
             "val_size",

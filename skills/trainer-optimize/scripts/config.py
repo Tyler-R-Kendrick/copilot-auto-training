@@ -53,11 +53,9 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
             return process_value
         return default
 
-    inference_model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
+    model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
     return {
-        "inference_model": inference_model,
-        "gradient_model": inference_model,
-        "apply_edit_model": inference_model,
+        "model": model,
         "repo_root": str(repo_root),
     }
 
@@ -65,6 +63,6 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
 def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
     model_settings = resolve_model_settings(prompt_file)
     provider_config = InferenceConfig(
-        model=str(model_settings.get("inference_model") or DEFAULT_COPILOT_MODEL),
+        model=str(model_settings.get("model") or DEFAULT_COPILOT_MODEL),
     )
     return build_runtime_client(model_settings, provider_config=provider_config)

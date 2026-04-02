@@ -24,13 +24,10 @@ class _BaseAlgorithm:
     _num_candidates: int = 1
 
     def __init__(self, client, *, beam_rounds=3, beam_width=4, branch_factor=4,
-                 gradient_batch_size=4, val_batch_size=16, gradient_model=None,
-                 apply_edit_model=None, **kwargs):
+                 gradient_batch_size=4, val_batch_size=16, **kwargs):
         self.beam_rounds = beam_rounds
         self.beam_width = beam_width
         self.branch_factor = branch_factor
-        self.gradient_model = gradient_model
-        self.apply_edit_model = apply_edit_model
         self.extra_kwargs = kwargs
         self._best_prompt: _PromptTemplate | None = None
         self._candidates: list[_PromptTemplate] = []
@@ -161,10 +158,10 @@ if str(_synthesize_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_synthesize_scripts_dir))
 
 # ---------------------------------------------------------------------------
-# Ensure run_optimize always has a non-None inference_model in tests.
+# Ensure run_optimize always has a non-None model in tests.
 #
 # When no .env file or environment variables are present, resolve_model_settings
-# returns inference_model=None, which causes run_optimize to short-circuit into
+# returns model=None, which causes run_optimize to short-circuit into
 # manual_followup mode before running any optimization logic.  Tests that verify
 # the optimization path (including debug-only smoke tests) need a model name to
 # be present.  This wrapper falls back to a stub value only when the real
@@ -179,8 +176,8 @@ _real_create_openai_client = _run_optimize_module.create_openai_client
 
 def _stub_create_openai_client(prompt_file: str):
     client, settings = _real_create_openai_client(prompt_file)
-    if settings.get("inference_model") is None:
-        settings = dict(settings, inference_model="stub-model-for-tests")
+    if settings.get("model") is None:
+        settings = dict(settings, model="stub-model-for-tests")
     return client, settings
 
 

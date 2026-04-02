@@ -38,9 +38,7 @@ class TestCopilotConfig:
 
         settings = optimize_config.resolve_model_settings(str(prompt_path))
 
-        assert settings["inference_model"] == "default"
-        assert settings["gradient_model"] == "default"
-        assert settings["apply_edit_model"] == "default"
+        assert settings["model"] == "default"
 
     def test_create_openai_client_returns_provider_backed_client_for_copilot(self, tmp_path, monkeypatch):
         prompt_path = _write_repo_env(
@@ -55,7 +53,7 @@ class TestCopilotConfig:
         client, settings = optimize_config.create_openai_client(str(prompt_path))
 
         assert isinstance(client, ProviderBackedOpenAIClient)
-        assert settings["inference_model"] == "default"
+        assert settings["model"] == "default"
 
 
 class TestCopilotProvider:

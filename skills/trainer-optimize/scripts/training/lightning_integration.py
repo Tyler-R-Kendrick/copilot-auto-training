@@ -164,5 +164,5 @@ def build_runtime_client(
     provider_config: InferenceConfig,
 ) -> tuple[ProviderBackedOpenAIClient, dict[str, Any]]:
     provider = CopilotInferenceProvider(provider_config, model_settings=model_settings)
-    client = ProviderBackedOpenAIClient(provider, default_model=str(model_settings["inference_model"]))
+    client = ProviderBackedOpenAIClient(provider, default_model=str(model_settings["model"]))
     return client, model_settings

@@ -20,7 +20,7 @@ Use `evals/evals.json` to author realistic prompts, expected outputs, optional f
 
 ## Model configuration
 
-The repository root `.env` may define `COPILOT_MODEL` to select the Copilot model used for inference, gradient, and apply-edit requests.
+The repository root `.env` may define `COPILOT_MODEL` to select the single Copilot model used by the optimizer.
 
 `trainer-optimize` does not infer dataset locations and does not synthesize missing JSONL files at runtime. Provide explicit `train.jsonl` and `val.jsonl` paths before starting optimization.
 

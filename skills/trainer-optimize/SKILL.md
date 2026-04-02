@@ -60,7 +60,7 @@ Optional arguments:
 
 - Supported algorithms: `apo` and `verl`, selected through the same optimization pipeline.
 - Supported judge modes: `deterministic`, `custom`, and `llm_judge`.
-- The optimizer uses the repository root `.env` `COPILOT_MODEL` setting for inference, gradient, and apply-edit requests.
+- The optimizer uses the repository root `.env` `COPILOT_MODEL` setting as its single model configuration.
 - The runtime returns a `dashboard_url` in debug and normal JSON output. Unless `AGL_SERVER_PORT` is already set, it binds Agent Lightning to a free local port on `127.0.0.1` instead of assuming `4747`.
 - Prompt rendering uses placeholder-targeted substitution rather than whole-string Python `str.format()`. Literal JSON or other brace-heavy examples remain literal, escaped braces like `{{literal}}` stay supported, and nested placeholders such as `{input.question}` are allowed.
 - When no inference model is configured, or a live optimize run loses model access because of rate limiting or service unavailability, the runtime returns a `manual_followup` JSON payload instead of failing. That payload includes deterministic preparation results plus an agent-side inference handoff: the current `@trainer` agent can answer the returned `model_prompt`, save the result as a candidate prompt, and continue the workflow without an inference API token.
