@@ -45,14 +45,16 @@ The repository ships a coordinated set of custom agents for prompt and skill opt
 ### Skills
 
 The repo exposes reusable Agent Skills for workflow authoring, prompt engineering, judging, and trainer-loop execution.
+The skills in this repo can be added by running:
+```npx skills add Tyler-R-Kendrick/copilot-auto-training```
 
-#### Workflow Authoring
+#### Agentic Workflow Authoring
 
 | Skill | Purpose |
 | --- | --- |
 | [`create-workflow`](skills/create-workflow/README.md) | Create or update GitHub Agentic Workflows with `gh aw`, frontmatter, MCP setup, compilation, and validation guidance. |
 
-#### Repository Learning
+#### Chat-based Learning
 
 | Skill | Purpose |
 | --- | --- |
@@ -232,16 +234,16 @@ Inside the devcontainer, `.devcontainer/post-start.sh` repairs or recreates `.ve
 
 ## Quick start
 
-Run the smallest example in this repository:
+Run the smallest example in this repository through copilot chat:
 
 ```bash
-run @trainer on #:examples/first-run/prompts/classify_support.md   --debug-only
+run @trainer on #:examples/first-run/prompts/classify_support.md --debug-only
 ```
 
 Run a small optimization pass:
 
 ```bash
-run @trainer on #:examples/first-run/prompts/classify_support.md   --iterations 2   --beam-width 2   --branch-factor 2
+run @trainer on #:examples/first-run/prompts/classify_support.md --iterations 2 --beam-width 2 --branch-factor 2
 ```
 
 For the full setup, configuration, and artifact walkthrough, start with [docs/getting-started.md](docs/getting-started.md).
