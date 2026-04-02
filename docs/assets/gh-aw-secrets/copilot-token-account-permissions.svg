@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" role="img" aria-labelledby="title desc">
+  <title id="title">Fine-grained PAT for Copilot Requests</title>
+  <desc id="desc">Reference diagram showing the fine-grained personal access token settings needed for COPILOT_GITHUB_TOKEN, including resource owner, repository access, and the Copilot Requests read permission.</desc>
+  <rect width="980" height="520" fill="#0d1117"/>
+  <rect x="40" y="40" width="900" height="440" rx="16" fill="#161b22" stroke="#30363d"/>
+  <text x="70" y="94" fill="#f0f6fc" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Fine-grained PAT for COPILOT_GITHUB_TOKEN</text>
+  <text x="70" y="144" fill="#e6edf3" font-family="Arial, Helvetica, sans-serif" font-size="24">Use GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens.</text>
+  <rect x="70" y="180" width="840" height="240" rx="12" fill="#0d1117" stroke="#30363d"/>
+  <text x="96" y="222" fill="#e6edf3" font-family="Arial, Helvetica, sans-serif" font-size="22">Resource owner</text>
+  <rect x="320" y="194" width="250" height="40" rx="8" fill="#21262d" stroke="#30363d"/>
+  <text x="340" y="221" fill="#f0f6fc" font-family="Arial, Helvetica, sans-serif" font-size="20">target org or user</text>
+  <text x="96" y="274" fill="#e6edf3" font-family="Arial, Helvetica, sans-serif" font-size="22">Repository access</text>
+  <rect x="320" y="246" width="250" height="40" rx="8" fill="#21262d" stroke="#30363d"/>
+  <text x="340" y="273" fill="#f0f6fc" font-family="Arial, Helvetica, sans-serif" font-size="20">Only select repositories</text>
+  <text x="96" y="326" fill="#e6edf3" font-family="Arial, Helvetica, sans-serif" font-size="22">Account permissions</text>
+  <rect x="320" y="298" width="340" height="40" rx="8" fill="#1f6feb" stroke="#79c0ff"/>
+  <text x="340" y="325" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Copilot Requests → Read</text>
+  <text x="96" y="378" fill="#e6edf3" font-family="Arial, Helvetica, sans-serif" font-size="22">Secret name in the repository</text>
+  <rect x="320" y="350" width="340" height="40" rx="8" fill="#21262d" stroke="#30363d"/>
+  <text x="340" y="377" fill="#79c0ff" font-family="Courier New, monospace" font-size="20">COPILOT_GITHUB_TOKEN</text>
+  <text x="70" y="456" fill="#8b949e" font-family="Arial, Helvetica, sans-serif" font-size="20">This token is required because the workflow validates Copilot CLI authentication before the agent run starts.</text>
+</svg>

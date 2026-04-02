@@ -38,6 +38,87 @@ Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported 
 When these `GITHUB_MODELS_*` values are present, the optimizer treats the repository-root `.env` as the authoritative source for GitHub Models settings.
 On GitHub Models endpoints, the runtime will try the OpenAI Responses API first and automatically fall back to chat completions when the endpoint rejects that route with `404`.
 
+## Configure GitHub Agentic Workflows Secrets
+
+The reusable workflow in this repository currently validates `COPILOT_GITHUB_TOKEN` at startup and then uses these token chains. In the lists below, `→` means "falls back to the next token if the earlier one is unavailable":
+
+- Copilot engine authentication: `COPILOT_GITHUB_TOKEN`
+- GitHub MCP server access: `GH_AW_GITHUB_MCP_SERVER_TOKEN` → `GH_AW_GITHUB_TOKEN` → `GITHUB_TOKEN`
+- Pull request write-back and safe outputs: `COPILOT_GITHUB_TOKEN` → `GH_AW_GITHUB_TOKEN` → `GITHUB_TOKEN`
+
+That means the imported workflow requires `COPILOT_GITHUB_TOKEN`, while `GH_AW_GITHUB_TOKEN` and `GH_AW_GITHUB_MCP_SERVER_TOKEN` are optional secrets that let you split write access from read-only MCP access.
+
+### Where to add the repository secrets
+
+Add the secrets in **Settings** → **Secrets and variables** → **Actions**.
+
+![Repository Actions secrets entry point](assets/gh-aw-secrets/repository-actions-secrets.svg)
+
+| Task | Minimum role | Why |
+| --- | --- | --- |
+| Add or update a repository Actions secret in an organization repository | Repository `write` access | GitHub only exposes repository-level Actions secrets to users who can manage repository secrets for that repo. |
+| Add or update a repository Actions secret in a personal repository | Repository collaborator | The secret is stored on the repository, so the repository owner or collaborator must add it there. |
+| Add or update an environment secret instead of a repository secret | Repository `admin` access | Environment secrets are managed separately from repository secrets. |
+| Add or update an organization secret instead of a repository secret | Organization owner | Organization secrets are managed at the org level and can then be shared to selected repositories. |
+
+### Secrets this repository actually uses
+
+| Secret | Required for this repo | What uses it | Why |
+| --- | --- | --- | --- |
+| `COPILOT_GITHUB_TOKEN` | Yes | Workflow activation, Copilot engine, and pull request write-back | The workflow fails early if this secret is missing, because the imported workflow validates it before the agent job starts and also prefers this token when safe outputs create a pull request. |
+| `GH_AW_GITHUB_TOKEN` | Optional but recommended | GitHub MCP fallback, PR branch checkout, git push, and safe outputs | Use this when you want a separate PAT for GitHub API and write-back operations instead of reusing the Copilot token for everything. |
+| `GH_AW_GITHUB_MCP_SERVER_TOKEN` | Optional | GitHub MCP server only | Use this when you want the MCP server to stay read-only even if another token is allowed to create pull requests. |
+| `GITHUB_TOKEN` | Built in | Final fallback for MCP and safe outputs | This keeps the workflow functional when explicit GH AW secrets are absent, but it does not replace the required `COPILOT_GITHUB_TOKEN` validation for the Copilot engine. |
+
+### Create the fine-grained PAT for `COPILOT_GITHUB_TOKEN`
+
+Use a **fine-grained personal access token**. Copilot CLI does not support classic `ghp_` PATs.
+
+1. Open **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**.
+2. Click **Generate new token**.
+3. Choose the organization or user that owns the target repository as the **Resource owner**.
+4. Limit **Repository access** to the target repository whenever possible.
+5. Under **Account permissions**, add **Copilot Requests** and set it to **Read**.
+6. If you plan to use the same PAT for write-back, also add the repository permissions from the table below.
+7. Generate the token and save it as the repository secret `COPILOT_GITHUB_TOKEN`.
+
+![Fine-grained PAT for Copilot Requests](assets/gh-aw-secrets/copilot-token-account-permissions.svg)
+
+### PAT permissions: what this repository actually needs
+
+If you want the fewest moving parts, you can use one fine-grained PAT for both `COPILOT_GITHUB_TOKEN` and `GH_AW_GITHUB_TOKEN`. If you prefer least privilege, split them into a Copilot-only PAT plus one or two GitHub API PATs.
+
+#### Single PAT used for both Copilot and GitHub write-back
+
+| Permission | Level | Required | Why this repo needs it |
+| --- | --- | --- | --- |
+| `Copilot Requests` | Account: `Read` | Yes | The workflow uses the Copilot engine and explicitly validates `COPILOT_GITHUB_TOKEN` for GitHub Copilot CLI before the run continues. |
+| `Contents` | Repository: `Read and write` | Yes | The safe-output job checks out the repository with the fallback token, creates the patch branch, and pushes the branch before opening the pull request. |
+| `Pull requests` | Repository: `Read and write` | Yes | The workflow reads PR context during agent execution and uses the token to create or update the pull request produced by `create-pull-request`. |
+| `Issues` | Repository: `Read and write` | Yes | The workflow reads issues through the GitHub MCP toolset and can fall back to issue-based reporting in GH AW conclusion/safe-output handling. |
+| `Metadata` | Repository: `Read` | Automatic | GitHub includes metadata access automatically for fine-grained PATs. |
+| `Actions`, `Workflows`, `Administration`, `Secrets`, `Variables` | Repository or organization | No | This workflow uses GitHub's built-in `GITHUB_TOKEN` for Actions runtime and artifact steps. |
+
+![PAT permissions for GH AW write-back](assets/gh-aw-secrets/writeback-token-permissions.svg)
+
+#### Split-token setup
+
+| Secret | Minimal PAT permissions | Why |
+| --- | --- | --- |
+| `COPILOT_GITHUB_TOKEN` | `Copilot Requests: Read` | Enough for Copilot engine authentication if you do not want this token to perform repository writes. |
+| `GH_AW_GITHUB_TOKEN` | `Contents: Read and write`, `Pull requests: Read and write`, `Issues: Read and write` | Enough for this repository's GitHub MCP fallback plus PR creation and issue fallback handling. |
+| `GH_AW_GITHUB_MCP_SERVER_TOKEN` | `Contents: Read`, `Pull requests: Read`, `Issues: Read` | The current MCP server configuration in this repo is limited to `context`, `repos`, `issues`, and `pull_requests`, so a dedicated MCP token only needs read access unless you expand those toolsets later. |
+
+![Read-only PAT permissions for GitHub MCP access](assets/gh-aw-secrets/mcp-read-token-permissions.svg)
+
+### Roles needed for the PAT itself
+
+| Task | Minimum role | Why |
+| --- | --- | --- |
+| Create the PAT | The user who owns the GitHub account | Personal access tokens are always created from a personal account. |
+| Scope the PAT to an organization-owned repository | Organization member with access to the target repository | A fine-grained PAT cannot grant access the user does not already have. |
+| Approve the PAT when the organization requires approval | Organization owner or the org's configured PAT approver | Some organizations keep fine-grained PATs pending until an approver reviews them. |
+
 ## Verify the Environment
 
 Run the test suite before starting an optimization run:
