@@ -145,7 +145,7 @@ Use the reusable workflow when another repository already stores prompt-like mar
 Prerequisites for the target repository:
 
 - GitHub Agentic Workflows is initialized with `gh aw init`
-- `COPILOT_GITHUB_TOKEN` is configured for the chosen engine
+- `COPILOT_GITHUB_TOKEN` is configured for the chosen engine; see [docs/getting-started.md](docs/getting-started.md#configure-github-agentic-workflows-secrets) for the required secrets, PAT permissions, roles, and screenshot references
 - the repository contains prompt-like markdown files the workflow can select
 - `python -m pytest -q` is the correct repository validation command, or the imported workflow is adjusted to the repository's validation command and recompiled
 
