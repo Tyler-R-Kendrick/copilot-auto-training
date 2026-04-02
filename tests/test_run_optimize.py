@@ -188,7 +188,7 @@ class TestRunOptimizeInputValidation:
 class TestRunOptimizeDebugOnly:
     @staticmethod
     def _stub_debug_generation(monkeypatch, response_text: str = "pong") -> None:
-        async def _fake_complete_text(llm_client, model_name, prompt_text, metadata=None):
+        async def _fake_complete_text(llm_client, model_name, prompt_text, *, metadata=None):
             return response_text
 
         monkeypatch.setattr(optimize_module.support, "_complete_text", _fake_complete_text)
