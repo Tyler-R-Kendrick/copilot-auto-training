@@ -52,7 +52,7 @@ That means the imported workflow requires `COPILOT_GITHUB_TOKEN`, while `GH_AW_G
 
 Add the secrets in **Settings** → **Secrets and variables** → **Actions**.
 
-![Repository Actions secrets entry point](https://github.com/user-attachments/assets/3f8d50de-2c89-4af2-8f2b-122558a3dc33)
+![Repository Actions secrets entry point](assets/gh-aw-secrets/repository-actions-secrets.svg)
 
 | Task | Minimum role | Why |
 | --- | --- | --- |
@@ -82,11 +82,11 @@ Use a **fine-grained personal access token**. Copilot CLI does not support class
 6. If you plan to use the same PAT for write-back, also add the repository permissions from the table below.
 7. Generate the token and save it as the repository secret `COPILOT_GITHUB_TOKEN`.
 
-User-provided PAT screenshots:
+Repo-local reference images:
 
-![Fine-grained PAT setup screenshot 1](https://github.com/user-attachments/assets/957ffd6f-8f77-4fb6-8e88-1ada372b3bc8)
-![Fine-grained PAT setup screenshot 2](https://github.com/user-attachments/assets/0ea1e3e3-be02-4f7f-8132-5529e1aa8e56)
-![Fine-grained PAT setup screenshot 3](https://github.com/user-attachments/assets/cf443e7a-999f-4377-84e7-b543e8ed7a0d)
+![Fine-grained PAT for Copilot Requests](assets/gh-aw-secrets/copilot-token-account-permissions.svg)
+![PAT permissions for GH AW write-back](assets/gh-aw-secrets/writeback-token-permissions.svg)
+![Read-only PAT permissions for GitHub MCP access](assets/gh-aw-secrets/mcp-read-token-permissions.svg)
 
 ### PAT permissions: what this repository actually needs
 
