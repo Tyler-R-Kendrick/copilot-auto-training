@@ -328,17 +328,36 @@ def _is_unsupported_responses_route_error(exc: Exception) -> bool:
     return "404" in message and "not found" in message
 
 
-async def _complete_text(llm_client: Any, model_name: str, prompt: str) -> str:
+async def _complete_text(
+    llm_client: Any,
+    model_name: str,
+    prompt: str,
+    *,
+    metadata: dict[str, Any] | None = None,
+) -> str:
     completions = getattr(getattr(llm_client, "chat", None), "completions", None)
     if hasattr(llm_client, "responses") and hasattr(llm_client.responses, "create"):
         try:
+            response_kwargs: dict[str, Any] = {"model": model_name, "input": prompt}
+            if metadata is not None:
+                response_kwargs["metadata"] = metadata
+            return _extract_response_text(
+                await llm_client.responses.create(**response_kwargs)
+            )
+        except TypeError:
             return _extract_response_text(await llm_client.responses.create(model=model_name, input=prompt))
         except Exception as exc:
             # GitHub Models exposes an OpenAI-compatible endpoint, but some routes only support chat completions.
             if completions is None or not hasattr(completions, "create") or not _is_unsupported_responses_route_error(exc):
                 raise
     if completions is not None and hasattr(completions, "create"):
-        response = await completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
+        completion_kwargs: dict[str, Any] = {"model": model_name, "messages": [{"role": "user", "content": prompt}]}
+        if metadata is not None:
+            completion_kwargs["metadata"] = metadata
+        try:
+            response = await completions.create(**completion_kwargs)
+        except TypeError:
+            response = await completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
         return _extract_response_text(response)
     raise ValueError("The configured client does not support text generation.")
 
@@ -353,8 +372,32 @@ def _extract_score(text: str) -> float:
     return score
 
 
+def _request_metadata(task: dict[str, Any]) -> dict[str, Any]:
+    metadata = task.get("metadata") if isinstance(task.get("metadata"), dict) else {}
+    episode_id = metadata.get("episode_id") or task.get("episode_id") or task.get("id") or "episode"
+    step_id = metadata.get("step_id") or task.get("step_id") or "candidate"
+    training_run_id = metadata.get("training_run_id") or task.get("training_run_id")
+    request_metadata = dict(metadata)
+    request_metadata.setdefault("episode_id", str(episode_id))
+    request_metadata.setdefault("step_id", str(step_id))
+    if training_run_id is not None:
+        request_metadata.setdefault("training_run_id", str(training_run_id))
+    return request_metadata
+
+
 async def run_candidate(prompt_text: str, task: dict[str, Any], *, llm_client: Any, model_name: str) -> str:
-    return await _complete_text(llm_client, model_name, compose_runtime_prompt(prompt_text, task))
+    prompt = compose_runtime_prompt(prompt_text, task)
+    try:
+        return await _complete_text(
+            llm_client,
+            model_name,
+            prompt,
+            metadata=_request_metadata(task),
+        )
+    except TypeError as exc:
+        if "metadata" not in str(exc):
+            raise
+        return await _complete_text(llm_client, model_name, prompt)
 
 
 async def smoke_test_prompt(
@@ -435,7 +478,15 @@ async def evaluate_output(
         judge_model = judge_model or os.getenv("OPENAI_MODEL") or os.getenv("GITHUB_MODELS_MODEL")
         if not judge_model:
             raise ValueError("llm_judge requires OPENAI_MODEL or GITHUB_MODELS_MODEL to be configured")
-        return _extract_score(await _complete_text(llm_client, judge_model, rendered_prompt))
+        judge_metadata = _request_metadata(task)
+        judge_metadata["step_id"] = f"{judge_metadata.get('step_id', 'candidate')}:judge"
+        try:
+            judge_text = await _complete_text(llm_client, judge_model, rendered_prompt, metadata=judge_metadata)
+        except TypeError as exc:
+            if "metadata" not in str(exc):
+                raise
+            judge_text = await _complete_text(llm_client, judge_model, rendered_prompt)
+        return _extract_score(judge_text)
     raise ValueError(f"Unsupported judge_mode: {judge_mode!r}. Choose from: deterministic, custom, llm_judge")
 
 
