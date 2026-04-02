@@ -76,6 +76,39 @@ load_recorded_targets() {
   fi
 }
 
+default_branch_ref() {
+  if git show-ref --verify --quiet refs/remotes/origin/HEAD; then
+    git symbolic-ref --quiet --short refs/remotes/origin/HEAD
+    return
+  fi
+
+  if git show-ref --verify --quiet refs/remotes/origin/main; then
+    echo "origin/main"
+    return
+  fi
+
+  if git show-ref --verify --quiet refs/remotes/origin/master; then
+    echo "origin/master"
+    return
+  fi
+
+  return 1
+}
+
+collect_git_changed_targets() {
+  git diff --name-only -- '.github/workflows/*.md' 2>/dev/null || true
+  git diff --name-only --cached -- '.github/workflows/*.md' 2>/dev/null || true
+  git ls-files --others --exclude-standard -- '.github/workflows/*.md' 2>/dev/null || true
+
+  local base_ref
+  if base_ref="$(default_branch_ref 2>/dev/null)"; then
+    local merge_base
+    if merge_base="$(git merge-base HEAD "$base_ref" 2>/dev/null)"; then
+      git diff --name-only "$merge_base...HEAD" -- '.github/workflows/*.md' 2>/dev/null || true
+    fi
+  fi
+}
+
 record_targets() {
   local targets="$1"
   mkdir -p "$state_dir"
@@ -143,7 +176,12 @@ if normalized != lock_text:
 PY
 }
 
-recorded_targets="$(load_recorded_targets | normalize_targets)"
+recorded_targets="$(
+  {
+    load_recorded_targets
+    collect_git_changed_targets
+  } | normalize_targets
+)"
 
 if [[ "$enforce" -eq 0 ]]; then
   current_targets="$(collect_candidates "$@" | normalize_targets)"

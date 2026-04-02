@@ -28,7 +28,7 @@ safe-outputs:
   create-pull-request:
     max: 1
     protected-files: allowed
-    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 ---
 
 # Train Prompt

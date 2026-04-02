@@ -4,6 +4,8 @@ import importlib.util
 import json
 import os
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -680,6 +682,8 @@ class TestHookCustomization:
         assert ".github/workflows/*.md" in text
         assert "gh aw compile" in text
         assert ".git/copilot-agentic-workflows.txt" in text
+        assert "collect_git_changed_targets" in text
+        assert "origin/main" in text
         assert "normalize_lockfile_writeback_tokens" in text
 
     def test_agentic_workflow_validation_script_records_changed_workflows(self):
@@ -779,9 +783,84 @@ exit 1
                 assert blocked.returncode == 0
                 assert payload["continue"] is False
                 assert (
-                    "github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+                    "github-token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
                     in lock_path.read_text(encoding="utf-8")
                 )
+            finally:
+                lock_path.write_text(original_lock, encoding="utf-8")
+                state_path.unlink(missing_ok=True)
+
+    def test_agentic_workflow_validation_script_enforces_branch_workflow_changes_without_state(self):
+        script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
+        state_path = REPO_ROOT / ".git" / "copilot-agentic-workflows.txt"
+        state_path.unlink(missing_ok=True)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            gh_path = temp_root / "gh"
+            gh_path.write_text(
+                """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "aw" && "${2:-}" == "--help" ]]; then
+  exit 0
+fi
+if [[ "${1:-}" == "aw" && "${2:-}" == "compile" ]]; then
+  cat <<'EOF' > "$PWD/.github/workflows/train-prompt.lock.yml"
+compiled by hook
+EOF
+  exit 0
+fi
+exit 1
+""",
+                encoding="utf-8",
+            )
+            gh_path.chmod(0o755)
+
+            git_path = temp_root / "git"
+            git_path.write_text(
+                f"""#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$#" -ge 3 && "${{1:-}}" == "show-ref" && "${{2:-}}" == "--verify" && "${{3:-}}" == "--quiet" ]]; then
+  case "${{4:-}}" in
+    refs/remotes/origin/HEAD|refs/remotes/origin/main)
+      exit 0
+      ;;
+  esac
+fi
+if [[ "$#" -ge 4 && "${{1:-}}" == "symbolic-ref" && "${{2:-}}" == "--quiet" && "${{3:-}}" == "--short" && "${{4:-}}" == "refs/remotes/origin/HEAD" ]]; then
+  echo origin/main
+  exit 0
+fi
+if [[ "$#" -ge 3 && "${{1:-}}" == "merge-base" && "${{2:-}}" == "HEAD" && "${{3:-}}" == "origin/main" ]]; then
+  echo test-merge-base
+  exit 0
+fi
+if [[ "$#" -ge 4 && "${{1:-}}" == "diff" && "${{2:-}}" == "--name-only" && "${{3:-}}" == "test-merge-base...HEAD" ]]; then
+  echo .github/workflows/train-prompt.md
+  exit 0
+fi
+if [[ "$#" -ge 4 && "${{1:-}}" == "diff" && "${{2:-}}" == "--quiet" && "${{4:-}}" == ".github/workflows/train-prompt.lock.yml" ]]; then
+  exit 1
+fi
+if [[ "$#" -ge 5 && "${{1:-}}" == "diff" && "${{2:-}}" == "--cached" && "${{3:-}}" == "--quiet" && "${{5:-}}" == ".github/workflows/train-prompt.lock.yml" ]]; then
+  exit 0
+fi
+exec {shlex.quote(shutil.which("git") or "git")} "$@"
+""",
+                encoding="utf-8",
+            )
+            git_path.chmod(0o755)
+
+            lock_path = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
+            original_lock = lock_path.read_text(encoding="utf-8")
+            env = {"PATH": f"{temp_root}:{os.environ['PATH']}"}
+            try:
+                blocked = _run_shell_script(script_path, "--enforce", check=False, env=env)
+                payload = json.loads(blocked.stdout)
+                assert blocked.returncode == 0
+                assert payload["continue"] is False
+                assert "required recompilation" in payload["stopReason"]
+                assert "train-prompt.lock.yml" in payload["stopReason"]
             finally:
                 lock_path.write_text(original_lock, encoding="utf-8")
                 state_path.unlink(missing_ok=True)
@@ -1504,10 +1583,11 @@ class TestTrainPromptWorkflow:
 
     def test_source_create_pull_request_explicitly_sets_github_token_fallback(self):
         config = self._source_create_pull_request_config()
-        expected_token_fallback = "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        expected_token_fallback = "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
         assert config.get("github-token") == expected_token_fallback, (
             "train-prompt.md should explicitly set create-pull-request github-token "
-            "to prefer COPILOT_GITHUB_TOKEN before falling back to GITHUB_TOKEN."
+            "to prefer COPILOT_GITHUB_TOKEN before GH_AW_GITHUB_TOKEN so PR creation "
+            "does not stop on a PAT that can push but cannot open pull requests."
         )
 
     def test_source_does_not_request_reviewers(self):
@@ -1639,25 +1719,25 @@ class TestTrainPromptWorkflow:
             "trainer stage checkpoints for later inspection."
         )
 
-    def test_lock_writeback_steps_prefer_copilot_token_before_github_token(self):
+    def test_lock_writeback_steps_prefer_copilot_token_before_gh_aw_token(self):
         text = self._lock_text()
         expected_fallback = (
-            "secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN"
+            "secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN"
         )
         assert expected_fallback in text, (
             "train-prompt.lock.yml write-back steps should prefer COPILOT_GITHUB_TOKEN "
-            "before falling back to GITHUB_TOKEN so the workflow can use the "
-            "documented prerequisite token for create_pull_request and related writes."
+            "before GH_AW_GITHUB_TOKEN so the workflow reaches a token that can open "
+            "pull requests instead of stopping at a push-only PAT."
         )
-        assert "token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+        assert "token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
             "train-prompt.lock.yml checkout for create_pull_request should preserve "
             "the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
+        assert "GIT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" in text, (
             "train-prompt.lock.yml git credential setup for create_pull_request "
             "should preserve the COPILOT_GITHUB_TOKEN fallback."
         )
-        assert "\"github-token\":\"${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}\"" in text, (
+        assert "\"github-token\":\"${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}\"" in text, (
             "train-prompt.lock.yml create_pull_request safe-output config should preserve "
             "the COPILOT_GITHUB_TOKEN fallback even if some auxiliary reporting steps use "
             "the default GH_AW_GITHUB_TOKEN || GITHUB_TOKEN fallback."
@@ -1668,7 +1748,7 @@ class TestTrainPromptWorkflow:
             None,
         )
         assert process_safe_outputs is not None, "Expected Process Safe Outputs step in train-prompt.lock.yml"
-        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "
             "back to a token that cannot open pull requests."
