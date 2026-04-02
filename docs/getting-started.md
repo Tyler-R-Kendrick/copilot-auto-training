@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide covers installation, Copilot configuration, the first run, and the optimizer's output modes.
+This guide covers installation, repository configuration, the first run, and the optimizer's output modes.
 
 ## Prerequisites
 
@@ -111,7 +111,7 @@ python skills/trainer-optimize/scripts/run_optimize.py \
 
 While the full run is active, open the `dashboard_url` returned by the command, as described in [docs/dashboard.md](dashboard.md). If you need a stable port for forwarding, set `AGL_SERVER_PORT` before starting the run.
 
-For the current Copilot-backed execution model, including the new inference adapter, session handling, trace logging, and limits, see [docs/copilot_execution_plan.md](copilot_execution_plan.md).
+For the current Copilot runtime implementation, including the inference adapter, session handling, trace logging, and limits, see [docs/copilot_execution_plan.md](copilot_execution_plan.md).
 
 ## Using The Repository Prompt
 

@@ -21,7 +21,7 @@ async def main_async(model: str = "default") -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run a Copilot-backed inference smoke test.")
+    parser = argparse.ArgumentParser(description="Run a Copilot inference smoke test.")
     parser.add_argument("--model", default="default")
     args = parser.parse_args(argv)
     print(asyncio.run(main_async(model=args.model)))

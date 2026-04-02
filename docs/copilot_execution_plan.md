@@ -1,6 +1,6 @@
 # Copilot Execution Plan
 
-This repository now supports a Copilot-backed inference path for `trainer-optimize`.
+This repository uses GitHub Copilot for `trainer-optimize` inference.
 
 ## How the current implementation maps to this requested Copilot adapter design
 
@@ -18,7 +18,7 @@ Implemented equivalents:
 
 ## Configuration
 
-Copilot is activated with:
+Set the repository root `.env` like this:
 
 ```dotenv
 COPILOT_MODEL=default
@@ -87,7 +87,7 @@ The logger omits prompt bodies and response text to avoid leaking sensitive cont
 
 ## Smoke test
 
-Run the direct provider smoke test:
+Run the direct smoke test:
 
 ```bash
 python skills/trainer-optimize/scripts/inference/smoke_test.py --model default
@@ -115,7 +115,7 @@ It exposes:
 
 - `POST /v1/chat/completions`
 
-and forwards requests into the same Copilot-backed provider.
+and forwards requests into the same Copilot runtime.
 
 ## Current limitations
 
