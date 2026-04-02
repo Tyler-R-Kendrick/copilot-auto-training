@@ -2,7 +2,7 @@
 
 This repository now supports a Copilot-backed inference path for `trainer-optimize` without requiring model-provider API keys.
 
-## How the current implementation maps to the build spec
+## How the current implementation maps to this requested Copilot adapter design
 
 The existing runtime already centers on `skills/trainer-optimize/scripts/run_optimize.py`, `optimize_support.py`, and `train.py`, so the adapter lives there instead of introducing a second root-level training stack.
 

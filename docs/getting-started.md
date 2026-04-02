@@ -48,7 +48,7 @@ COPILOT_MODEL=default
 COPILOT_INFERENCE_COMMAND="copilot chat --json --stdio"
 ```
 
-In Copilot mode, the runtime rejects `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, and similar provider secrets so the run stays keyless. If the local Copilot runtime is missing or not authenticated, the optimizer fails clearly or falls back to the existing manual-followup handoff when the live inference step is unavailable.
+In Copilot mode, the runtime rejects `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, and similar provider secrets so the run stays keyless. Provider selection and smoke-test startup fail immediately when the local Copilot runtime is missing or not authenticated, while optimization runs that lose live inference after startup fall back to the existing manual-followup handoff so dataset resolution and run metadata are still preserved.
 
 ## Verify the Environment
 

@@ -24,6 +24,13 @@ API_KEY_ENV_VARS = (
     "GOOGLE_API_KEY",
     "GEMINI_API_KEY",
 )
+AUTHENTICATION_ERROR_MARKERS = (
+    "please sign in to copilot",
+    "copilot authentication failed",
+    "oauth token",
+    "not authenticated",
+    "login required",
+)
 
 
 class CopilotInferenceError(RuntimeError):
@@ -135,7 +142,8 @@ class CopilotInferenceProvider:
             return None, messages
         history = list(self._sessions.get(session_id, []))
         preserve_history = bool((request.metadata or {}).get("preserve_history", True))
-        return session_id, history + messages if preserve_history else messages
+        conversation = history + messages if preserve_history else messages
+        return session_id, conversation[-self.config.session_history_limit :]
 
     async def _invoke_cli(self, payload: dict[str, Any]) -> dict[str, Any]:
         process = await asyncio.create_subprocess_exec(
@@ -144,14 +152,21 @@ class CopilotInferenceProvider:
             stdout=PIPE,
             stderr=PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(
-            process.communicate(json.dumps(payload).encode("utf-8")),
-            timeout=self.config.timeout_seconds,
-        )
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(json.dumps(payload).encode("utf-8")),
+                timeout=self.config.timeout_seconds,
+            )
+        except TimeoutError as exc:
+            raise CopilotInferenceError(
+                f"Copilot CLI timed out after {self.config.timeout_seconds}s while running: {' '.join(self._command)}"
+            ) from exc
         if process.returncode != 0:
-            message = stderr.decode("utf-8", errors="replace").strip() or stdout.decode("utf-8", errors="replace").strip()
+            stderr_text = stderr.decode("utf-8", errors="replace").strip()
+            stdout_text = stdout.decode("utf-8", errors="replace").strip()
+            message = "\n".join(part for part in (stderr_text, stdout_text) if part)
             lowered = message.lower()
-            if any(token in lowered for token in ("auth", "sign in", "login", "oauth", "unauthorized")):
+            if any(marker in lowered for marker in AUTHENTICATION_ERROR_MARKERS):
                 raise CopilotAuthenticationError(message or "Copilot CLI authentication failed.")
             raise CopilotInferenceError(message or f"Copilot CLI exited with code {process.returncode}.")
         raw_text = stdout.decode("utf-8", errors="replace").strip()
@@ -184,7 +199,9 @@ class CopilotInferenceProvider:
                 usage = raw.get("usage") if isinstance(raw, dict) and isinstance(raw.get("usage"), dict) else None
                 latency_ms = int((perf_counter() - started) * 1000)
                 if session_id:
-                    self._sessions[session_id] = messages + [{"role": "assistant", "content": text}]
+                    self._sessions[session_id] = (messages + [{"role": "assistant", "content": text}])[
+                        -self.config.session_history_limit :
+                    ]
                 self._logger(
                     {
                         "training_run_id": (request.metadata or {}).get("training_run_id"),
@@ -224,5 +241,5 @@ class CopilotInferenceProvider:
                 )
                 if isinstance(exc, CopilotAuthenticationError) or attempt >= attempts:
                     raise
-                await asyncio.sleep(0.5 * (2 ** (attempt - 1)))
+                await asyncio.sleep(self.config.retry_backoff_seconds * (2 ** (attempt - 1)))
         raise CopilotInferenceError(str(last_error) if last_error else "Copilot inference failed.")

@@ -12,5 +12,7 @@ class InferenceConfig:
     max_tokens: int = 1500
     temperature: float = 0.2
     retries: int = 2
+    retry_backoff_seconds: float = 0.5
+    session_history_limit: int = 40
     bundled_cli_path: str | None = None
     cli_command: tuple[str, ...] | None = None

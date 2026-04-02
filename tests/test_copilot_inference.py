@@ -15,6 +15,18 @@ from inference.local_adapter_service import _response_body
 from training.lightning_integration import ProviderBackedOpenAIClient
 
 
+def _clear_provider_keys(monkeypatch) -> None:
+    for name in (
+        "OPENAI_API_KEY",
+        "GITHUB_MODELS_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "AZURE_OPENAI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 def _write_repo_env(tmp_path: Path, *lines: str) -> Path:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -44,6 +56,7 @@ class TestCopilotConfig:
         assert settings["apply_edit_model"] == "default"
 
     def test_create_openai_client_returns_provider_backed_client_for_copilot(self, tmp_path, monkeypatch):
+        _clear_provider_keys(monkeypatch)
         prompt_path = _write_repo_env(
             tmp_path,
             "INFERENCE_PROVIDER=github_copilot",
@@ -63,8 +76,15 @@ class TestCopilotConfig:
 
 
 class TestCopilotProvider:
+    def test_provider_rejects_model_provider_keys(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "secret")
+
+        with pytest.raises(ValueError, match="refuses provider API keys"):
+            CopilotInferenceProvider(InferenceConfig(cli_command=("fake-copilot",)))
+
     @pytest.mark.asyncio
     async def test_generate_uses_cli_json_and_preserves_session_history(self, monkeypatch):
+        _clear_provider_keys(monkeypatch)
         events: list[dict[str, object]] = []
 
         class FakeProcess:
@@ -109,6 +129,7 @@ class TestCopilotProvider:
 
     @pytest.mark.asyncio
     async def test_generate_surfaces_authentication_errors_without_retry(self, monkeypatch):
+        _clear_provider_keys(monkeypatch)
         attempts = {"count": 0}
 
         class FakeProcess:
@@ -132,6 +153,43 @@ class TestCopilotProvider:
 
         assert attempts["count"] == 1
 
+    @pytest.mark.asyncio
+    async def test_reset_session_clears_episode_history(self, monkeypatch):
+        _clear_provider_keys(monkeypatch)
+
+        class FakeProcess:
+            returncode = 0
+
+            async def communicate(self, payload: bytes):
+                body = json.loads(payload.decode("utf-8"))
+                content = [message["content"] for message in body["messages"]]
+                return json.dumps({"text": " | ".join(content)}).encode("utf-8"), b""
+
+        async def fake_exec(*args, **kwargs):
+            return FakeProcess()
+
+        monkeypatch.setattr("inference.copilot_provider.asyncio.create_subprocess_exec", fake_exec)
+
+        provider = CopilotInferenceProvider(InferenceConfig(cli_command=("fake-copilot",)))
+        await provider.generate(
+            InferenceRequest(
+                messages=[{"role": "user", "content": "first"}],
+                model="default",
+                metadata={"episode_id": "episode-2"},
+            )
+        )
+        provider.reset_session("episode-2")
+
+        result = await provider.generate(
+            InferenceRequest(
+                messages=[{"role": "user", "content": "second"}],
+                model="default",
+                metadata={"episode_id": "episode-2"},
+            )
+        )
+
+        assert result.text == "second"
+
 
 def test_local_adapter_response_shape_matches_chat_completions():
     result = types.SimpleNamespace(model="default", text="hello", finish_reason="stop", usage={"total_tokens": 3})
@@ -141,3 +199,38 @@ def test_local_adapter_response_shape_matches_chat_completions():
     assert body["object"] == "chat.completion"
     assert body["choices"][0]["message"]["content"] == "hello"
     assert body["usage"] == {"total_tokens": 3}
+
+
+def test_local_adapter_response_shape_defaults_usage_and_finish_reason():
+    result = types.SimpleNamespace(model="default", text="", finish_reason=None, usage=None)
+
+    body = _response_body(result)
+
+    assert body["choices"][0]["finish_reason"] == "stop"
+    assert body["usage"] == {}
+
+
+@pytest.mark.asyncio
+async def test_provider_backed_client_maps_output_token_usage(monkeypatch):
+    _clear_provider_keys(monkeypatch)
+
+    class StubProvider:
+        async def generate(self, request):
+            return types.SimpleNamespace(
+                text="hello",
+                model=request.model,
+                finish_reason="stop",
+                usage={"prompt_tokens": 3, "output_tokens": 5},
+                raw={"ok": True},
+            )
+
+    client = ProviderBackedOpenAIClient(StubProvider(), default_model="default")
+
+    response = await client.chat.completions.create(
+        model="default",
+        messages=[{"role": "user", "content": "hello"}],
+    )
+
+    assert response.usage.prompt_tokens == 3
+    assert response.usage.completion_tokens == 5
+    assert response.usage.total_tokens == 8

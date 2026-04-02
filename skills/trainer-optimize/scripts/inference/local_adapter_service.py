@@ -56,7 +56,7 @@ def _build_handler(provider: CopilotInferenceProvider):
             self.end_headers()
             self.wfile.write(json.dumps(body).encode("utf-8"))
 
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+        def log_message(self, format_str: str, *args: Any) -> None:
             return
 
     return AdapterHandler

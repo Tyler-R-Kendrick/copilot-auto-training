@@ -21,12 +21,21 @@ def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
 
 def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
     if not usage:
-        return max(1, len(text.split())) if text else 0
+        return _estimate_tokens_from_text(text)
     value = usage.get("completion_tokens", usage.get("output_tokens", 0))
     try:
         return max(0, int(value))
     except (TypeError, ValueError):
-        return max(1, len(text.split())) if text else 0
+        return _estimate_tokens_from_text(text)
+
+
+def _estimate_tokens_from_text(text: str) -> int:
+    """Fallback heuristic when the provider does not return token usage."""
+    return max(1, len(text) // 4) if text else 0
+
+
+def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
+    return sum(_estimate_tokens_from_text(str(message.get("content", ""))) for message in messages if message.get("content"))
 
 
 def _as_choice_message(text: str) -> Any:
@@ -124,7 +133,7 @@ class ProviderBackedOpenAIClient:
                 metadata={"interaction": "chat.completions.create", **(metadata or {})},
             )
         )
-        prompt_tokens = sum(len(str(message.get("content", "")).split()) for message in messages)
+        prompt_tokens = _estimate_prompt_tokens(messages)
         usage = dict(result.usage or {})
         usage.setdefault("prompt_tokens", _usage_to_prompt_tokens(result.usage) or prompt_tokens)
         usage.setdefault("completion_tokens", _usage_to_completion_tokens(result.usage, result.text))

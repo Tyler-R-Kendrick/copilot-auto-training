@@ -99,7 +99,9 @@ async def score_prompt_text(
     llm_client, model_settings = create_openai_client(prompt_file)
     model_name = model_settings.get("inference_model")
     if not model_name:
-        raise ValueError("Trace training requires an inference model to be configured for the active provider.")
+        raise ValueError(
+            "Trace training requires GITHUB_MODELS_MODEL or OPENAI_MODEL, or another active provider inference model."
+        )
 
     assessed = await assess_candidates(
         [prompt_text],
