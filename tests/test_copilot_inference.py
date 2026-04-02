@@ -14,18 +14,6 @@ from inference.local_adapter_service import _response_body
 from training.lightning_integration import ProviderBackedOpenAIClient
 
 
-def _clear_provider_keys(monkeypatch) -> None:
-    for name in (
-        "OPENAI_API_KEY",
-        "GITHUB_MODELS_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "AZURE_OPENAI_API_KEY",
-        "GOOGLE_API_KEY",
-        "GEMINI_API_KEY",
-    ):
-        monkeypatch.delenv(name, raising=False)
-
-
 def _write_repo_env(tmp_path: Path, *lines: str) -> Path:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -42,26 +30,21 @@ class TestCopilotConfig:
         async def start(self):
             return None
 
-    def test_resolve_model_settings_supports_copilot_provider(self, tmp_path):
+    def test_resolve_model_settings_uses_copilot_model(self, tmp_path):
         prompt_path = _write_repo_env(
             tmp_path,
-            "INFERENCE_PROVIDER=github_copilot",
             "COPILOT_MODEL=default",
         )
 
         settings = optimize_config.resolve_model_settings(str(prompt_path))
 
-        assert settings["provider"] == "github_copilot"
-        assert settings["base_url"] == "copilot://sdk_session"
         assert settings["inference_model"] == "default"
         assert settings["gradient_model"] == "default"
         assert settings["apply_edit_model"] == "default"
 
     def test_create_openai_client_returns_provider_backed_client_for_copilot(self, tmp_path, monkeypatch):
-        _clear_provider_keys(monkeypatch)
         prompt_path = _write_repo_env(
             tmp_path,
-            "INFERENCE_PROVIDER=github_copilot",
             "COPILOT_MODEL=default",
         )
         monkeypatch.setattr(
@@ -72,7 +55,7 @@ class TestCopilotConfig:
         client, settings = optimize_config.create_openai_client(str(prompt_path))
 
         assert isinstance(client, ProviderBackedOpenAIClient)
-        assert settings["provider"] == "github_copilot"
+        assert settings["inference_model"] == "default"
 
 
 class TestCopilotProvider:
@@ -116,15 +99,8 @@ class TestCopilotProvider:
         monkeypatch.setattr("inference.copilot_provider.SubprocessConfig", lambda **kwargs: types.SimpleNamespace(**kwargs))
         return fake_client
 
-    def test_provider_rejects_model_provider_keys(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "secret")
-
-        with pytest.raises(ValueError, match="refuses provider API keys"):
-            CopilotInferenceProvider(InferenceConfig())
-
     @pytest.mark.asyncio
     async def test_generate_uses_sdk_session_and_preserves_session_history(self, monkeypatch):
-        _clear_provider_keys(monkeypatch)
         events: list[dict[str, object]] = []
         fake_client = self._patch_sdk(monkeypatch)
 
@@ -157,7 +133,6 @@ class TestCopilotProvider:
 
     @pytest.mark.asyncio
     async def test_generate_surfaces_authentication_errors_without_retry(self, monkeypatch):
-        _clear_provider_keys(monkeypatch)
         attempts = {"count": 0}
 
         class AuthFailSession(self._FakeSDKSession):
@@ -184,7 +159,6 @@ class TestCopilotProvider:
 
     @pytest.mark.asyncio
     async def test_reset_session_clears_episode_history(self, monkeypatch):
-        _clear_provider_keys(monkeypatch)
         fake_client = self._patch_sdk(monkeypatch)
 
         provider = CopilotInferenceProvider(InferenceConfig())
@@ -212,7 +186,6 @@ class TestCopilotProvider:
 
     @pytest.mark.asyncio
     async def test_ephemeral_requests_disconnect_sdk_session(self, monkeypatch):
-        _clear_provider_keys(monkeypatch)
         fake_client = self._patch_sdk(monkeypatch)
 
         provider = CopilotInferenceProvider(InferenceConfig())
@@ -245,8 +218,6 @@ def test_local_adapter_response_shape_defaults_usage_and_finish_reason():
 
 @pytest.mark.asyncio
 async def test_provider_backed_client_maps_output_token_usage(monkeypatch):
-    _clear_provider_keys(monkeypatch)
-
     class StubProvider:
         async def generate(self, request):
             return types.SimpleNamespace(

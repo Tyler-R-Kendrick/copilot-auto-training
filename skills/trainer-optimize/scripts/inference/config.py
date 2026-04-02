@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class InferenceConfig:
-    provider: str = "github_copilot"
     model: str = "default"
     timeout_seconds: int = 60
     max_tokens: int = 1500

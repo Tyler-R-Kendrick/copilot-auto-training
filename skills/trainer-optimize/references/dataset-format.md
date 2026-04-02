@@ -20,16 +20,7 @@ Use `evals/evals.json` to author realistic prompts, expected outputs, optional f
 
 ## Model configuration
 
-When the repository root `.env` defines GitHub Models variables, the optimizer uses those settings to construct the OpenAI-compatible client for Agent Lightning and to select APO's gradient and edit models.
-
-Supported root `.env` variables:
-
-```dotenv
-GITHUB_MODELS_API_KEY=<github-pat>
-GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
-GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
-```
+The repository root `.env` may define `COPILOT_MODEL` to select the Copilot model used for inference, gradient, and apply-edit requests.
 
 `trainer-optimize` does not infer dataset locations and does not synthesize missing JSONL files at runtime. Provide explicit `train.jsonl` and `val.jsonl` paths before starting optimization.
 

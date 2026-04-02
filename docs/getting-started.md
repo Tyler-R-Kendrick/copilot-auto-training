@@ -1,13 +1,13 @@
 # Getting Started
 
-This guide covers installation, model configuration, the first run, and the optimizer's output modes.
+This guide covers installation, Copilot configuration, the first run, and the optimizer's output modes.
 
 ## Prerequisites
 
 - Python 3.11 or newer
 - A virtual environment for the repository
-- Either an authenticated Copilot session managed by the SDK or model credentials through `OPENAI_API_KEY` / GitHub Models configuration in the repository root `.env`
-- A model name through `OPENAI_MODEL`, `GITHUB_MODELS_MODEL`, or `COPILOT_MODEL`
+- An authenticated Copilot session managed by the SDK
+- A `COPILOT_MODEL` value in the repository root `.env`
 
 ## Install Dependencies
 
@@ -21,31 +21,17 @@ The runtime dependency set includes `poml`, which Agent Lightning APO requires d
 
 In the devcontainer, the post-start hook automatically recreates `.venv` with Python 3.12 and reinstalls dependencies when the local environment is missing, stale, or missing `pip`. The Copilot coding-agent setup workflow at `.github/workflows/copilot-setup-steps.yml` calls the same `.devcontainer/post-start.sh` bootstrap so the hosted agent reuses the repository's devcontainer setup logic, including `gh aw`.
 
-## Configure Model Access
+## Configure Copilot Access
 
-If you are using GitHub Models, create a repository-root `.env` file like this:
-
-```dotenv
-GITHUB_MODELS_API_KEY=<github-pat>
-GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
-GITHUB_MODELS_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
-```
-
-Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported secret and model keys stay documented in one place.
-
-When these `GITHUB_MODELS_*` values are present, the optimizer treats the repository-root `.env` as the authoritative source for GitHub Models settings.
-On GitHub Models endpoints, the runtime will try the OpenAI Responses API first and automatically fall back to chat completions when the endpoint rejects that route with `404`.
-
-If you want to run through the signed-in Copilot runtime instead of provider API keys, configure the repo like this:
+Create a repository-root `.env` file like this:
 
 ```dotenv
-INFERENCE_PROVIDER=github_copilot
 COPILOT_MODEL=default
 ```
 
-In Copilot mode, the runtime uses the official Python Copilot SDK and the existing signed-in Copilot user session instead of spawning its own chat command. It rejects `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, and similar provider secrets so the run stays keyless. Provider selection and smoke-test startup fail immediately when the signed-in Copilot SDK runtime is unavailable or not authenticated, while optimization runs that lose live inference after startup fall back to the existing manual-followup handoff so dataset resolution and run metadata are still preserved.
+Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported Copilot setting stays documented in one place.
+
+The runtime uses the official Python Copilot SDK and the existing signed-in Copilot user session instead of spawning its own chat command. Smoke-test startup fails immediately when the signed-in Copilot SDK runtime is unavailable or not authenticated, while optimization runs that lose live inference after startup fall back to the existing manual-followup handoff so dataset resolution and run metadata are still preserved.
 
 ## Verify the Environment
 

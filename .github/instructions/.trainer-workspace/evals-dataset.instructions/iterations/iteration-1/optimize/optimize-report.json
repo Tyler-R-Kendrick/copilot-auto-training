@@ -12,8 +12,6 @@
   "report_file": ".github/instructions/.trainer-workspace/evals-dataset.instructions/iterations/iteration-1/optimize/optimize-report.json",
   "prompt_file_updated": false,
   "dashboard_url": null,
-  "model_provider": "openai",
-  "model_endpoint": null,
   "inference_model": null,
   "gradient_model": null,
   "apply_edit_model": null,

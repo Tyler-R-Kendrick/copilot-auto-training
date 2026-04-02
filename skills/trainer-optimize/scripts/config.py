@@ -8,9 +8,6 @@ from inference.config import InferenceConfig
 from training.lightning_integration import build_runtime_client
 
 
-DEFAULT_GITHUB_MODELS_ENDPOINT = "https://models.github.ai/inference"
-DEFAULT_GITHUB_GRADIENT_MODEL = "openai/gpt-4.1-mini"
-DEFAULT_GITHUB_APPLY_EDIT_MODEL = "openai/gpt-4.1-mini"
 DEFAULT_COPILOT_MODEL = "default"
 
 
@@ -56,103 +53,18 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
             return process_value
         return default
 
-    openai_active = any(
-        pick(name) not in (None, "") for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL")
-    )
-    github_markers = any(
-        pick(name) not in (None, "")
-        for name in (
-            "GITHUB_MODELS_API_KEY",
-            "GITHUB_MODELS_ENDPOINT",
-            "GITHUB_MODELS_MODEL",
-            "GITHUB_MODELS_GRADIENT_MODEL",
-            "GITHUB_MODELS_APPLY_EDIT_MODEL",
-        )
-    )
-    copilot_provider = pick("INFERENCE_PROVIDER")
-    copilot_markers = copilot_provider == "github_copilot" or any(
-        pick(name) not in (None, "")
-        for name in (
-            "COPILOT_MODEL",
-        )
-    )
-
-    if openai_active:
-        inference_model = pick("OPENAI_MODEL")
-        gradient_model = pick("OPENAI_GRADIENT_MODEL", inference_model)
-        apply_edit_model = pick("OPENAI_APPLY_EDIT_MODEL", gradient_model or inference_model)
-        return {
-            "provider": "openai",
-            "api_key": pick("OPENAI_API_KEY"),
-            "base_url": pick("OPENAI_BASE_URL"),
-            "inference_model": inference_model,
-            "gradient_model": gradient_model,
-            "apply_edit_model": apply_edit_model,
-            "repo_root": str(repo_root),
-        }
-
-    if github_markers:
-        api_key = pick("GITHUB_MODELS_API_KEY")
-        if not api_key:
-            raise ValueError("GitHub Models configuration requires GITHUB_MODELS_API_KEY.")
-        gradient_model = pick(
-            "GITHUB_MODELS_GRADIENT_MODEL",
-            pick("GITHUB_MODELS_MODEL", DEFAULT_GITHUB_GRADIENT_MODEL),
-        )
-        inference_model = pick(
-            "GITHUB_MODELS_MODEL",
-            gradient_model or DEFAULT_GITHUB_GRADIENT_MODEL,
-        )
-        apply_edit_model = pick(
-            "GITHUB_MODELS_APPLY_EDIT_MODEL",
-            gradient_model or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-        )
-        return {
-            "provider": "github",
-            "api_key": api_key,
-            "base_url": pick("GITHUB_MODELS_ENDPOINT", DEFAULT_GITHUB_MODELS_ENDPOINT),
-            "inference_model": inference_model or DEFAULT_GITHUB_GRADIENT_MODEL,
-            "gradient_model": gradient_model or DEFAULT_GITHUB_GRADIENT_MODEL,
-            "apply_edit_model": apply_edit_model or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-            "repo_root": str(repo_root),
-        }
-
-    if copilot_markers:
-        inference_model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
-        return {
-            "provider": "github_copilot",
-            "api_key": None,
-            "base_url": "copilot://sdk_session",
-            "inference_model": inference_model,
-            "gradient_model": inference_model,
-            "apply_edit_model": inference_model,
-            "repo_root": str(repo_root),
-        }
-
+    inference_model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
     return {
-        "provider": "openai",
-        "api_key": pick("OPENAI_API_KEY"),
-        "base_url": pick("OPENAI_BASE_URL"),
-        "inference_model": pick("OPENAI_MODEL"),
-        "gradient_model": pick("OPENAI_GRADIENT_MODEL", pick("OPENAI_MODEL")),
-        "apply_edit_model": pick("OPENAI_APPLY_EDIT_MODEL", pick("OPENAI_GRADIENT_MODEL", pick("OPENAI_MODEL"))),
+        "inference_model": inference_model,
+        "gradient_model": inference_model,
+        "apply_edit_model": inference_model,
         "repo_root": str(repo_root),
     }
 
 
 def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
-    from openai import AsyncOpenAI
-
     model_settings = resolve_model_settings(prompt_file)
-    if model_settings.get("provider") == "github_copilot":
-        provider_config = InferenceConfig(
-            provider="github_copilot",
-            model=str(model_settings.get("inference_model") or DEFAULT_COPILOT_MODEL),
-        )
-        return build_runtime_client(model_settings, provider_config=provider_config)
-    client_kwargs: dict[str, str] = {}
-    if model_settings.get("api_key"):
-        client_kwargs["api_key"] = str(model_settings["api_key"])
-    if model_settings.get("base_url"):
-        client_kwargs["base_url"] = str(model_settings["base_url"])
-    return AsyncOpenAI(**client_kwargs), model_settings
+    provider_config = InferenceConfig(
+        model=str(model_settings.get("inference_model") or DEFAULT_COPILOT_MODEL),
+    )
+    return build_runtime_client(model_settings, provider_config=provider_config)

@@ -60,11 +60,9 @@ Optional arguments:
 
 - Supported algorithms: `apo` and `verl`, selected through the same optimization pipeline.
 - Supported judge modes: `deterministic`, `custom`, and `llm_judge`.
-- The optimizer loads GitHub Models settings from the repository root `.env` when `GITHUB_MODELS_*` variables are present.
-- Supported root `.env` variables are `GITHUB_MODELS_API_KEY`, `GITHUB_MODELS_ENDPOINT`, `GITHUB_MODELS_MODEL`, `GITHUB_MODELS_GRADIENT_MODEL`, and `GITHUB_MODELS_APPLY_EDIT_MODEL`.
+- The optimizer uses the repository root `.env` `COPILOT_MODEL` setting for inference, gradient, and apply-edit requests.
 - The runtime returns a `dashboard_url` in debug and normal JSON output. Unless `AGL_SERVER_PORT` is already set, it binds Agent Lightning to a free local port on `127.0.0.1` instead of assuming `4747`.
 - Prompt rendering uses placeholder-targeted substitution rather than whole-string Python `str.format()`. Literal JSON or other brace-heavy examples remain literal, escaped braces like `{{literal}}` stay supported, and nested placeholders such as `{input.question}` are allowed.
-- When GitHub Models exposes an OpenAI-compatible endpoint that rejects the Responses API route with `404`, text generation falls back to chat completions automatically.
 - When no inference model is configured, or a live optimize run loses model access because of rate limiting or service unavailability, the runtime returns a `manual_followup` JSON payload instead of failing. That payload includes deterministic preparation results plus an agent-side inference handoff: the current `@trainer` agent can answer the returned `model_prompt`, save the result as a candidate prompt, and continue the workflow without an inference API token.
 - By default the optimized prompt is returned in the JSON result and CLI stdout without writing files.
 - The source prompt is only overwritten when `in_place` is requested.
@@ -176,7 +174,6 @@ Template placeholders such as `{input}` must match keys the optimizer can valida
 - Empty train or val dataset → require at least one task row in each
 - Placeholder mismatch → list the unmatched placeholders and the actual dataset fields
 - Immediate rollout failure in the dashboard → treat as a runtime exception, inspect stderr and traces first, and do not describe it as a low score
-- GitHub Models `404 page not found` from `responses.create` on older runtime builds → treat as endpoint/API mismatch rather than prompt quality, and use a runtime that falls back to chat completions
 - Dashboard port conflict or stale forwarded URL → use the returned `dashboard_url`, or set `AGL_SERVER_PORT` explicitly if you need a stable port
 - Missing dataset paths → report the missing explicit arguments or unreadable paths and stop
 - Unsupported judge mode → explain the supported modes: `deterministic`, `custom`, and `llm_judge`
@@ -205,16 +202,12 @@ python scripts/run_optimize.py \
 
 Use `--help` if you need to confirm available flags in the current script version.
 
-GitHub Models `.env` example at the repository root:
+Copilot `.env` example at the repository root:
 
 ```dotenv
-GITHUB_MODELS_API_KEY=<github-pat>
-GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
-GITHUB_MODELS_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
+COPILOT_MODEL=default
 ```
 
-Use [/.env.sample](/workspaces/copilot-apo/.env.sample) as the canonical template for supported secret and model keys.
+Use [/.env.sample](/workspaces/copilot-apo/.env.sample) as the canonical template for the supported Copilot setting.
 
 See `references/dataset-format.md` for the dataset contract and `assets/examples.md` for worked examples.

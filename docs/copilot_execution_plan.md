@@ -1,6 +1,6 @@
 # Copilot Execution Plan
 
-This repository now supports a Copilot-backed inference path for `trainer-optimize` without requiring model-provider API keys.
+This repository now supports a Copilot-backed inference path for `trainer-optimize`.
 
 ## How the current implementation maps to this requested Copilot adapter design
 
@@ -16,18 +16,15 @@ Implemented equivalents:
 - `skills/trainer-optimize/scripts/training/lightning_integration.py`
 - `skills/trainer-optimize/scripts/training/trace_logger.py`
 
-## Authentication
+## Configuration
 
-Copilot mode is activated with:
+Copilot is activated with:
 
 ```dotenv
-INFERENCE_PROVIDER=github_copilot
 COPILOT_MODEL=default
 ```
 
 The runtime initializes the Python Copilot SDK and uses the logged-in Copilot user session managed by that SDK.
-
-No provider API key fields are used for this mode. If `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, or similar provider secrets are present, the Copilot provider fails fast so the run stays keyless.
 
 ## Supported environments
 
@@ -108,7 +105,7 @@ python skills/trainer-optimize/scripts/run_optimize.py \
 
 ## Optional local adapter service
 
-If a local OpenAI-compatible endpoint is required, start:
+If a local HTTP interface is required, start:
 
 ```bash
 python skills/trainer-optimize/scripts/inference/local_adapter_service.py --port 8787
@@ -124,8 +121,3 @@ and forwards requests into the same Copilot-backed provider.
 
 - The implementation depends on `github-copilot-sdk` and assumes the signed-in Copilot runtime that the SDK talks to is available.
 - The SDK still depends on the logged-in Copilot user session, so environments without that session will fail fast.
-- Legacy OpenAI and GitHub Models support remains in the repo for backward compatibility; Copilot mode is the keyless path, not a destructive removal of the old providers.
-
-## Future provider switching
-
-Provider selection still flows through `skills/trainer-optimize/scripts/config.py`, so future providers can be added behind the same interface without changing the optimization loop itself.

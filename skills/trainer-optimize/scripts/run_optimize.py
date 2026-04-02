@@ -15,8 +15,7 @@ from uuid import uuid4
 from opto import trace
 
 from config import (
-    DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-    DEFAULT_GITHUB_GRADIENT_MODEL,
+    DEFAULT_COPILOT_MODEL,
     create_openai_client,
     resolve_model_settings,
 )
@@ -354,8 +353,8 @@ def run_optimize_sync(
                 branch_factor=branch_factor,
                 gradient_batch_size=min(4, len(train_dataset)),
                 val_batch_size=min(16, len(val_dataset)),
-                gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
-                apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
+                gradient_model=model_settings.get("gradient_model") or DEFAULT_COPILOT_MODEL,
+                apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_COPILOT_MODEL,
             )
             trainer = agl.Trainer(
                 algorithm=algo,
@@ -394,8 +393,6 @@ def run_optimize_sync(
         "report_file": report_file,
         "prompt_file_updated": prompt_file_updated,
         "dashboard_url": server_settings["dashboard_url"],
-        "model_provider": model_settings["provider"],
-        "model_endpoint": model_settings["base_url"],
         "inference_model": model_settings["inference_model"],
         "gradient_model": model_settings["gradient_model"],
         "apply_edit_model": model_settings["apply_edit_model"],

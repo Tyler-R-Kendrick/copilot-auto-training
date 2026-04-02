@@ -14,7 +14,6 @@ def log_inference(event: dict[str, Any]) -> None:
         "model_name": event.get("model_name"),
         "response_length": event.get("response_length"),
         "timestamp": event.get("timestamp") or datetime.now(UTC).isoformat(),
-        "provider": event.get("provider"),
         "status": event.get("status"),
         "error_type": event.get("error_type"),
     }

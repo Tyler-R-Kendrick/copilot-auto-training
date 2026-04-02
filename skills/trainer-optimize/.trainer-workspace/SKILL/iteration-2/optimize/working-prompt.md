@@ -60,8 +60,7 @@ Optional arguments:
 
 - Supported algorithms: `apo` and `verl`, selected through the same optimization pipeline.
 - Supported judge modes: `deterministic`, `custom`, and `llm_judge`.
-- The optimizer loads GitHub Models settings from the repository root `.env` when `GITHUB_MODELS_*` variables are present.
-- Supported root `.env` variables are `GITHUB_MODELS_API_KEY`, `GITHUB_MODELS_ENDPOINT`, `GITHUB_MODELS_GRADIENT_MODEL`, and `GITHUB_MODELS_APPLY_EDIT_MODEL`.
+- The optimizer uses the repository root `.env` `COPILOT_MODEL` setting for inference, gradient, and apply-edit requests.
 - By default the optimized prompt is returned in the JSON result and CLI stdout without writing files.
 - The source prompt is only overwritten when `in_place` is requested.
 - `output` writes a separate optimized prompt file when requested.
@@ -191,15 +190,12 @@ python scripts/run_optimize.py \
 
 Use `--help` if you need to confirm available flags in the current script version.
 
-GitHub Models `.env` example at the repository root:
+Copilot `.env` example at the repository root:
 
 ```dotenv
-GITHUB_MODELS_API_KEY=<github-pat>
-GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
-GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
+COPILOT_MODEL=default
 ```
 
-Use [/.env.sample](/workspaces/copilot-apo/.env.sample) as the canonical template for supported secret and model keys.
+Use [/.env.sample](/workspaces/copilot-apo/.env.sample) as the canonical template for the supported Copilot setting.
 
 See `references/dataset-format.md` for the dataset contract and `assets/examples.md` for worked examples.

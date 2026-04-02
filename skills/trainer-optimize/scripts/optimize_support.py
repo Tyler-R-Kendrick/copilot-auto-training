@@ -241,8 +241,6 @@ def build_manual_followup_result(
         "report_file": None,
         "prompt_file_updated": False,
         "dashboard_url": dashboard_url,
-        "model_provider": model_settings.get("provider"),
-        "model_endpoint": model_settings.get("base_url"),
         "inference_model": model_settings.get("inference_model"),
         "gradient_model": model_settings.get("gradient_model"),
         "apply_edit_model": model_settings.get("apply_edit_model"),
@@ -504,9 +502,9 @@ async def evaluate_output(
             if not 0.0 <= score <= 1.0:
                 raise ValueError("llm_judge score must be between 0.0 and 1.0")
             return score
-        judge_model = judge_model or os.getenv("OPENAI_MODEL") or os.getenv("GITHUB_MODELS_MODEL")
+        judge_model = judge_model or os.getenv("COPILOT_MODEL")
         if not judge_model:
-            raise ValueError("llm_judge requires OPENAI_MODEL or GITHUB_MODELS_MODEL to be configured")
+            raise ValueError("llm_judge requires COPILOT_MODEL to be configured")
         judge_metadata = _request_metadata(task)
         judge_metadata["step_id"] = f"{judge_metadata.get('step_id', 'candidate')}:judge"
         judge_text = await _complete_text_with_metadata_fallback(

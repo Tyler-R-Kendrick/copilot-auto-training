@@ -69,23 +69,18 @@ class TestRunOptimizeModuleShape:
         assert "def load_dotenv_file(" not in support_source
         assert "def resolve_model_settings(" not in support_source
         assert "def create_openai_client(" not in support_source
-        assert "GITHUB_MODELS_API_KEY" not in support_source
 
         assert "def find_repo_root(" in config_source
         assert "def load_dotenv_file(" in config_source
         assert "def resolve_model_settings(" in config_source
         assert "def create_openai_client(" in config_source
 
-    def test_env_sample_documents_expected_model_secrets(self):
+    def test_env_sample_documents_expected_copilot_model_setting(self):
         env_sample = Path(optimize_module.__file__).parent.parent.parent.parent / ".env.sample"
         text = env_sample.read_text(encoding="utf-8")
 
-        assert "OPENAI_GRADIENT_MODEL=" in text
-        assert "OPENAI_APPLY_EDIT_MODEL=" in text
-        assert "GITHUB_MODELS_API_KEY=" in text
-        assert "GITHUB_MODELS_ENDPOINT=" in text
-        assert "GITHUB_MODELS_MODEL=" in text
-        assert "OPENAI_API_KEY=" in text
+        assert "COPILOT_MODEL=default" in text
+        assert "Copy this file to .env" in text
 
 
 class TestRunOptimizeAlgorithmSupport:
@@ -129,20 +124,16 @@ class TestRunOptimizeAlgorithmSupport:
         assert "Unsupported algorithm" in result["message"]
 
 
-class TestGithubModelsConfiguration:
+class TestCopilotConfiguration:
     @pytest.mark.asyncio
-    async def test_loads_github_models_settings_from_root_env(self, tmp_path):
+    async def test_loads_copilot_settings_from_root_env(self, tmp_path):
         repo_root = tmp_path / "repo"
         repo_root.mkdir()
         (repo_root / "requirements.txt").write_text("agentlightning>=0.1.0\n", encoding="utf-8")
         (repo_root / ".env").write_text(
             "\n".join(
                 [
-                    "GITHUB_MODELS_API_KEY=test-github-token",
-                    "GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference",
-                    "GITHUB_MODELS_MODEL=openai/gpt-4.1-mini",
-                    "GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini",
-                    "GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini",
+                    "COPILOT_MODEL=default",
                     "",
                 ]
             ),
@@ -163,83 +154,9 @@ class TestGithubModelsConfiguration:
             )
         )
 
-        openai_module = sys.modules["openai"]
-        assert openai_module.AsyncOpenAI.last_init_kwargs["api_key"] == "test-github-token"
-        assert openai_module.AsyncOpenAI.last_init_kwargs["base_url"] == "https://models.github.ai/inference"
-        assert result["model_provider"] == "github"
-        assert result["model_endpoint"] == "https://models.github.ai/inference"
-        assert result["inference_model"] == "openai/gpt-4.1-mini"
-
-    @pytest.mark.asyncio
-    async def test_github_models_config_without_api_key_raises_clear_error(self, tmp_path):
-        repo_root = tmp_path / "repo"
-        repo_root.mkdir()
-        (repo_root / "requirements.txt").write_text("agentlightning>=0.1.0\n", encoding="utf-8")
-        (repo_root / ".env").write_text(
-            "\n".join(
-                [
-                    "GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference",
-                    "GITHUB_MODELS_MODEL=openai/gpt-4.1-mini",
-                    "",
-                ]
-            ),
-            encoding="utf-8",
-        )
-
-        prompt_path = repo_root / "prompts" / "support.md"
-        prompt_path.parent.mkdir(parents=True)
-        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
-        train = _write_jsonl(SIMPLE_TRAIN)
-        val = _write_jsonl(SIMPLE_VAL)
-
-        with pytest.raises(ValueError, match="GITHUB_MODELS_API_KEY"):
-            await run_optimize(
-                prompt_file=str(prompt_path),
-                train_file=train,
-                val_file=val,
-            )
-
-    @pytest.mark.asyncio
-    async def test_openai_env_takes_precedence_over_github_sample_defaults(self, tmp_path):
-        repo_root = tmp_path / "repo"
-        repo_root.mkdir()
-        (repo_root / "requirements.txt").write_text("agentlightning>=0.1.0\n", encoding="utf-8")
-        (repo_root / ".env").write_text(
-            "\n".join(
-                [
-                    "OPENAI_API_KEY=test-openai-token",
-                    "OPENAI_BASE_URL=https://api.openai.example/v1",
-                    "OPENAI_MODEL=gpt-4.1-mini",
-                    "GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference",
-                    "GITHUB_MODELS_MODEL=openai/gpt-4.1-mini",
-                    "",
-                ]
-            ),
-            encoding="utf-8",
-        )
-
-        prompt_path = repo_root / "prompts" / "support.md"
-        prompt_path.parent.mkdir(parents=True)
-        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
-        train = _write_jsonl(SIMPLE_TRAIN)
-        val = _write_jsonl(SIMPLE_VAL)
-
-        result = json.loads(
-            await run_optimize(
-                prompt_file=str(prompt_path),
-                train_file=train,
-                val_file=val,
-            )
-        )
-
-        openai_module = sys.modules["openai"]
-        assert openai_module.AsyncOpenAI.last_init_kwargs["api_key"] == "test-openai-token"
-        assert openai_module.AsyncOpenAI.last_init_kwargs["base_url"] == "https://api.openai.example/v1"
-        assert result["model_provider"] == "openai"
-        assert result["model_endpoint"] == "https://api.openai.example/v1"
-        assert result["inference_model"] == "gpt-4.1-mini"
-        assert result["gradient_model"] == "gpt-4.1-mini"
-        assert result["apply_edit_model"] == "gpt-4.1-mini"
+        assert result["inference_model"] == "default"
+        assert result["gradient_model"] == "default"
+        assert result["apply_edit_model"] == "default"
 
 
 class TestRunOptimizeInputValidation:
@@ -272,8 +189,16 @@ class TestRunOptimizeInputValidation:
 
 
 class TestRunOptimizeDebugOnly:
+    @staticmethod
+    def _stub_debug_generation(monkeypatch, response_text: str = "pong") -> None:
+        async def _fake_complete_text(llm_client, model_name, prompt_text, metadata=None):
+            return response_text
+
+        monkeypatch.setattr(optimize_module.support, "_complete_text", _fake_complete_text)
+
     @pytest.mark.asyncio
-    async def test_debug_only_returns_debug_json(self):
+    async def test_debug_only_returns_debug_json(self, monkeypatch):
+        self._stub_debug_generation(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -295,6 +220,7 @@ class TestRunOptimizeDebugOnly:
 
     @pytest.mark.asyncio
     async def test_debug_only_skips_algorithm_instantiation_and_trainer_dev(self, monkeypatch):
+        self._stub_debug_generation(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -324,6 +250,7 @@ class TestRunOptimizeDebugOnly:
 
     @pytest.mark.asyncio
     async def test_debug_only_verl_does_not_require_hydra_bound_algorithm_import(self, monkeypatch):
+        self._stub_debug_generation(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -377,7 +304,8 @@ class TestRunOptimizeDebugOnly:
         assert "review this change" in captured["prompt"]
 
     @pytest.mark.asyncio
-    async def test_debug_only_does_not_write_files(self, tmp_path):
+    async def test_debug_only_does_not_write_files(self, tmp_path, monkeypatch):
+        self._stub_debug_generation(monkeypatch)
         prompt_path = tmp_path / "prompt.md"
         prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
         out = tmp_path / "out.md"
@@ -409,9 +337,6 @@ class TestRunOptimizeManualFallback:
             lambda pf: (
                 sys.modules["openai"].AsyncOpenAI(),
                 {
-                    "provider": "openai",
-                    "api_key": None,
-                    "base_url": None,
                     "inference_model": None,
                     "gradient_model": None,
                     "apply_edit_model": None,
@@ -713,8 +638,6 @@ class TestRunOptimizeNormalRun:
             "output_file",
             "report_file",
             "prompt_file_updated",
-            "model_provider",
-            "model_endpoint",
             "inference_model",
             "gradient_model",
             "apply_edit_model",

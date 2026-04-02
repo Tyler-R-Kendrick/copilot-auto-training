@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 import inspect
-import os
 from time import perf_counter
 from typing import Any
 
@@ -20,14 +19,6 @@ except ImportError:  # pragma: no cover - exercised only when dependency is miss
     SubprocessConfig = None
 
 
-API_KEY_ENV_VARS = (
-    "OPENAI_API_KEY",
-    "GITHUB_MODELS_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "AZURE_OPENAI_API_KEY",
-    "GOOGLE_API_KEY",
-    "GEMINI_API_KEY",
-)
 AUTHENTICATION_ERROR_MARKERS = (
     "please sign in to copilot",
     "copilot authentication failed",
@@ -125,21 +116,12 @@ class CopilotInferenceProvider:
         self._sessions: dict[str, Any] = {}
         self._session_models: dict[str, str] = {}
         self._client_started = False
-        self._reject_provider_keys()
         self.client = self._init_client()
-
-    def _reject_provider_keys(self) -> None:
-        detected = sorted(name for name in API_KEY_ENV_VARS if os.getenv(name) not in (None, ""))
-        if detected:
-            raise ValueError(
-                "github_copilot inference refuses provider API keys. Remove these variables before using Copilot mode: "
-                + ", ".join(detected)
-            )
 
     def _init_client(self) -> Any:
         if CopilotClient is None or PermissionHandler is None or SubprocessConfig is None:
             raise CopilotInferenceError(
-                "github-copilot-sdk is required for github_copilot inference. Install repository dependencies first."
+                "github-copilot-sdk is required for Copilot inference. Install repository dependencies first."
             )
         sdk_subprocess_config = SubprocessConfig(use_logged_in_user=True)
         return CopilotClient(sdk_subprocess_config, auto_start=False)
@@ -278,7 +260,6 @@ class CopilotInferenceProvider:
                             "model_name": request.model or self.config.model,
                             "response_length": len(text),
                             "timestamp": datetime.now(UTC).isoformat(),
-                            "provider": self.config.provider,
                             "status": "ok",
                         }
                     )
@@ -302,7 +283,6 @@ class CopilotInferenceProvider:
                             "model_name": request.model or self.config.model,
                             "response_length": 0,
                             "timestamp": datetime.now(UTC).isoformat(),
-                            "provider": self.config.provider,
                             "status": "error",
                             "error_type": type(normalized).__name__,
                         }

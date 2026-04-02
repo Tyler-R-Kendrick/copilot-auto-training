@@ -220,7 +220,7 @@ Use it locally as either a repo template or a locally cloned copy, then follow t
 
 - Python 3.11+
 - dependencies from [requirements.txt](requirements.txt)
-- model credentials via `OPENAI_API_KEY` or the GitHub Models variables documented in [docs/getting-started.md](docs/getting-started.md)
+- an authenticated Copilot session plus the `COPILOT_MODEL` setting documented in [docs/getting-started.md](docs/getting-started.md)
 
 ## Installation
 
