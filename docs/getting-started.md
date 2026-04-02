@@ -42,7 +42,6 @@ If you want to run through the signed-in Copilot runtime instead of provider API
 
 ```dotenv
 INFERENCE_PROVIDER=github_copilot
-COPILOT_INFERENCE_MODE=local_cli
 COPILOT_MODEL=default
 ```
 

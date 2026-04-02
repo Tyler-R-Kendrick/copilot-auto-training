@@ -22,23 +22,16 @@ Copilot mode is activated with:
 
 ```dotenv
 INFERENCE_PROVIDER=github_copilot
-COPILOT_INFERENCE_MODE=local_cli
 COPILOT_MODEL=default
 ```
 
 The runtime initializes the Python Copilot SDK and uses the logged-in Copilot user session managed by that SDK.
 
-- `COPILOT_INFERENCE_MODE=local_cli` uses the default SDK subprocess transport with the signed-in user session.
-- `COPILOT_INFERENCE_MODE=bundled_cli` points the SDK at `COPILOT_BUNDLED_CLI_PATH`.
-- `COPILOT_INFERENCE_MODE=oauth` still uses the SDK's logged-in user path instead of provider API keys.
-
 No provider API key fields are used for this mode. If `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, or similar provider secrets are present, the Copilot provider fails fast so the run stays keyless.
 
 ## Supported environments
 
-- Local SDK mode: the Python Copilot SDK can reach the signed-in Copilot runtime for the current user
-- Bundled SDK mode: the SDK is pointed at a bundled Copilot runtime through `COPILOT_BUNDLED_CLI_PATH`
-- OAuth mode: the provider still routes through the SDK and uses the logged-in session flow rather than provider keys
+- The Python Copilot SDK can reach the signed-in Copilot runtime for the current user
 
 ## Runtime shape
 

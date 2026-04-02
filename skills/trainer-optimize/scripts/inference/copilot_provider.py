@@ -141,15 +141,7 @@ class CopilotInferenceProvider:
             raise CopilotInferenceError(
                 "github-copilot-sdk is required for github_copilot inference. Install repository dependencies first."
             )
-        client_config: Any | None = None
-        if self.config.mode == "bundled_cli":
-            if not self.config.bundled_cli_path:
-                raise CopilotInferenceError("bundled_cli mode requires bundled_cli_path.")
-            client_config = SubprocessConfig(cli_path=self.config.bundled_cli_path, use_logged_in_user=True)
-        elif self.config.mode in {"local_cli", "oauth"}:
-            client_config = SubprocessConfig(use_logged_in_user=True)
-        else:
-            raise CopilotInferenceError(f"Unsupported Copilot SDK mode: {self.config.mode!r}")
+        client_config = SubprocessConfig(use_logged_in_user=True)
         return CopilotClient(client_config, auto_start=False)
 
     async def _ensure_client_started(self) -> Any:

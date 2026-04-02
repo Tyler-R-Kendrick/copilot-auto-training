@@ -6,7 +6,6 @@ from dataclasses import dataclass
 @dataclass(slots=True)
 class InferenceConfig:
     provider: str = "github_copilot"
-    mode: str = "local_cli"
     model: str = "default"
     timeout_seconds: int = 60
     max_tokens: int = 1500
@@ -14,4 +13,3 @@ class InferenceConfig:
     retries: int = 2
     retry_backoff_seconds: float = 0.5
     session_history_limit: int = 40
-    bundled_cli_path: str | None = None

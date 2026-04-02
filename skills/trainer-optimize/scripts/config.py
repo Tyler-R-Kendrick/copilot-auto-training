@@ -73,9 +73,7 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
     copilot_markers = copilot_provider == "github_copilot" or any(
         pick(name) not in (None, "")
         for name in (
-            "COPILOT_INFERENCE_MODE",
             "COPILOT_MODEL",
-            "COPILOT_BUNDLED_CLI_PATH",
         )
     )
 
@@ -120,18 +118,15 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
         }
 
     if copilot_markers:
-        copilot_mode = pick("COPILOT_INFERENCE_MODE", "local_cli") or "local_cli"
         inference_model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
         return {
             "provider": "github_copilot",
             "api_key": None,
-            "base_url": f"copilot://{copilot_mode}",
+            "base_url": "copilot://sdk_session",
             "inference_model": inference_model,
             "gradient_model": inference_model,
             "apply_edit_model": inference_model,
             "repo_root": str(repo_root),
-            "copilot_mode": copilot_mode,
-            "copilot_bundled_cli_path": pick("COPILOT_BUNDLED_CLI_PATH"),
         }
 
     return {
@@ -152,11 +147,7 @@ def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
     if model_settings.get("provider") == "github_copilot":
         provider_config = InferenceConfig(
             provider="github_copilot",
-            mode=str(model_settings.get("copilot_mode") or "local_cli"),
             model=str(model_settings.get("inference_model") or DEFAULT_COPILOT_MODEL),
-            bundled_cli_path=str(model_settings["copilot_bundled_cli_path"])
-            if model_settings.get("copilot_bundled_cli_path")
-            else None,
         )
         return build_runtime_client(model_settings, provider_config=provider_config)
     client_kwargs: dict[str, str] = {}

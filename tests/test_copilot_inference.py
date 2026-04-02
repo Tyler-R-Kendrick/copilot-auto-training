@@ -42,14 +42,13 @@ class TestCopilotConfig:
         prompt_path = _write_repo_env(
             tmp_path,
             "INFERENCE_PROVIDER=github_copilot",
-            "COPILOT_INFERENCE_MODE=local_cli",
             "COPILOT_MODEL=default",
         )
 
         settings = optimize_config.resolve_model_settings(str(prompt_path))
 
         assert settings["provider"] == "github_copilot"
-        assert settings["base_url"] == "copilot://local_cli"
+        assert settings["base_url"] == "copilot://sdk_session"
         assert settings["inference_model"] == "default"
         assert settings["gradient_model"] == "default"
         assert settings["apply_edit_model"] == "default"
@@ -59,7 +58,6 @@ class TestCopilotConfig:
         prompt_path = _write_repo_env(
             tmp_path,
             "INFERENCE_PROVIDER=github_copilot",
-            "COPILOT_INFERENCE_MODE=local_cli",
             "COPILOT_MODEL=default",
         )
         monkeypatch.setattr("inference.copilot_provider.CopilotInferenceProvider._init_client", lambda self: object())
