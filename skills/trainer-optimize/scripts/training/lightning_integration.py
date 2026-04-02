@@ -2,7 +2,9 @@
 
 This module is the bridge between the Copilot-backed inference provider and the
 OpenAI-shaped client surface consumed by ``agentlightning.APO`` and
-``agentlightning.VERL`` in ``run_optimize.py``.
+``agentlightning.VERL`` in ``run_optimize.py``. The core integration contract
+is that ``run_optimize`` receives a ``ProviderBackedOpenAIClient`` from this
+module and passes that concrete client into AgentLightning algorithms.
 """
 
 from __future__ import annotations
@@ -172,7 +174,11 @@ def build_runtime_client(
     *,
     provider_config: InferenceConfig,
 ) -> tuple[ProviderBackedOpenAIClient, dict[str, Any]]:
-    """Build the AgentLightning runtime client used by ``agl.APO``/``agl.VERL``."""
+    """Build the AgentLightning client returned by ``config.create_openai_client``.
+
+    The returned ``ProviderBackedOpenAIClient`` is the concrete client instance
+    passed into ``agl.APO`` and ``agl.VERL`` by ``run_optimize``.
+    """
 
     provider = CopilotInferenceProvider(provider_config, model_settings=model_settings)
     client = ProviderBackedOpenAIClient(provider, default_model=str(model_settings["model"]))

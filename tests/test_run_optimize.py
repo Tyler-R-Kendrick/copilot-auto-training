@@ -124,7 +124,7 @@ class TestRunOptimizeAlgorithmSupport:
         assert "Unsupported algorithm" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_apo_receives_agentlightning_runtime_client(self, monkeypatch):
+    async def test_apo_receives_provider_backed_openai_client(self, monkeypatch):
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
