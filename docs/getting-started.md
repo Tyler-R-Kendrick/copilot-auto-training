@@ -6,8 +6,8 @@ This guide covers installation, model configuration, the first run, and the opti
 
 - Python 3.11 or newer
 - A virtual environment for the repository
-- Model credentials through either `OPENAI_API_KEY` or GitHub Models configuration in the repository root `.env`
-- A model name through `OPENAI_MODEL` or `GITHUB_MODELS_MODEL`
+- Either a signed-in Copilot CLI runtime or model credentials through `OPENAI_API_KEY` / GitHub Models configuration in the repository root `.env`
+- A model name through `OPENAI_MODEL`, `GITHUB_MODELS_MODEL`, or `COPILOT_MODEL`
 
 ## Install Dependencies
 
@@ -37,6 +37,18 @@ Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported 
 
 When these `GITHUB_MODELS_*` values are present, the optimizer treats the repository-root `.env` as the authoritative source for GitHub Models settings.
 On GitHub Models endpoints, the runtime will try the OpenAI Responses API first and automatically fall back to chat completions when the endpoint rejects that route with `404`.
+
+If you want to run through the signed-in Copilot runtime instead of provider API keys, configure the repo like this:
+
+```dotenv
+INFERENCE_PROVIDER=github_copilot
+COPILOT_INFERENCE_MODE=local_cli
+COPILOT_MODEL=default
+# Optional when the CLI is not on PATH:
+COPILOT_INFERENCE_COMMAND="copilot chat --json --stdio"
+```
+
+In Copilot mode, the runtime rejects `OPENAI_API_KEY`, `GITHUB_MODELS_API_KEY`, and similar provider secrets so the run stays keyless. If the local Copilot runtime is missing or not authenticated, the optimizer fails clearly or falls back to the existing manual-followup handoff when the live inference step is unavailable.
 
 ## Verify the Environment
 
@@ -71,6 +83,12 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --train-file examples/first-run/datasets/train.jsonl \
   --val-file examples/first-run/datasets/val.jsonl \
   --debug-only
+```
+
+Copilot-only smoke test:
+
+```bash
+python skills/trainer-optimize/scripts/inference/smoke_test.py --model default
 ```
 
 Small full run:
@@ -109,6 +127,8 @@ python skills/trainer-optimize/scripts/run_optimize.py \
 ```
 
 While the full run is active, open the `dashboard_url` returned by the command, as described in [docs/dashboard.md](dashboard.md). If you need a stable port for forwarding, set `AGL_SERVER_PORT` before starting the run.
+
+For the current Copilot-backed execution model, including the new inference adapter, session handling, trace logging, and limits, see [docs/copilot_execution_plan.md](copilot_execution_plan.md).
 
 ## Using The Repository Prompt
 
