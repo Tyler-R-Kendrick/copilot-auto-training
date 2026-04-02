@@ -18,6 +18,7 @@ import pytest
 
 import run_optimize as optimize_module
 from run_optimize import _make_rollout, run_optimize, run_optimize_sync
+from training.lightning_integration import ProviderBackedOpenAIClient
 
 
 def _write_file(content: str, suffix: str = ".md") -> str:
@@ -121,6 +122,34 @@ class TestRunOptimizeAlgorithmSupport:
 
         assert result["ok"] is False
         assert "Unsupported algorithm" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_apo_receives_agentlightning_runtime_client(self, monkeypatch):
+        prompt = _write_file(SIMPLE_TEMPLATE)
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+        agl = sys.modules["agentlightning"]
+        captured: dict[str, object] = {}
+        original_apo = agl.APO
+
+        class CapturingAPO(original_apo):
+            def __init__(self, client, **kwargs):
+                captured["client"] = client
+                super().__init__(client, **kwargs)
+
+        monkeypatch.setattr(agl, "APO", CapturingAPO)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=prompt,
+                train_file=train,
+                val_file=val,
+                algorithm="apo",
+            )
+        )
+
+        assert result["ok"] is True
+        assert isinstance(captured["client"], ProviderBackedOpenAIClient)
 
 
 class TestCopilotConfiguration:

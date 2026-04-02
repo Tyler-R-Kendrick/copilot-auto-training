@@ -1,3 +1,10 @@
+"""AgentLightning-facing client adapters for trainer-optimize.
+
+This module is the bridge between the Copilot-backed inference provider and the
+OpenAI-shaped client surface consumed by ``agentlightning.APO`` and
+``agentlightning.VERL`` in ``run_optimize.py``.
+"""
+
 from __future__ import annotations
 
 import json
@@ -77,6 +84,8 @@ class _ProviderChat:
 
 
 class ProviderBackedOpenAIClient:
+    """OpenAI-compatible client passed directly into AgentLightning algorithms."""
+
     def __init__(
         self,
         provider: CopilotInferenceProvider,
@@ -163,6 +172,8 @@ def build_runtime_client(
     *,
     provider_config: InferenceConfig,
 ) -> tuple[ProviderBackedOpenAIClient, dict[str, Any]]:
+    """Build the AgentLightning runtime client used by ``agl.APO``/``agl.VERL``."""
+
     provider = CopilotInferenceProvider(provider_config, model_settings=model_settings)
     client = ProviderBackedOpenAIClient(provider, default_model=str(model_settings["model"]))
     return client, model_settings
