@@ -40,7 +40,7 @@ On GitHub Models endpoints, the runtime will try the OpenAI Responses API first 
 
 ## Configure GitHub Agentic Workflows Secrets
 
-The reusable workflow in this repository currently validates `COPILOT_GITHUB_TOKEN` at startup and then uses these token chains:
+The reusable workflow in this repository currently validates `COPILOT_GITHUB_TOKEN` at startup and then uses these token chains. In the lists below, `→` means "falls back to the next token if the earlier one is unavailable":
 
 - Copilot engine authentication: `COPILOT_GITHUB_TOKEN`
 - GitHub MCP server access: `GH_AW_GITHUB_MCP_SERVER_TOKEN` → `GH_AW_GITHUB_TOKEN` → `GITHUB_TOKEN`
@@ -101,7 +101,7 @@ If you want the fewest moving parts, you can use one fine-grained PAT for both `
 | `Pull requests` | Repository: `Read and write` | Yes | The workflow reads PR context during agent execution and uses the token to create or update the pull request produced by `create-pull-request`. |
 | `Issues` | Repository: `Read and write` | Yes | The workflow reads issues through the GitHub MCP toolset and can fall back to issue-based reporting in GH AW conclusion/safe-output handling. |
 | `Metadata` | Repository: `Read` | Automatic | GitHub includes metadata access automatically for fine-grained PATs. |
-| `Actions`, `Workflows`, `Administration`, `Secrets`, `Variables` | Repository or organization | No | This workflow's Actions runtime and artifact steps rely on GitHub's built-in `GITHUB_TOKEN`, not on the PAT you store in `COPILOT_GITHUB_TOKEN` or `GH_AW_GITHUB_TOKEN`. |
+| `Actions`, `Workflows`, `Administration`, `Secrets`, `Variables` | Repository or organization | No | This workflow uses GitHub's built-in `GITHUB_TOKEN` for Actions runtime and artifact steps. |
 
 #### Split-token setup
 
