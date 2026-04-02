@@ -82,11 +82,7 @@ Use a **fine-grained personal access token**. Copilot CLI does not support class
 6. If you plan to use the same PAT for write-back, also add the repository permissions from the table below.
 7. Generate the token and save it as the repository secret `COPILOT_GITHUB_TOKEN`.
 
-Repo-local reference images:
-
 ![Fine-grained PAT for Copilot Requests](assets/gh-aw-secrets/copilot-token-account-permissions.svg)
-![PAT permissions for GH AW write-back](assets/gh-aw-secrets/writeback-token-permissions.svg)
-![Read-only PAT permissions for GitHub MCP access](assets/gh-aw-secrets/mcp-read-token-permissions.svg)
 
 ### PAT permissions: what this repository actually needs
 
@@ -103,6 +99,8 @@ If you want the fewest moving parts, you can use one fine-grained PAT for both `
 | `Metadata` | Repository: `Read` | Automatic | GitHub includes metadata access automatically for fine-grained PATs. |
 | `Actions`, `Workflows`, `Administration`, `Secrets`, `Variables` | Repository or organization | No | This workflow uses GitHub's built-in `GITHUB_TOKEN` for Actions runtime and artifact steps. |
 
+![PAT permissions for GH AW write-back](assets/gh-aw-secrets/writeback-token-permissions.svg)
+
 #### Split-token setup
 
 | Secret | Minimal PAT permissions | Why |
@@ -110,6 +108,8 @@ If you want the fewest moving parts, you can use one fine-grained PAT for both `
 | `COPILOT_GITHUB_TOKEN` | `Copilot Requests: Read` | Enough for Copilot engine authentication if you do not want this token to perform repository writes. |
 | `GH_AW_GITHUB_TOKEN` | `Contents: Read and write`, `Pull requests: Read and write`, `Issues: Read and write` | Enough for this repository's GitHub MCP fallback plus PR creation and issue fallback handling. |
 | `GH_AW_GITHUB_MCP_SERVER_TOKEN` | `Contents: Read`, `Pull requests: Read`, `Issues: Read` | The current MCP server configuration in this repo is limited to `context`, `repos`, `issues`, and `pull_requests`, so a dedicated MCP token only needs read access unless you expand those toolsets later. |
+
+![Read-only PAT permissions for GitHub MCP access](assets/gh-aw-secrets/mcp-read-token-permissions.svg)
 
 ### Roles needed for the PAT itself
 
