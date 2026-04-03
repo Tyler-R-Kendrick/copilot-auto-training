@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -63,6 +64,17 @@ def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engine
     assert task.forbidden_text == ("DSPy",)
     assert task.placeholders == ("${context}",)
     assert str(context_path.resolve()) in task.supporting_context
+    assert "Reference material for the prompt rewrite." in task.supporting_context
+
+
+def test_build_prompt_task_raises_for_missing_context_file(tmp_path: Path, engineer_prompt_export_module):
+    prompt_path = _write_prompt(tmp_path / "prompt.md")
+
+    with pytest.raises(FileNotFoundError):
+        engineer_prompt_export_module.build_prompt_task(
+            str(prompt_path),
+            context_files=[str(tmp_path / "missing-context.md")],
+        )
 
 
 def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_export_module):
@@ -87,7 +99,7 @@ def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_export_
 
 
 def test_compile_prompt_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_export_module):
-    captured: dict[str, object] = {}
+    dspy_call_trace: dict[str, object] = {}
     optimized_prompt = """# Better Prompt
 
 Use `${context}` to answer the request.
@@ -95,20 +107,25 @@ Return exactly three bullets.
 Keep the wording concise.
 """
 
-    class FakeExample(dict):
+    class FakeExample:
         def __init__(self, **kwargs):
-            super().__init__(**kwargs)
+            self._data = dict(kwargs)
+            for key, value in kwargs.items():
+                setattr(self, key, value)
 
         def with_inputs(self, *keys):
-            self["_input_keys"] = keys
+            self.input_keys = keys
             return self
+
+        def get(self, key, default=None):
+            return self._data.get(key, default)
 
     class FakePredict:
         def __init__(self, signature):
-            captured["signature"] = signature
+            dspy_call_trace["signature"] = signature
 
         def __call__(self, **kwargs):
-            captured["prediction_kwargs"] = kwargs
+            dspy_call_trace["prediction_kwargs"] = kwargs
             return SimpleNamespace(optimized_prompt=optimized_prompt)
 
     class FakeModule:
@@ -120,15 +137,15 @@ Keep the wording concise.
 
     class FakeMIPROv2:
         def __init__(self, **kwargs):
-            captured["optimizer_kwargs"] = kwargs
+            dspy_call_trace["optimizer_kwargs"] = kwargs
 
         def compile(self, student, **kwargs):
-            captured["compile_kwargs"] = kwargs
+            dspy_call_trace["compile_kwargs"] = kwargs
             return student
 
     class FakeLM:
         def __init__(self, model, **kwargs):
-            captured["lm"] = {"model": model, **kwargs}
+            dspy_call_trace["lm"] = {"model": model, **kwargs}
 
     fake_dspy = SimpleNamespace(
         Signature=type("Signature", (), {}),
@@ -139,7 +156,7 @@ Keep the wording concise.
         OutputField=lambda **kwargs: kwargs,
         MIPROv2=FakeMIPROv2,
         LM=FakeLM,
-        configure=lambda **kwargs: captured.setdefault("configure", kwargs),
+        configure=lambda **kwargs: dspy_call_trace.setdefault("configure", kwargs),
     )
 
     monkeypatch.setattr(engineer_prompt_export_module, "_load_dspy", lambda: fake_dspy)
@@ -159,16 +176,17 @@ Keep the wording concise.
 
     assert "`${context}`" in body
     assert "three bullets" in body
-    assert captured["optimizer_kwargs"]["max_bootstrapped_demos"] == 0
-    assert captured["optimizer_kwargs"]["max_labeled_demos"] == 0
-    assert captured["compile_kwargs"]["requires_permission_to_run"] is False
-    assert captured["lm"]["model"] == "openai/gpt-4o-mini"
+    assert all(example.input_keys for example in dspy_call_trace["compile_kwargs"]["trainset"])
+    assert dspy_call_trace["optimizer_kwargs"]["max_bootstrapped_demos"] == 0
+    assert dspy_call_trace["optimizer_kwargs"]["max_labeled_demos"] == 0
+    assert dspy_call_trace["compile_kwargs"]["requires_permission_to_run"] is False
+    assert dspy_call_trace["lm"]["model"] == "openai/gpt-4o-mini"
     assert (tmp_path / "program.json").is_file()
 
 
 def test_validate_only_cli_emits_json_summary(tmp_path: Path):
     prompt_path = _write_prompt(tmp_path / "prompt.md")
-    output = __import__("subprocess").run(
+    output = subprocess.run(
         [
             sys.executable,
             str(MODULE_PATH),
@@ -193,6 +211,26 @@ def test_validate_only_cli_emits_json_summary(tmp_path: Path):
     assert payload["missing_placeholders"] == []
     assert payload["forbidden_text_present"] == []
     assert payload["prompt_file"] == str(prompt_path.resolve())
+
+
+def test_validate_only_cli_reports_missing_prompt_file(tmp_path: Path):
+    missing_prompt = tmp_path / "missing.md"
+    output = subprocess.run(
+        [
+            sys.executable,
+            str(MODULE_PATH),
+            "--validate-only",
+            "--prompt-file",
+            str(missing_prompt),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+
+    assert output.returncode == 1
+    assert str(missing_prompt.resolve()) in output.stderr
 
 
 def test_exporter_script_exists():

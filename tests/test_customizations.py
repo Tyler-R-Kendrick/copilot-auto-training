@@ -277,7 +277,7 @@ class TestAgentCustomizations:
         result = agent_skills_module.run_agent_skill(
             "engineer-prompt",
             script_path="scripts/export_skill_prompt.py",
-            argv=["--validate-only"],
+            argv=["--validate-only", "--prompt-file", "SKILL.md"],
         )
         assert result["exit_code"] == 0
         assert '"valid": true' in result["stdout"].lower()

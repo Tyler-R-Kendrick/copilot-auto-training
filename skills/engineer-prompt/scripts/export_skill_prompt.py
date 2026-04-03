@@ -16,9 +16,12 @@ import yaml
 SKILL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_PROGRAM_OUTPUT_PATH = SKILL_DIR / "assets" / "prompt_program_optimized.json"
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
+MARKDOWN_TOKENS = ("#", "- ", "1.", "```")
+EMPTY_CONSTRAINT_MARKER = "<none>"
 # Disable demonstrations so the compiled artifact stays close to a clean checked-in markdown prompt.
 MAX_DEMO_COUNT = 0
 DEFAULT_MIN_BODY_LENGTH = 40
+DEFAULT_MAX_BODY_LENGTH_MULTIPLIER = 2
 TRAIN_SET_SIZE = 3
 DEFAULT_GOAL = (
     "Improve clarity, structure, and operational usefulness while preserving placeholders, markdown shape, "
@@ -91,7 +94,11 @@ def build_prompt_task(
     prompt_text = prompt_path.read_text(encoding="utf-8")
     frontmatter, prompt_body = _split_frontmatter(prompt_text)
     placeholders = extract_placeholders(prompt_text)
-    resolved_max_body_length = max_body_length if max_body_length is not None else max(len(prompt_body) * 2, min_body_length)
+    resolved_max_body_length = (
+        max_body_length
+        if max_body_length is not None
+        else max(len(prompt_body) * DEFAULT_MAX_BODY_LENGTH_MULTIPLIER, min_body_length)
+    )
     return PromptOptimizationTask(
         prompt_path=prompt_path,
         frontmatter=frontmatter,
@@ -131,7 +138,7 @@ def validate_prompt_markdown(
     body_length = len(body.strip())
     too_short = body_length < min_body_length
     too_long = max_body_length is not None and body_length > max_body_length
-    looks_like_markdown = bool(body.strip()) and any(token in body for token in ("#", "- ", "1.", "```", ":"))
+    looks_like_markdown = bool(body.strip()) and any(token in body for token in MARKDOWN_TOKENS)
     return {
         "valid": not missing_placeholders and not missing_required_text and not forbidden_text_present and not too_short and not too_long and looks_like_markdown,
         "has_frontmatter": bool(frontmatter),
@@ -167,28 +174,41 @@ def prompt_metric(example: Any, pred: Any, _trace: Any = None) -> float:
     return sum(1.0 for check in checks if check) / len(checks)
 
 
-def _task_variants(task: PromptOptimizationTask) -> list[str]:
-    variants = [task.prompt_body]
-    variants.append(task.prompt_body + "\n\nMake the instructions more direct and easier to scan.")
-    variants.append(task.prompt_body + "\n\nPreserve placeholders exactly while making the output contract more explicit.")
-    variants.append(task.prompt_body + "\n\nReduce unnecessary verbosity without changing the task scope.")
-    return variants
+def _task_variants(task: PromptOptimizationTask) -> list[dict[str, str]]:
+    return [
+        {
+            "optimization_goal": task.optimization_goal,
+            "supporting_context": task.supporting_context,
+        },
+        {
+            "optimization_goal": f"{task.optimization_goal} Make the instructions easier to scan.",
+            "supporting_context": task.supporting_context,
+        },
+        {
+            "optimization_goal": f"{task.optimization_goal} Preserve placeholders exactly and tighten the output contract.",
+            "supporting_context": task.supporting_context,
+        },
+        {
+            "optimization_goal": f"{task.optimization_goal} Reduce unnecessary verbosity without changing task scope.",
+            "supporting_context": task.supporting_context,
+        },
+    ]
 
 
 def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[Any], list[Any]]:
     examples = []
-    for draft_prompt in _task_variants(task):
+    for variant in _task_variants(task):
         examples.append(
             dspy.Example(
                 frontmatter=task.frontmatter,
-                optimization_goal=task.optimization_goal,
-                supporting_context=task.supporting_context,
+                optimization_goal=variant["optimization_goal"],
+                supporting_context=variant["supporting_context"],
                 required_text=task.required_text,
                 forbidden_text=task.forbidden_text,
                 placeholders=task.placeholders,
                 min_body_length=task.min_body_length,
                 max_body_length=task.max_body_length,
-                draft_prompt=draft_prompt,
+                draft_prompt=task.prompt_body,
             ).with_inputs(
                 "optimization_goal",
                 "supporting_context",
@@ -201,7 +221,7 @@ def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[An
     return examples[:TRAIN_SET_SIZE], examples[TRAIN_SET_SIZE:]
 
 
-def _configure_dspy_lm(dspy: Any, *, model: str | None, api_key: str | None, api_base: str | None, temperature: float) -> Any:
+def _configure_dspy_language_model(dspy: Any, *, model: str | None, api_key: str | None, api_base: str | None, temperature: float) -> Any:
     resolved_model = model or os.getenv("DSPY_MODEL") or os.getenv("OPENAI_MODEL")
     if not resolved_model:
         raise RuntimeError(
@@ -230,7 +250,7 @@ def compile_prompt(
     temperature: float = 0.2,
 ) -> tuple[str, Any]:
     dspy = _load_dspy()
-    _configure_dspy_lm(dspy, model=model, api_key=api_key, api_base=api_base, temperature=temperature)
+    _configure_dspy_language_model(dspy, model=model, api_key=api_key, api_base=api_base, temperature=temperature)
 
     class PromptOptimizerSignature(dspy.Signature):
         """Rewrite a markdown prompt to improve quality while preserving placeholders and task scope."""
@@ -260,9 +280,9 @@ def compile_prompt(
             return self.rewrite(
                 optimization_goal=optimization_goal,
                 supporting_context=supporting_context,
-                required_text="\n".join(required_text) if required_text else "<none>",
-                forbidden_text="\n".join(forbidden_text) if forbidden_text else "<none>",
-                placeholders="\n".join(placeholders) if placeholders else "<none>",
+                required_text="\n".join(required_text) if required_text else EMPTY_CONSTRAINT_MARKER,
+                forbidden_text="\n".join(forbidden_text) if forbidden_text else EMPTY_CONSTRAINT_MARKER,
+                placeholders="\n".join(placeholders) if placeholders else EMPTY_CONSTRAINT_MARKER,
                 draft_prompt=draft_prompt,
             )
 
@@ -295,7 +315,7 @@ def compile_prompt(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file with DSPy.")
-    parser.add_argument("--prompt-file", default=str(SKILL_DIR / "SKILL.md"), help="Path to the markdown prompt file to validate or optimize.")
+    parser.add_argument("--prompt-file", required=True, help="Required path to the markdown prompt file to validate or optimize.")
     parser.add_argument("--output-file", help="Optional path for the rendered markdown artifact.")
     parser.add_argument("--program-file", default=str(DEFAULT_PROGRAM_OUTPUT_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
     parser.add_argument("--in-place", action="store_true", help="Overwrite the source prompt file.")
