@@ -1589,6 +1589,14 @@ class TestTrainPromptWorkflow:
         assert isinstance(safe_outputs, dict), "Expected safe-outputs to be a YAML mapping"
         return safe_outputs
 
+    def _source_steps(self) -> list[dict]:
+        text = _read(self.WORKFLOW_MD)
+        frontmatter = self._parse_frontmatter_yaml(text)
+        parsed = yaml.safe_load(frontmatter)
+        steps = parsed["steps"]
+        assert isinstance(steps, list), "Expected steps to be a YAML list"
+        return steps
+
     def test_source_create_pull_request_has_no_allowed_files_restriction(self):
         config = self._source_create_pull_request_config()
         assert "allowed-files" not in config, (
@@ -1676,6 +1684,21 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should block PR creation when an edited agentic workflow cannot be recompiled cleanly."
         )
 
+    def test_source_adds_pre_activation_compile_step_for_train_prompt(self):
+        steps = self._source_steps()
+        compile_step = next((step for step in steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        assert compile_step is not None, (
+            "train-prompt.md should define a deterministic pre-activation step that recompiles the trainer workflow."
+        )
+        assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        run = compile_step.get("run", "")
+        assert "gh aw compile train-prompt" in run, (
+            "train-prompt.md should compile the trainer workflow before the agent activates."
+        )
+        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" in run, (
+            "train-prompt.md should fail the pre-activation check when train-prompt.lock.yml changes after compilation."
+        )
+
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
         runtime = self._source_agent_skills_runtime()
         assert runtime.get("command") == "/bin/sh", (
@@ -1740,6 +1763,21 @@ class TestTrainPromptWorkflow:
         assert "add_reviewer" not in text, (
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
+        )
+
+    def test_lock_runs_pre_activation_compile_for_train_prompt(self):
+        activation_steps = self._lock_yaml()["jobs"]["activation"]["steps"]
+        compile_step = next((step for step in activation_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        assert compile_step is not None, (
+            "train-prompt.lock.yml should run a pre-activation compile check for the trainer workflow."
+        )
+        assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
+        run = compile_step.get("run", "")
+        assert "gh aw compile train-prompt" in run, (
+            "train-prompt.lock.yml should compile train-prompt before activating the trainer agent."
+        )
+        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" in run, (
+            "train-prompt.lock.yml should fail when pre-activation compilation changes the checked-in lock file."
         )
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):

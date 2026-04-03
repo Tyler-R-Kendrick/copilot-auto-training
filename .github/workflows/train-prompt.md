@@ -20,6 +20,15 @@ permissions:
 
 engine: copilot
 
+steps:
+  - name: Verify train-prompt workflow compile state
+    env:
+      GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+    run: |
+      gh aw --help >/dev/null
+      gh aw compile train-prompt
+      git diff --exit-code -- .github/workflows/train-prompt.lock.yml
+
 tools:
   github:
     toolsets: [default]
