@@ -1718,6 +1718,12 @@ class TestTrainPromptWorkflow:
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.md should compile the trainer workflow before the agent activates."
         )
+        assert run.strip().splitlines() == [
+            "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
+            "gh aw compile train-prompt",
+        ], (
+            "train-prompt.md should refresh train-prompt.lock.yml by compiling the workflow without adding a separate diff-based failure gate."
+        )
         assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
             "train-prompt.md should refresh train-prompt.lock.yml when stale instead of failing on lockfile drift."
         )
@@ -1803,6 +1809,12 @@ class TestTrainPromptWorkflow:
         )
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.lock.yml should compile train-prompt before activating the trainer agent."
+        )
+        assert run.strip().splitlines() == [
+            "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
+            "gh aw compile train-prompt",
+        ], (
+            "train-prompt.lock.yml should refresh the checked-in lock file by compiling the workflow without a separate diff-based failure gate."
         )
         assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
             "train-prompt.lock.yml should refresh the checked-in lock file when pre-activation compilation detects drift."
