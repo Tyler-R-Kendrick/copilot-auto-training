@@ -1518,6 +1518,7 @@ class TestTrainPromptWorkflow:
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
     AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
+
     def _parse_frontmatter_yaml(self, text: str) -> str:
         """Return the raw YAML block from a frontmatter-delimited file."""
         assert text.startswith("---"), "Expected frontmatter starting with ---"
