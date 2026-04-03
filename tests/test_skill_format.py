@@ -339,11 +339,11 @@ class TestOfficialEvalFixtures:
         assert all(case.get("assertions") for case in payload["evals"])
 
         manifest_text = json.dumps(payload).lower()
-        assert "dspy" in manifest_text
-        assert "miprov2" in manifest_text
-        assert "instruction-only optimization" in manifest_text
-        assert "skill.md" in manifest_text
-        assert "stale retrieval" in manifest_text
+        assert "structured output" in manifest_text
+        assert "grounding" in manifest_text
+        assert "retrieval freshness" in manifest_text
+        assert "token-efficient" in manifest_text or "token budget" in manifest_text
+        assert (SKILLS_DIR / "engineer-prompt" / "scripts" / "export_skill_prompt.py").is_file()
 
     def test_learn_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "learn" / "evals" / "evals.json"
