@@ -1674,6 +1674,9 @@ class TestTrainPromptWorkflow:
         assert "If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:" in text, (
             "train-prompt.md should explicitly require gh aw compilation when it optimizes an agentic workflow source file."
         )
+        assert "target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard" in text, (
+            "train-prompt.md should distinguish workflow-target compilation from the workflow's own pre-activation compile check."
+        )
         assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
             "train-prompt.md should require running gh aw compile before validation for selected agentic workflow sources."
         )

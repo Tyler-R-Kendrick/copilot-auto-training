@@ -121,6 +121,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
 11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
+    - treat this as a target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
     - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
     - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
