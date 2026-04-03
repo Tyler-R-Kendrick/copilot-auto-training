@@ -27,9 +27,12 @@ Create a repository-root `.env` file like this:
 
 ```dotenv
 COPILOT_MODEL=default
+COPILOT_TIMEOUT_SECONDS=180
 ```
 
-Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported Copilot setting stays documented in one place.
+Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported Copilot settings stay documented in one place.
+
+`COPILOT_TIMEOUT_SECONDS` controls the per-request SDK timeout used by optimizer-backed validation and inference calls. The default is 180 seconds, which gives slower validations more time to finish before the runtime declares a timeout.
 
 The runtime uses the official Python Copilot SDK and the existing signed-in Copilot user session instead of spawning its own chat command. Smoke-test startup fails immediately when the signed-in Copilot SDK runtime is unavailable or not authenticated, while optimization runs that lose live inference after startup fall back to the existing manual-followup handoff so dataset resolution and run metadata are still preserved.
 

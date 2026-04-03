@@ -6,7 +6,7 @@ from dataclasses import dataclass
 @dataclass(slots=True)
 class InferenceConfig:
     model: str = "default"
-    timeout_seconds: int = 60
+    timeout_seconds: int = 180
     max_tokens: int = 1500
     temperature: float = 0.2
     retries: int = 2
