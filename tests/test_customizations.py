@@ -1621,6 +1621,24 @@ class TestTrainPromptWorkflow:
             "train-prompt.md guardrails should explicitly preserve stage outputs for GitHub artifact uploads."
         )
 
+    def test_source_limits_repo_analysis_to_tracked_checkout_files(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Build the candidate list only from git-tracked files under `${{ github.workspace }}`." in text, (
+            "train-prompt.md should constrain candidate discovery to tracked files in the checked-out repository."
+        )
+        assert "Do not scan parent directories, `/tmp/**`, `/tmp/gh-aw/**`, sandbox firewall logs or audit directories" in text, (
+            "train-prompt.md should explicitly forbid scanning restricted runtime-owned paths that are outside the repository checkout."
+        )
+
+    def test_source_excludes_training_workspace_artifacts_from_candidate_analysis(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Treat trainer workspace contents as generated artifacts, not source candidates." in text, (
+            "train-prompt.md should tell the agent not to treat trainer workspace contents as source files to optimize."
+        )
+        assert "`inputs/`, `iterations/`, `research/`, `synthesize/`, `optimize/`, `election/`, `validation/`, `candidates/`, and `steering/`" in text, (
+            "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
+        )
+
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
