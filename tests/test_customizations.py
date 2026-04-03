@@ -1680,6 +1680,9 @@ class TestTrainPromptWorkflow:
         assert "target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard" in text, (
             "train-prompt.md should distinguish workflow-target compilation from the workflow's own pre-activation compile check."
         )
+        assert "including `train-prompt.md` after the pre-activation self-check or any other workflow markdown source" in text, (
+            "train-prompt.md should clarify that the target-specific compile loop covers both train-prompt itself and other workflow targets."
+        )
 
     def test_source_requires_selected_workflow_targets_to_recompile_before_validation(self):
         text = _read(self.WORKFLOW_MD)
@@ -1709,6 +1712,9 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should use the COPILOT_GITHUB_TOKEN fallback chain when running the pre-activation compile step."
         )
         run = compile_step.get("run", "")
+        assert "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw" in run, (
+            "train-prompt.md should install the gh-aw extension on demand before running the pre-activation compile step."
+        )
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.md should compile the trainer workflow before the agent activates."
         )
@@ -1791,14 +1797,10 @@ class TestTrainPromptWorkflow:
         assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
         )
-        compile_step_index = agent_steps.index(compile_step)
-        install_cli_index = next(
-            index for index, step in enumerate(agent_steps) if step.get("name") == "Install GitHub Copilot CLI"
-        )
-        assert compile_step_index < install_cli_index, (
-            "train-prompt.lock.yml should run the pre-activation compile check before the trainer agent setup installs the CLI."
-        )
         run = compile_step.get("run", "")
+        assert "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw" in run, (
+            "train-prompt.lock.yml should install the gh-aw extension on demand before the pre-activation compile check runs."
+        )
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.lock.yml should compile train-prompt before activating the trainer agent."
         )

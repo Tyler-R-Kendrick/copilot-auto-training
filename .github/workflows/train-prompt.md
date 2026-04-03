@@ -25,7 +25,7 @@ steps:
     env:
       GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
     run: |
-      gh aw --help >/dev/null
+      gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw
       gh aw compile train-prompt
       git diff --exit-code -- .github/workflows/train-prompt.lock.yml
 
@@ -122,6 +122,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
 11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
     - treat this as a target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard
+    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md` after the pre-activation self-check or any other workflow markdown source
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
     - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
     - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
