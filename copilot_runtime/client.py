@@ -10,7 +10,8 @@ from .types import InferenceConfig
 CHARS_PER_TOKEN_ESTIMATE = 4
 
 
-def _estimate_tokens_from_text(text: str) -> int:
+def estimate_tokens_from_text(text: str) -> int:
+    """Return 0 for empty text; otherwise use a lightweight character-count heuristic."""
     return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
 
 
@@ -26,17 +27,17 @@ def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
 
 def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
     if not usage:
-        return _estimate_tokens_from_text(text)
+        return estimate_tokens_from_text(text)
     value = usage.get("completion_tokens", usage.get("output_tokens", 0))
     try:
         return max(0, int(value))
     except (TypeError, ValueError):
-        return _estimate_tokens_from_text(text)
+        return estimate_tokens_from_text(text)
 
 
-def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
+def estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
     return sum(
-        _estimate_tokens_from_text(str(message["content"]))
+        estimate_tokens_from_text(str(message["content"]))
         for message in messages
         if isinstance(message.get("content"), str) and message["content"]
     )
@@ -110,7 +111,7 @@ class ProviderBackedOpenAIClient:
                 metadata={"interaction": "chat.completions.create", **(metadata or {})},
             )
         )
-        prompt_tokens = _estimate_prompt_tokens(messages)
+        prompt_tokens = estimate_prompt_tokens(messages)
         usage = dict(result.usage or {})
         reported_prompt_tokens = _usage_to_prompt_tokens(result.usage)
         usage.setdefault("prompt_tokens", reported_prompt_tokens or prompt_tokens)

@@ -25,6 +25,7 @@ AUTHENTICATION_ERROR_MARKERS = (
     "login required",
 )
 PRESERVE_HISTORY_DEFAULT = True
+MAX_RETRY_DELAY_SECONDS = 8.0
 
 
 class CopilotInferenceError(RuntimeError):
@@ -100,7 +101,10 @@ def _extract_text_from_payload(payload: Any) -> str:
 def _retry_delay_seconds(base_delay: float, attempt: int) -> float:
     if attempt < 1:
         raise ValueError(f"attempt must be >= 1 for retry delay calculation, got {attempt}")
-    return base_delay * (2 ** (attempt - 1))
+    # Keep retry behavior intentionally simple and predictable: each retry doubles
+    # the previous delay, which matches the lightweight Copilot SDK retry strategy
+    # used in this repository.
+    return min(MAX_RETRY_DELAY_SECONDS, base_delay * (1 << (attempt - 1)))
 
 
 class CopilotInferenceProvider:

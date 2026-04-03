@@ -244,6 +244,7 @@ def test_optimizer_script_does_not_reach_into_other_skill_directories():
 
     assert "trainer-optimize" not in source
     assert "_ensure_trainer_optimize_scripts_on_path" not in source
+    assert "from copilot_runtime import InferenceRequest, create_runtime_client" in source
 
 
 def test_validate_only_cli_emits_json_summary(tmp_path: Path):

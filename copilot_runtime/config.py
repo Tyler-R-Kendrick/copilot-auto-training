@@ -17,8 +17,9 @@ def find_repo_root(start_path: str) -> Path:
         if (candidate / ".env").exists():
             return candidate
     for candidate in candidates:
-        if any((candidate / marker).exists() for marker in ("requirements.txt", ".git", "README.md")):
-            return candidate
+        for marker in ("requirements.txt", ".git", "README.md"):
+            if (candidate / marker).exists():
+                return candidate
     return path.parent
 
 
@@ -41,7 +42,7 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
     dotenv_values = load_dotenv_file(dotenv_path)
     dotenv_present = dotenv_path.exists()
 
-    def pick(name: str, default: str | None = None) -> str | None:
+    def pick_env_value(name: str, default: str | None = None) -> str | None:
         dotenv_value = dotenv_values.get(name)
         process_value = os.getenv(name)
         if dotenv_value not in (None, ""):
@@ -52,7 +53,7 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
             return process_value
         return default
 
-    model = pick("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
+    model = pick_env_value("COPILOT_MODEL", DEFAULT_COPILOT_MODEL) or DEFAULT_COPILOT_MODEL
     return {
         "model": model,
         "repo_root": str(repo_root),

@@ -13,6 +13,14 @@ from typing import Any
 
 import yaml
 
+_MODULE_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _MODULE_DIR.parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from copilot_runtime import InferenceRequest, create_runtime_client
+from copilot_runtime.client import estimate_prompt_tokens, estimate_tokens_from_text
+
 
 ENGINEER_PROMPT_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = ENGINEER_PROMPT_DIR.parents[1]
@@ -42,7 +50,6 @@ DEFAULT_VARIANT_FOCUS_AREAS = (
     ("Emphasize output formatting rules, required text, and placeholder safety.",),
     ("Emphasize concision by removing repetition while keeping all constraints.",),
 )
-CHARS_PER_TOKEN_ESTIMATE = 4
 
 
 @dataclass(slots=True)
@@ -243,29 +250,7 @@ def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[An
     return examples[:TRAIN_SET_SIZE], examples[TRAIN_SET_SIZE:]
 
 
-def _estimate_tokens_from_text(text: str) -> int:
-    return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
-
-
-def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
-    total = 0
-    for message in messages:
-        content = message.get("content")
-        if isinstance(content, str) and content:
-            total += _estimate_tokens_from_text(content)
-    return total
-
-
-def _ensure_repo_root_on_path() -> None:
-    repo_root = str(REPO_ROOT)
-    if repo_root not in sys.path:
-        sys.path.insert(0, repo_root)
-
-
 def _create_copilot_client(prompt_file: str, *, model: str | None, temperature: float) -> tuple[Any, dict[str, Any], Any]:
-    _ensure_repo_root_on_path()
-    from copilot_runtime import InferenceRequest, create_runtime_client
-
     client, resolved_settings = create_runtime_client(prompt_file, model=model, temperature=temperature)
     return client, resolved_settings, InferenceRequest
 
@@ -318,9 +303,9 @@ def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: f
                     "repository."
                 ) from exc
             usage = dict(response.usage or {})
-            prompt_tokens = _estimate_prompt_tokens(request_messages)
+            prompt_tokens = estimate_prompt_tokens(request_messages)
             usage.setdefault("prompt_tokens", prompt_tokens)
-            usage.setdefault("completion_tokens", _estimate_tokens_from_text(response.text))
+            usage.setdefault("completion_tokens", estimate_tokens_from_text(response.text))
             usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
             return SimpleNamespace(
                 choices=[SimpleNamespace(message=SimpleNamespace(content=response.text))],
@@ -437,6 +422,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--goal", default=DEFAULT_GOAL, help="Optimization goal for the prompt rewrite.")
     parser.add_argument(
         "--optimization-instruction",
+        "--optimization-instructions",
+        dest="optimization_instructions",
         action="append",
         default=[],
         help="Concrete rewrite instruction to apply during optimization. Repeatable.",
@@ -469,7 +456,7 @@ def main() -> int:
         task = build_prompt_task(
             args.prompt_file,
             goal=args.goal,
-            optimization_instructions=args.optimization_instruction,
+            optimization_instructions=args.optimization_instructions,
             context_files=args.context_file,
             required_text=args.required_text,
             forbidden_text=args.forbidden_text,
