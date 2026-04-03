@@ -1712,12 +1712,6 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should use the COPILOT_GITHUB_TOKEN fallback chain when running the pre-activation compile step."
         )
         run = compile_step.get("run", "")
-        assert "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw" in run, (
-            "train-prompt.md should install the gh-aw extension on demand before running the pre-activation compile step."
-        )
-        assert "gh aw compile train-prompt" in run, (
-            "train-prompt.md should compile the trainer workflow before the agent activates."
-        )
         assert run.strip().splitlines() == [
             "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
             "gh aw compile train-prompt",
@@ -1804,12 +1798,6 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
         )
         run = compile_step.get("run", "")
-        assert "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw" in run, (
-            "train-prompt.lock.yml should install the gh-aw extension on demand before the pre-activation compile check runs."
-        )
-        assert "gh aw compile train-prompt" in run, (
-            "train-prompt.lock.yml should compile train-prompt before activating the trainer agent."
-        )
         assert run.strip().splitlines() == [
             "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
             "gh aw compile train-prompt",
