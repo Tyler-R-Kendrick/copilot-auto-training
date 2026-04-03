@@ -111,22 +111,28 @@ Select exactly one prompt-like source file in this repository, run the repositor
 8. Ensure the active iteration stages the original prompt, the strongest student candidate, and the strongest adversary candidate under `candidates/original/`, `candidates/student/`, and `candidates/adversary/`, along with candidate descriptions, predicted judge responses, and reflection artifacts that the judge can inspect.
 9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-11. Keep the change set tightly scoped to:
+11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
+    - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
+    - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
+    - if compilation fails or the lock file stays outdated, stop after recording the failure details in the selected local workspace instead of opening a pull request
+12. Keep the change set tightly scoped to:
     - the selected prompt-like file
+    - the compiled `.lock.yml` generated from a selected `.github/workflows/*.md` target
     - its local `.trainer-workspace/<prompt-name>/` artifacts
     - directly related supporting prompt-evaluation assets created by the trainer loop
-12. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
+13. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
 
 ## Validation
 
-1. Run repository validation with:
+1. If the selected target is an agentic workflow source under `.github/workflows/*.md`, run `gh aw compile <workflow-name>` and confirm the corresponding `.lock.yml` is present and in sync before repository validation.
+2. Run repository validation with:
 
    ```bash
    python -m pytest -q
    ```
 
-2. If validation fails, do not open a pull request. Instead, stop after recording the failure details in the selected local workspace.
-3. If the trainer loop produces no meaningful repository diff, do not open a pull request.
+3. If validation fails, do not open a pull request. Instead, stop after recording the failure details in the selected local workspace.
+4. If the trainer loop produces no meaningful repository diff, do not open a pull request.
 
 ## Pull Request
 

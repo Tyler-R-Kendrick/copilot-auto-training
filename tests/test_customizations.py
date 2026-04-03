@@ -1661,6 +1661,21 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
         )
 
+    def test_source_requires_compiling_selected_agentic_workflows(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:" in text, (
+            "train-prompt.md should explicitly require gh aw compilation when it optimizes an agentic workflow source file."
+        )
+        assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
+            "train-prompt.md should require running gh aw compile before validation for selected agentic workflow sources."
+        )
+        assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
+            "train-prompt.md should require including the compiled lock file alongside workflow source edits."
+        )
+        assert "if compilation fails or the lock file stays outdated, stop after recording the failure details" in text, (
+            "train-prompt.md should block PR creation when an edited agentic workflow cannot be recompiled cleanly."
+        )
+
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
         runtime = self._source_agent_skills_runtime()
         assert runtime.get("command") == "/bin/sh", (
@@ -1725,6 +1740,15 @@ class TestTrainPromptWorkflow:
         assert "add_reviewer" not in text, (
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
+        )
+
+    def test_lock_requires_compiling_selected_agentic_workflows(self):
+        text = self._lock_text()
+        assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
+            "train-prompt.lock.yml should instruct the agent to compile selected agentic workflow sources before validation."
+        )
+        assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
+            "train-prompt.lock.yml should preserve the workflow-source compile requirement in the compiled prompt."
         )
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
