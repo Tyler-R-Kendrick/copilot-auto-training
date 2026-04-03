@@ -1824,7 +1824,7 @@ class TestTrainPromptWorkflow:
             self._source_steps("---\nsteps: invalid\n---\nBody\n")
 
     def test_source_steps_helper_rejects_malformed_yaml(self):
-        with pytest.raises(yaml.YAMLError):
+        with pytest.raises(yaml.YAMLError, match="while parsing a flow node"):
             self._source_steps("---\nsteps: [\n---\nBody\n")
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):

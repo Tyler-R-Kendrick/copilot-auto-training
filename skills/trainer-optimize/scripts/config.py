@@ -58,7 +58,8 @@ def _resolve_int_setting_with_validation(
     The repository `.env` takes precedence when it exists, even if the key is
     missing there. Process-level environment variables are only consulted when
     no repository `.env` file is present. Non-integer values and values smaller
-    than `minimum` fall back to `default`.
+    than `minimum` fall back to `default`. The `minimum` parameter defines the
+    smallest accepted value after parsing.
     """
     raw_value = dotenv_values.get(name)
     if raw_value in (None, "") and not dotenv_present:
