@@ -17,6 +17,12 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
+AGENT_SKILLS_UVX_BOOTSTRAP = (
+    "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "&& exec uvx --from "
+    "git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp "
+    "agent-skills-mcp"
+)
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
 
@@ -1654,7 +1660,7 @@ class TestTrainPromptWorkflow:
         )
         assert runtime.get("args") == [
             "-lc",
-            "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && exec uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp agent-skills-mcp",
+            AGENT_SKILLS_UVX_BOOTSTRAP,
         ], (
             "agent-skills-runtime.md should bootstrap uv inside python:alpine before launching the "
             "agent-skills MCP server so the container does not fail with a missing uvx executable."
@@ -1719,12 +1725,7 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should start the agent-skills MCP container with /bin/sh so "
             "the entrypoint exists in python:alpine."
         )
-        expected_bootstrap = (
-            '"python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv '
-            '&& exec uvx --from '
-            'git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp '
-            'agent-skills-mcp"'
-        )
+        expected_bootstrap = f'"{AGENT_SKILLS_UVX_BOOTSTRAP}"'
         assert expected_bootstrap in text, (
             "train-prompt.lock.yml should bootstrap uv inside the python:alpine agent-skills "
             "container before invoking uvx so the MCP gateway can start reliably."
