@@ -106,6 +106,7 @@ Return the requested artifact or result in the format requested by the user.
 
 
 # Keep this tunable and non-trivial so the exported body is not just a stub paragraph.
+# Around 300 characters is roughly enough for 2-3 short instruction paragraphs or a compact bullet list.
 MIN_INSTRUCTION_BODY_CHARS = 300
 
 
@@ -122,10 +123,15 @@ def skill_metric(example, pred, trace=None):
     return sum(checks) / len(checks)
 
 
-# Example only: replace this with the provider/model resolved from your repository .env.
-# In this repo, the built-in runtime documents COPILOT_MODEL in .env.sample; if you wire DSPy to another provider,
-# use that provider's expected environment variables alongside the same repository-root configuration pattern.
-lm = dspy.LM(os.getenv("COPILOT_MODEL", "openai/gpt-4o-mini"))
+try:
+    # Example only: replace this with the provider/model resolved from your repository .env.
+    # In this repo, the built-in runtime documents COPILOT_MODEL in .env.sample; if you wire DSPy to another provider,
+    # use that provider's expected environment variables alongside the same repository-root configuration pattern.
+    lm = dspy.LM(os.getenv("COPILOT_MODEL", "openai/gpt-4o-mini"))
+except Exception as exc:
+    raise RuntimeError(
+        "Configure your repository-root model settings before running this script."
+    ) from exc
 dspy.configure(lm=lm)
 
 program = SkillProgram()
@@ -160,6 +166,7 @@ optimized_program = optimizer.compile(
     max_labeled_demos=0,
 )
 
+# Save the compiled program so later runs can debug or reuse the optimized strategy without recompiling first.
 optimized_program.save("skill_program_optimized.json")
 
 result = optimized_program(
