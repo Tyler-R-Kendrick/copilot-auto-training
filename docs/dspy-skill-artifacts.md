@@ -41,6 +41,8 @@ If you are adapting this pattern inside this repository, keep model credentials 
 The example below keeps a minimum instruction-body threshold so the exported skill remains substantive instead of collapsing into a stub.
 
 ```python
+import os
+import re
 from pathlib import Path
 
 import dspy
@@ -110,8 +112,8 @@ MIN_INSTRUCTION_BODY_CHARS = 300
 def skill_metric(example, pred, trace=None):
     text = pred.instruction_body.lower()
     checks = [
-        "do not" in text,
-        "return" in text,
+        bool(re.search(r"(^|\n)([-*]\s+)?do not\b", text)),
+        bool(re.search(r"(^|\n)([-*]\s+)?return\b", text)),
         "when" in text or "use this skill" in text,
         len(pred.instruction_body.strip()) > MIN_INSTRUCTION_BODY_CHARS,
     ]
@@ -121,7 +123,7 @@ def skill_metric(example, pred, trace=None):
 # Example only: replace this with the provider/model resolved from your repository .env.
 # In this repo, the built-in runtime documents COPILOT_MODEL in .env.sample; if you wire DSPy to another provider,
 # use that provider's expected environment variables alongside the same repository-root configuration pattern.
-lm = dspy.LM("openai/gpt-4o-mini")
+lm = dspy.LM(os.getenv("COPILOT_MODEL", "openai/gpt-4o-mini"))
 dspy.configure(lm=lm)
 
 program = SkillProgram()
