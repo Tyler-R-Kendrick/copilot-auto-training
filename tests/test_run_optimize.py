@@ -464,6 +464,40 @@ class TestRunOptimizeManualFallback:
         assert report_path.exists()
         assert json.loads(report_path.read_text(encoding="utf-8"))["mode"] == "manual_followup"
 
+    @pytest.mark.asyncio
+    async def test_auth_session_error_returns_manual_followup_and_writes_report(self, tmp_path, monkeypatch):
+        prompt_path = tmp_path / "prompt.md"
+        prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
+        report_path = tmp_path / "report.json"
+        train = _write_jsonl(SIMPLE_TRAIN)
+        val = _write_jsonl(SIMPLE_VAL)
+
+        agl = sys.modules["agentlightning"]
+
+        def raise_auth_session_error(self, *, agent, train_dataset, val_dataset):
+            raise RuntimeError(
+                "CopilotInferenceError: Session error: Execution failed: "
+                "Error: Session was not created with authentication info or custom provider"
+            )
+
+        monkeypatch.setattr(agl.Trainer, "fit", raise_auth_session_error)
+
+        result = json.loads(
+            await run_optimize(
+                prompt_file=str(prompt_path),
+                train_file=train,
+                val_file=val,
+                report_file=str(report_path),
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "manual_followup"
+        assert "authentication info" in result["blocker_reason"]
+        assert result["report_file"] == str(report_path)
+        assert report_path.exists()
+        assert json.loads(report_path.read_text(encoding="utf-8"))["mode"] == "manual_followup"
+
 
 class TestRolloutCandidateValidation:
     @pytest.mark.asyncio
