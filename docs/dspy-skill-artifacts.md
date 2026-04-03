@@ -102,6 +102,7 @@ Return the requested artifact or result in the format requested by the user.
 """
 
 
+# Keep this tunable and non-trivial so the exported body is not just a stub paragraph.
 MIN_INSTRUCTION_BODY_CHARS = 300
 
 
@@ -117,7 +118,7 @@ def skill_metric(example, pred, trace=None):
 
 
 # Example only: replace this with the provider/model resolved from your repository .env.
-# In this repo, start from /.env.sample and set COPILOT_MODEL before wiring DSPy to a provider.
+# In this repo, start from /.env.sample and use the same repository-root model settings your runtime already expects.
 lm = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=lm)
 
