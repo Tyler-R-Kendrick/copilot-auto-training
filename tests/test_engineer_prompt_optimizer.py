@@ -43,7 +43,7 @@ def _write_prompt(path: Path) -> Path:
     return path
 
 
-def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engineer_prompt_optimizer_module):
+def test_build_prompt_task_extracts_frontmatter_and_placeholders(tmp_path: Path, engineer_prompt_optimizer_module):
     prompt_path = _write_prompt(tmp_path / "prompt.md")
     context_path = tmp_path / "context.md"
     context_path.write_text("Reference material for the prompt rewrite.", encoding="utf-8")
@@ -227,6 +227,16 @@ def test_build_prompt_task_allows_custom_optimization_instructions(tmp_path: Pat
         "Clarify the user intent and expected result.",
         "Keep the output contract explicit.",
     )
+
+
+def test_default_optimization_instructions_are_concrete(engineer_prompt_optimizer_module):
+    instructions = engineer_prompt_optimizer_module.DEFAULT_OPTIMIZATION_INSTRUCTIONS
+
+    assert any("Clarify" in instruction for instruction in instructions)
+    assert any("scannability" in instruction for instruction in instructions)
+    assert any("explicit" in instruction for instruction in instructions)
+    assert any("Preserve" in instruction for instruction in instructions)
+    assert any("Remove redundant" in instruction for instruction in instructions)
 
 
 def test_validate_only_cli_emits_json_summary(tmp_path: Path):

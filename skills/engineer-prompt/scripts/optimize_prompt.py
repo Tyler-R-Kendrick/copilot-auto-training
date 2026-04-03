@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 from dataclasses import dataclass
+import asyncio
 import json
 from pathlib import Path
 import re
@@ -15,7 +15,7 @@ import yaml
 
 
 ENGINEER_PROMPT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_PROGRAM_OUTPUT_PATH = ENGINEER_PROMPT_DIR / "assets" / "prompt_program_optimized.json"
+DEFAULT_PROGRAM_FILE_PATH = ENGINEER_PROMPT_DIR / "assets" / "prompt_program_optimized.json"
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
 MARKDOWN_TOKENS = ("#", "- ", "1.", "```")
 EMPTY_CONSTRAINT_MARKER = "<none>"
@@ -30,7 +30,7 @@ DEFAULT_GOAL = (
 )
 DEFAULT_OPTIMIZATION_INSTRUCTIONS = (
     "Clarify the prompt's task objective, required inputs, and success criteria.",
-    "Improve scanability with a clean markdown structure and a logical instruction order.",
+    "Improve scannability with a clean markdown structure and a logical instruction order.",
     "Make the expected response format and output constraints explicit.",
     "Preserve every placeholder exactly and retain all required text.",
     "Remove redundant wording without changing the prompt's scope or intent.",
@@ -63,7 +63,10 @@ def _load_dspy() -> Any:
     try:
         import dspy  # type: ignore
     except ImportError as exc:  # pragma: no cover - exercised through CLI path
-        raise RuntimeError("DSPy is required for --optimize. Install it first, for example with: pip install dspy") from exc
+        raise RuntimeError(
+            "DSPy is required for --optimize. Install repository dependencies using the repository setup instructions "
+            "and requirements.txt before running this command."
+        ) from exc
     return dspy
 
 
@@ -72,11 +75,14 @@ def _split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         return {}, text.strip()
     parts = text.split("---\n", 2)
     if len(parts) != 3:
-        raise ValueError("Invalid markdown front matter block")
+        raise ValueError(
+            "Invalid markdown front matter block: frontmatter must start with '---', contain YAML key-value pairs, "
+            f"and end with '---' before the body; got {len(parts)} part(s)."
+        )
     _, raw_frontmatter, body = parts
     frontmatter = yaml.safe_load(raw_frontmatter) or {}
     if not isinstance(frontmatter, dict):
-        raise ValueError("Markdown front matter must be a YAML mapping")
+        raise ValueError(f"Markdown frontmatter must be a dictionary of key-value pairs, got {type(frontmatter).__name__}")
     return frontmatter, body.strip()
 
 
@@ -279,7 +285,11 @@ def _run_async(coro: Any) -> Any:
         asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(coro)
-    raise RuntimeError("Copilot-backed prompt optimization cannot run inside an active event loop.")
+    raise RuntimeError(
+        "Copilot-backed prompt optimization cannot run inside an active event loop. "
+        "DSPy calls this optimizer synchronously, so run this script outside of an async context or invoke it in a "
+        "separate process, for example: python skills/engineer-prompt/scripts/optimize_prompt.py --optimize ..."
+    )
 
 
 def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: float, inference_request_cls: Any) -> Any:
@@ -303,13 +313,21 @@ def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: f
             **kwargs: Any,
         ) -> Any:
             request_messages = messages or [{"role": "user", "content": prompt or ""}]
-            response = await self._client.provider.generate(
-                inference_request_cls(
-                    messages=request_messages,
-                    model=self.model,
-                    metadata={"interaction": "engineer-prompt.optimize_prompt", **(kwargs.get("metadata") or {})},
+            try:
+                response = await self._client.provider.generate(
+                    inference_request_cls(
+                        messages=request_messages,
+                        model=self.model,
+                        metadata={"interaction": "engineer-prompt.optimize_prompt", **(kwargs.get("metadata") or {})},
+                    )
                 )
-            )
+            except Exception as exc:
+                raise RuntimeError(
+                    "Copilot runtime failed while optimizing the prompt. Verify that this command is running in a "
+                    "signed-in GitHub Copilot session, that the selected Copilot model is available, and that "
+                    "python skills/trainer-optimize/scripts/inference/smoke_test.py --model default succeeds in "
+                    "this repository."
+                ) from exc
             usage = dict(response.usage or {})
             prompt_tokens = _estimate_prompt_tokens(request_messages)
             usage.setdefault("prompt_tokens", prompt_tokens)
@@ -420,10 +438,10 @@ def compile_prompt(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file using DSPy.")
+    parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file using the Copilot runtime.")
     parser.add_argument("--prompt-file", required=True, help="Required path to the markdown prompt file to validate or optimize.")
     parser.add_argument("--output-file", help="Optional path for the rendered markdown artifact.")
-    parser.add_argument("--program-file", default=str(DEFAULT_PROGRAM_OUTPUT_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
+    parser.add_argument("--program-file", default=str(DEFAULT_PROGRAM_FILE_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
     parser.add_argument("--in-place", action="store_true", help="Overwrite the source prompt file.")
     parser.add_argument("--optimize", action="store_true", help="Run the DSPy optimizer before rendering the markdown artifact.")
     parser.add_argument("--validate-only", action="store_true", help="Validate the rendered prompt contract and print a JSON summary.")
@@ -491,8 +509,15 @@ def main() -> int:
             print(json.dumps(summary, indent=2, sort_keys=True))
             return 0 if summary["valid"] else 1
         written = _write_output(markdown, output_file=args.output_file, in_place=args.in_place, prompt_path=task.prompt_path)
+    except FileNotFoundError as exc:  # pragma: no cover - exercised via CLI path
+        missing_path = exc.filename or str(exc)
+        print(f"File not found: {missing_path}", file=sys.stderr)
+        return 1
+    except ImportError as exc:  # pragma: no cover - exercised via CLI path
+        print(f"Missing dependency for prompt optimization: {exc}", file=sys.stderr)
+        return 1
     except Exception as exc:  # pragma: no cover - exercised via CLI path
-        print(str(exc), file=sys.stderr)
+        print(f"Prompt optimization failed: {exc}", file=sys.stderr)
         return 1
 
     if written:
