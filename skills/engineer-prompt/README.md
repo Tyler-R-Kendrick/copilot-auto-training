@@ -1,6 +1,6 @@
 # Engineer Prompt
 
-Improve broken prompts and context plans by choosing the smallest prompt-engineering technique that fits. Use this whenever the user asks how to rewrite or debug a prompt, compare prompt-design options, choose between grounding, structured output, examples, chaining, reasoning, or RAG for a prompt, or reduce prompt length by moving schemas, workflow specs, and repeated instructions into better structures.
+Apply DSPy to prompt and instruction artifacts by choosing the smallest trainable prompt surface, compiling it with a DSPy optimizer, and exporting a stable Markdown artifact. Use this whenever the user wants DSPy, prompt-as-code optimization, MIPROv2, instruction-only optimization, or deterministic prompt artifact export.
 
 ## Canonical files
 
@@ -12,15 +12,13 @@ Improve broken prompts and context plans by choosing the smallest prompt-enginee
 
 ## When to use
 
-- The user wants to improve a prompt.
-- The user asks which prompt engineering technique to use.
-- The user wants to compare multiple prompt patterns or prompting families.
-- The user needs a concrete markdown prompt example.
-- The user wants to debug why a prompt is underperforming.
-- The user mentions grounding, examples, output schemas, reasoning style, prompt chaining, RAG, or determinism and needs help choosing among them.
-- The user wants to reduce prompt length without losing critical instructions, or wants help placing schemas, workflow specs, or repeated constraints more effectively.
+- The user wants to apply DSPy to a prompt, instruction file, or agent skill artifact.
+- The user wants to decide what should become a `dspy.Signature` or `dspy.Module`.
+- The user wants to choose between instruction-only optimization and demo-heavy optimization.
+- The user wants to export optimized prompt content into a stable checked-in Markdown artifact.
+- The user wants help designing metrics or evals for DSPy-driven prompt optimization.
 
-Do not use this skill when the core problem is clearly application logic, retrieval freshness, source quality, tool availability, or missing product requirements rather than prompt design. In those cases, say that prompt changes are secondary.
+Do not use this skill when the core problem is clearly retrieval freshness, tool availability, source quality, missing requirements, or generic runtime performance rather than prompt optimization. In those cases, say DSPy is secondary.
 
 ## Repository context
 

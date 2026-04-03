@@ -269,7 +269,8 @@ class TestAgentCustomizations:
 
         assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-prompt").resolve()
         assert "Name: engineer-prompt" in payload
-        assert "The user wants to improve a prompt." in payload
+        assert "apply dspy" in payload.lower()
+        assert "miprov2" in payload.lower()
         assert "Reserved for deterministic helpers if the engineer-prompt skill later needs" in payload
         assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in agent_text
 

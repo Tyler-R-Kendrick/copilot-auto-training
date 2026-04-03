@@ -1,780 +1,124 @@
 ---
 name: engineer-prompt
-description: Improve broken prompts and context plans by choosing the smallest prompt-engineering technique that fits. Use this whenever the user asks how to rewrite or debug a prompt, compare prompt-design options, choose between grounding, structured output, examples, chaining, reasoning, or RAG for a prompt, or reduce prompt length by moving schemas, workflow specs, and repeated instructions into better structures.
+description: Apply DSPy to prompt and instruction artifacts by choosing the smallest trainable prompt surface, compiling it with a DSPy optimizer, and exporting a stable Markdown artifact. Use this when the user wants DSPy, prompt-as-code optimization, MIPROv2, instruction-only optimization, or deterministic prompt artifact export.
+argument-hint: Describe the prompt artifact, candidate DSPy surface, available feedback signal, and whether you need a full generated artifact or a deterministic wrapper around optimized instructions.
 license: MIT
-compatibility: Requires Python 3.11+. Designed for markdown-first prompt work in VS Code agents.
+compatibility: Requires Python 3.11+. Designed for markdown-first prompt work and DSPy-based prompt optimization.
 metadata:
   author: Tyler Kendrick
-  version: "0.2.0"
-
+  version: "0.3.0"
 ---
 
 # Engineer Prompt
 
-Use this skill to improve prompt design without defaulting to flashy techniques or empty prompt jargon.
+Use this skill to help users apply DSPy to prompt engineering instead of treating prompt work as one-off rewriting.
 
-Your job is to diagnose the task, decide whether the problem is actually prompt-related, recommend the smallest technique set that will help, explain the tradeoffs, and provide a concrete markdown prompt when a rewrite is useful.
-
-Prompt engineering is not just naming a technique. Start with the failure mode. If the real problem is stale retrieval, missing tools, bad context, or unclear business requirements, say so directly instead of pretending a prompt pattern will fix it.
-
-When the user is fighting token budget, prompt sprawl, schema-heavy output contracts, or instructions that keep getting dropped in long workflows, read `references/token-efficient-patterns.md` before recommending a rewrite.
+Read `references/dspy-skill-artifacts.md` before giving detailed guidance. Use `references/token-efficient-patterns.md` when the task is also fighting token pressure, large inline schemas, or bulky workflow prose.
 
 ## When to use this skill
 
-- The user wants to improve a prompt.
-- The user asks which prompt engineering technique to use.
-- The user wants to compare multiple prompt patterns or prompting families.
-- The user needs a concrete markdown prompt example.
-- The user wants to debug why a prompt is underperforming.
-- The user mentions grounding, examples, output schemas, reasoning style, prompt chaining, RAG, or determinism and needs help choosing among them.
-- The user wants to reduce prompt length without losing critical instructions, or wants help placing schemas, workflow specs, or repeated constraints more effectively.
+- The user wants to apply DSPy or prompt-as-code optimization.
+- The user wants to convert a prompt, instruction block, or prompt-like artifact into a `dspy.Signature` or `dspy.Module`.
+- The user wants to choose between instruction-only optimization and demo-heavy optimization.
+- The user wants to decide whether DSPy should emit a full prompt artifact or only an optimized instruction body.
+- The user wants to define a metric or eval strategy for a prompt artifact such as `SKILL.md`, `AGENTS.md`, or another markdown prompt file.
+- The user wants to export an optimized prompt into a stable checked-in Markdown artifact.
 
-Do not use this skill when the core problem is clearly application logic, retrieval freshness, source quality, tool availability, or missing product requirements rather than prompt design. In those cases, say that prompt changes are secondary.
+Do not use this skill as the primary fix for stale retrieval, missing tools, unclear product requirements, raw runtime tuning, or one-off prompt rewrites with no repeatable feedback signal. In those cases, say DSPy is a bad fit or only a secondary lever.
+
+## Required inputs
+
+- The prompt or prompt-like artifact to improve.
+- The candidate trainable surface, or the boundary under consideration.
+- The feedback signal available today: evals, datasets, structural checks, rubric-based judgments, or concise critiques.
+- Runtime or repository constraints, including what file shape must remain stable after export.
 
 ## Core workflow
 
 Follow this order:
 
-1. Diagnose the task shape and failure mode.
-2. Decide whether prompt changes are enough.
-3. Recommend the smallest effective technique or technique set.
-4. Explain why it fits and what would be overkill.
-5. Provide a markdown prompt or prompt rewrite when useful.
+1. Identify the prompt behavior that should improve.
+2. Choose the smallest DSPy surface that should become trainable.
+3. Decide whether to optimize instructions only or allow demos.
+4. Define a repeatable metric or eval target.
+5. Choose the export strategy for the final checked-in artifact.
+6. Call out packaging risks and non-prompt blockers before the user commits to the design.
 
-If multiple techniques could work, recommend one default and one fallback. Prefer the default that is easier to operate, validate, and maintain.
+## DSPy design defaults
 
-## Output contract
+- Keep file shape, front matter, and other stable packaging concerns deterministic whenever the repository expects a strict artifact contract.
+- Prefer `dspy.Signature` for narrow prompt interfaces with clear input and output fields.
+- Prefer a small `dspy.Module` when orchestration, multiple predictors, or helper steps belong together.
+- Prefer instruction-only optimization when the goal is a clean reusable artifact; set demo counts to zero unless runtime quality clearly matters more than artifact cleanliness.
+- Save the compiled DSPy program separately from the emitted Markdown artifact.
+- Prefer downstream evals or artifact-specific checks over vague string matching when a real validation target already exists.
 
-When responding, use this structure unless the user asks for something shorter:
+## Response contract
 
-1. `Task shape`: what the model is being asked to do
-2. `Primary recommendation`: the default technique or technique set
-3. `Why it fits`: why this is the right level of complexity
-4. `Limits or bad fits`: when not to use it, or what it will not solve
-5. `Markdown prompt`: a concrete prompt example or rewrite if prompt changes are appropriate
+When helping the user, structure the answer like this unless they ask for something shorter:
 
-If prompt changes are not the main fix, say that explicitly before offering any prompt rewrite.
+1. `Optimization target`: the prompt behavior or artifact to improve
+2. `DSPy surface`: what should become a signature or module, and what should stay deterministic
+3. `Optimization strategy`: whether to optimize instructions only, allow demos, and which optimizer pattern fits
+4. `Metric or evals`: how the optimization loop will be judged
+5. `Export strategy`: how the optimized result should become a stable checked-in artifact
+6. `Risks`: formatting drift, noisy feedback, non-prompt blockers, or over-broad trainable scope
 
-## Diagnose first
+If DSPy is not the main fix, say that explicitly before proposing any DSPy pattern or export plan.
 
-Check these failure modes before recommending a technique:
+## Heuristics for prompt-focused work
 
-- unclear task objective
-- missing domain context or evidence
-- missing output schema or format contract
-- too few examples for edge cases
-- unnecessary examples that waste context
-- the prompt is bloated by repeated policy text, giant schemas, or long workflow prose
-- reasoning path is unclear and needs decomposition
-- retrieval is missing, stale, or badly scoped
-- tools are required but unavailable
-- determinism or reproducibility matters more than creativity
-- the prompt is over-constrained and suppresses useful output
+### Use signatures for stable prompt contracts
 
-If the root cause is not mainly prompt design, say what the real blocker is.
+Reach for `dspy.Signature` when the prompt behavior is mostly one predictor with a clear input/output contract, such as:
 
-## Default selection heuristic
+- a single prompt template
+- a skill instruction body
+- a classification or extraction prompt
+- a rewrite prompt with a fixed output contract
 
-Use these defaults before escalating:
+### Use modules for grouped prompt behavior
 
-- Simple classification, rewriting, or summarization: clear instructions plus output priming.
-- Extraction into JSON or fields: structured output first, then few-shot if edge cases are messy. Keep large schemas in referenced JSON Schema files when inline schema text starts to dominate the prompt.
-- Multi-step transformation: task decomposition or prompt chaining.
-- Grounded answering over provided evidence: grounding first.
-- Large-document QA: vector RAG only when the evidence cannot fit directly in context.
-- Long, stateful workflows: keep the prompt inline summary short and move the durable workflow representation into a referenced Mermaid or BPMN artifact when that reduces ambiguity and token load.
-- Global relationship questions over a corpus: graph RAG only if relationships or communities matter.
-- Tool-using workflows: ReAct when the model must inspect, search, or act.
-- Hard reasoning with alternative paths: Tree-of-Thought or Graph-of-Thought only when branching is materially useful.
-- Reliability-sensitive ambiguous tasks: self-consistency or reflexion only if the extra cost is justified.
+Reach for `dspy.Module` when several prompt decisions should improve together, such as:
 
-Default against advanced patterns when basic prompt hygiene solves the problem.
+- a prompt plus a critique step
+- a planner plus a renderer
+- an artifact writer plus a deterministic exporter
+- a prompt pipeline with narrow reusable helper steps
 
-## Response modes
+Keep the module boundary small enough that the feedback still points at one coherent prompt behavior.
 
-### Rewrite mode
+### Prefer deterministic export for repository artifacts
 
-Use when the user already has a prompt and wants it improved.
+Default to deterministic wrapping when the repository expects a stable markdown artifact:
 
-- Diagnose what is missing.
-- Keep the task intact unless the user asks to change the workflow.
-- Rewrite the prompt in markdown.
-- Explain only the changes that materially affect quality.
+- keep YAML front matter fixed
+- keep section layout fixed
+- optimize only the instruction body or another narrow prompt surface
+- render the final file with a template you own
 
-### Selection mode
+Let DSPy write the full file only when formatting variance is acceptable and the evals strongly enforce the final shape.
 
-Use when the user wants help choosing a technique.
+## Feedback guidance
 
-- Name one primary technique.
-- Name one fallback or complementary technique if relevant.
-- Explain why the alternatives are weaker, costlier, or conditional.
+- Prefer real eval cases, benchmark checks, or artifact-specific validators first.
+- Use structural checks for packaging requirements such as front matter, headings, trigger conditions, output contracts, and forbidden behaviors.
+- Add concise natural-language critique only when executable checks explain what failed but not how to improve it.
+- Keep the metric aligned with the artifact the user actually plans to commit.
 
-### Debug mode
+## Artifact guidance
 
-Use when the user asks why a prompt is failing.
+When the user wants a checked-in prompt artifact:
 
-- Identify whether the failure is prompt, context, retrieval, tooling, or requirements.
-- Do not force a prompt-only answer when the system design is the main problem.
-- Offer the smallest prompt change that still helps if prompt work is only part of the fix.
+- optimize the narrowest reusable prompt surface
+- wrap the optimized surface in a deterministic renderer when repository shape matters
+- save the compiled program for reuse or debugging
+- keep demos out of the checked-in artifact unless the runtime contract truly needs them
+- validate the final artifact against the same downstream checks reviewers will rely on
 
-## Response pattern
+## Limits to call out
 
-When helping the user, follow this order:
-
-1. Identify the task shape.
-2. Recommend the smallest effective technique or technique set.
-3. Explain why it fits.
-4. Explain limitations or when not to use it.
-5. Provide a markdown prompt example.
-
-If multiple techniques could work, recommend a default and briefly note the next-best alternative.
-
-## Prompt building blocks
-
-Use these before moving to advanced techniques.
-
-### Core task
-
-Use when:
-- the prompt needs a clear anchor
-- the user has not stated exactly what the model must do
-
-Avoid when:
-- there is no real avoid case; every prompt needs a core task
-
-Example:
-
-```md
-Summarize the main points from the following article.
-```
-
-### System instructions
-
-Use when:
-- the answer needs a stable role, standard, or format
-- consistency matters across requests
-
-Avoid when:
-- the role is decorative and does not change the work
-- the instruction block becomes a dumping ground for unrelated preferences
-
-Example:
-
-```md
-You are a senior security reviewer. Prioritize exploitable risks and keep the review concise.
-```
-
-### Examples
-
-Use when:
-- the task is ambiguous without a pattern
-- the user cares about style, structure, or edge-case handling
-
-Avoid when:
-- the examples are weak, noisy, or likely to overfit the model to superficial patterns
-
-Example:
-
-```md
-Input: What is the capital of France?
-Output: Paris
-```
-
-### Contextual information
-
-Use when:
-- the model needs background documents, definitions, tables, or assumptions
-
-Avoid when:
-- the added context is stale, irrelevant, or too large to be useful as-is
-
-Example:
-
-```md
-Based on the attached project brief document, summarize the deliverables.
-```
-
-## In-context learning techniques
-
-### Zero-shot
-
-Use when:
-- the task is straightforward
-- you want a quick baseline
-
-Avoid when:
-- the task requires a very specific format, style, or unusual reasoning pattern
-
-Example:
-
-```md
-Translate the following sentence to French: "Where is the library?"
-```
-
-### Few-shot
-
-Use when:
-- one or two examples can resolve ambiguity cheaply
-
-Avoid when:
-- the examples are not representative
-- structured output alone would already solve the problem
-
-Example:
-
-```md
-Q: What is the capital of France?
-A: Paris
-Q: What is the capital of Italy?
-A: Rome
-Q: What is the capital of Germany?
-A:
-```
-
-### Multi-shot
-
-Use when:
-- several examples are needed to cover variation or edge cases
-
-Avoid when:
-- the prompt becomes dominated by demonstrations instead of the real task
-
-Example:
-
-```md
-Translate the following:
-English: Hello | French: Bonjour
-English: Good morning | French: Bonjour
-English: Good night | French:
-```
-
-## Basic techniques
-
-### Clear and specific instructions
-
-Use when:
-- the current prompt is vague or underspecified
-
-Avoid when:
-- the real issue is missing data or missing context rather than wording
-
-Example:
-
-```md
-Summarize the primary causes of climate change in three bullet points, each with a one-sentence explanation.
-```
-
-### Reference text and citations
-
-Use when:
-- factual accuracy matters
-- the user wants traceability to a source
-
-Avoid when:
-- no trustworthy source text is available
-
-Example:
-
-```md
-Based on the information provided in the following text, answer the question and include a citation for your sources.
-```
-
-### Task decomposition
-
-Use when:
-- the task has multiple stages
-- the model is more reliable when steps are explicit
-
-Avoid when:
-- the task is simple enough to solve directly
-
-Example:
-
-```md
-1. Pull data from the attached table.
-2. Summarize key trends.
-3. Suggest one actionable next step.
-```
-
-### Instruction placement
-
-Use when:
-- the prompt contains a mix of task, context, and formatting requirements
-- information ordering is likely to influence output quality
-
-Avoid when:
-- the prompt is so short that additional structure adds no value
-
-Example:
-
-```md
-Context:
-[Relevant content]
-
-Task:
-[Instruction statement]
-
-Formatting:
-[How you want the answer structured]
-```
-
-### Interspersed repetition
-
-Use when:
-- one or two instructions are genuinely high-risk and easy to forget by the time the model reaches the output stage
-- the prompt has distinct phases such as retrieval, transformation, and final formatting
-
-Avoid when:
-- you repeat whole paragraphs or policies verbatim
-- every instruction gets repeated and the repetition stops carrying signal
-
-Example:
-
-```md
-Task:
-Review the incident notes and return only confirmed causes.
-
-Critical rule:
-Do not invent causes that are not supported by the notes.
-
-Output:
-Return JSON only.
-Before emitting the final JSON, re-check that every cause is directly supported by the notes.
-```
-
-### Output priming and syntax
-
-Use when:
-- the model needs a concrete output pattern
-- formatting consistency matters
-
-Avoid when:
-- the requested template is so rigid that it suppresses useful content
-
-Example:
-
-```md
-List three types of renewable energy. Answer in the following format:
-
-- Solar
-- Wind
-- Hydroelectric
-```
-
-## Reasoning techniques
-
-### Chain-of-Thought
-
-Use when:
-- the task benefits from stepwise reasoning or decomposition
-
-Avoid when:
-- the task is simple extraction or direct lookup
-- long visible reasoning adds cost without improving the answer
-
-Example:
-
-```md
-When I was 3 years old, my partner was 3 times my age. Now, I am 20 years old. How old is my partner? Let's think step by step.
-```
-
-### Tree-of-Thought
-
-Use when:
-- the task requires comparing alternatives or branching search paths
-
-Avoid when:
-- there is an obvious linear path and branching would only add latency
-
-Example:
-
-```md
-Explore three possible rollout strategies for this migration. Evaluate tradeoffs for risk, cost, and rollback complexity before choosing one.
-```
-
-### Graph-of-Thought
-
-Use when:
-- the problem has interdependent subproblems or linked ideas
-
-Avoid when:
-- a chain or tree structure is already sufficient
-
-Example:
-
-```md
-Analyze climate change as an interconnected problem. Map economic impacts, renewable energy adoption, and policy options, then show how those ideas influence one another before proposing a solution.
-```
-
-### Sketch-of-Thought
-
-Use when:
-- concise symbolic reasoning is useful
-- token efficiency matters in a structured domain
-- mathematical language, variable names, or compact invariants would compress the reasoning without hiding the result
-
-Avoid when:
-- the audience needs plain-language explanation
-- shorthand notation would make the answer harder to use
-- the notation would be more expensive to explain than the natural-language reasoning it replaces
-
-Example:
-
-```md
-Reason about the logic puzzle using concise symbolic notation where useful, then translate the final answer into plain English.
-```
-
-### Active Prompts and ReasonFlux
-
-Use when:
-- iterative clarification improves the result
-- the application is interactive
-
-Avoid when:
-- the user wants a one-shot response and the task is already clear
-
-Example:
-
-```md
-If the request is ambiguous, ask up to two clarifying questions before answering. Use each response to refine the next step of your analysis.
-```
-
-### ReAct
-
-Use when:
-- the model needs to reason and use tools together
-- the answer depends on external information or actions
-
-Avoid when:
-- no tools are available
-- the answer can be produced entirely from the provided context
-
-Example:
-
-```md
-Use available tools to answer this question. Alternate between reasoning about what you need and acting to gather the missing facts before giving the final answer.
-```
-
-### Prompt chaining
-
-Use when:
-- a large task can be split into clear sub-prompts
-- each stage benefits from separate validation
-
-Avoid when:
-- the coordination overhead outweighs the task complexity
-
-Example:
-
-```md
-Step 1: Extract the relevant clauses.
-Step 2: Summarize the obligations.
-Step 3: Convert them into an implementation checklist.
-```
-
-### Self-consistency
-
-Use when:
-- the task is ambiguous and reliability matters
-- multiple reasoning attempts can be aggregated
-
-Avoid when:
-- latency and token cost are tighter constraints than accuracy gains
-
-Example:
-
-```md
-Classify this email three separate times using independent reasoning, then return the label that appears most consistently.
-```
-
-### Reflexion
-
-Use when:
-- self-critique is likely to catch mistakes
-- the task benefits from draft, review, and revision
-
-Avoid when:
-- the answer is trivial or easily validated externally in one pass
-
-Example:
-
-```md
-Draft the answer first. Then review your own response for errors, missing assumptions, or weak reasoning, and provide a corrected final version.
-```
-
-## Retrieval-augmented generation techniques
-
-### Naive RAG / Cache Augmented Generation
-
-Use when:
-- the full source document fits comfortably in context
-- simplicity matters more than retrieval sophistication
-
-Avoid when:
-- the context is too large
-- lost-in-the-middle effects are likely
-
-Example:
-
-```md
-Use the complete document below to answer the question. Prefer details from the document over general knowledge.
-
-${document}
-```
-
-### Self-RAG
-
-Use when:
-- the system should determine whether retrieval is needed and critique its own groundedness
-
-Avoid when:
-- you cannot instrument the model or workflow for retrieve-generate-critique behavior
-
-Example:
-
-```md
-Before answering, determine whether your current context is sufficient. If it is not, say retrieval is needed and explain what information is missing.
-```
-
-### Vector RAG
-
-Use when:
-- semantic similarity search over a large corpus is the main requirement
-- the user asks local questions about documents
-
-Avoid when:
-- global dataset questions matter more than local chunk similarity
-- chunking or embeddings are poorly designed
-
-Example:
-
-```md
-Retrieve the most semantically relevant chunks for the question, then answer using only those chunks and cite them.
-```
-
-### Graph RAG
-
-Use when:
-- the user asks global or relationship-heavy questions over a dataset
-
-Avoid when:
-- ingestion cost is too high for the value
-- the corpus is small enough that graph construction is unnecessary
-
-Example:
-
-```md
-Use the knowledge graph summaries to answer this global question about relationships across the dataset, not just one document.
-```
-
-### Path RAG
-
-Use when:
-- graph-style traversal is helpful but full graph summaries are unnecessary
-
-Avoid when:
-- a simpler vector or grounded approach already answers the question well
-
-Example:
-
-```md
-Traverse the most relevant node and edge paths for this question, then answer using the strongest path-supported evidence.
-```
-
-### Agentic RAG
-
-Use when:
-- retrieval is best delegated across domain-specialized agents
-- a mixture-of-experts approach improves coverage
-
-Avoid when:
-- traceability and debugging simplicity are more important than delegation
-
-Example:
-
-```md
-Ask the relevant specialist agents for retrieval support, combine their findings, and synthesize a final answer that reflects the strongest evidence from each agent.
-```
-
-## Parameter tuning techniques
-
-### Temperature and top_p
-
-Use when:
-- the prompt is already clear and you need to control creativity versus determinism
-
-Avoid when:
-- the prompt itself is poorly designed
-- you expect parameter changes to compensate for missing requirements
-
-Example:
-
-```md
-Extract the invoice total and currency from the text below. Return a deterministic JSON object.
-
-Recommended settings: temperature=0, top_p=1
-```
-
-### Seed values
-
-Use when:
-- reproducibility matters for demos, tests, or evaluations
-
-Avoid when:
-- the platform does not expose a seed parameter
-- exact repeatability is not important
-
-Example:
-
-```md
-Generate the response using a fixed seed so this prompt can be evaluated reproducibly across runs.
-```
-
-### Model-specific parameters
-
-Use when:
-- you need max token control, stop sequences, top_k, or platform-specific formatting controls
-
-Avoid when:
-- you have not verified what the target model actually supports
-
-Example:
-
-```md
-Return a JSON object with exactly these fields and stop immediately after the closing brace.
-```
-
-## Constrained decoding techniques
-
-### Grounding
-
-Use when:
-- factual accuracy is critical
-- the answer must stay inside provided evidence
-
-Avoid when:
-- source material is weak or incomplete
-- the task requires broader synthesis beyond the supplied context
-
-Example:
-
-```md
-Based ONLY on the following provided documents, answer the user's question. If the answer cannot be found in the provided context, respond with "I cannot find this information." Include citations.
-
-[PROVIDED DOCUMENTS]
-${documentContext}
-
-User Question: ${userQuestion}
-```
-
-### Logit biasing
-
-Use when:
-- the API supports token-level controls
-- you need to encourage or suppress particular tokens or phrases
-
-Avoid when:
-- token IDs are unavailable
-- overuse would distort generation quality
-
-Example:
-
-```md
-Use the approved terminology consistently and avoid deprecated wording. If the platform supports token-level controls, pair this prompt with logit biasing for the critical terms.
-```
-
-### Structured output
-
-Use when:
-- the response feeds a downstream system, API, evaluator, or automation pipeline
-
-Avoid when:
-- the user wants open-ended creative output
-- the schema is so large that it overwhelms the task
-- the prompt is carrying a large canonical schema inline when a referenced JSON Schema file or URL would keep the active instructions much smaller
-
-Example:
-
-```md
-Extract the order details and return valid JSON.
-
-Canonical schema: references/order.schema.json
-Critical inline constraints:
-- `order_id` is required
-- `status` must be one of `pending`, `shipped`, `delivered`, `cancelled`
-- `customer_email` may be null
-
-Input:
-${orderText}
-```
-
-## Technique combinations that usually work
-
-- Clear instructions plus output priming: default for most rewrites.
-- Structured output plus few-shot: extraction tasks with messy inputs.
-- Grounding plus vector RAG: evidence-based QA when the corpus is too large for direct context.
-- Task decomposition plus ReAct: tool-using workflows.
-- Prompt chaining plus structured output: multi-stage pipelines where intermediate outputs matter.
-
-Combine techniques only when each one has a distinct job.
-
-Example:
-
-```md
-Extract the following information from the text and return valid JSON:
-
-{
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "address": {
-    "street": "string",
-    "city": "string",
-    "state": "string",
-    "zip": "string"
-  }
-}
-
-Text to extract from:
-${inputText}
-```
-
-## Best-practice overlay
-
-Apply these rules across all techniques:
-
-- Define clear objectives.
-- Provide the right context and background.
-- Demonstrate with examples when examples add real signal.
-- Be precise and descriptive.
-- Iterate and experiment instead of assuming the first prompt is optimal.
-- Use positive instructions before piling on constraints.
-- Order information deliberately.
-- Offer alternative paths when multiple outputs are acceptable.
-- Optimize token usage after correctness is achieved.
-- Treat prompt engineering as iterative diagnosis, not one-shot style polishing.
-
-## Token-budget guidance
-
-When token budget or instruction persistence is part of the problem, use these defaults:
-
-- Keep the live prompt focused on the task, the few constraints that truly matter, and the output contract.
-- Put bulky canonical schemas in referenced JSON Schema documents instead of pasting large schemas inline.
-- Put durable workflow structure in a referenced Mermaid or BPMN file when the workflow is long, stateful, or easier to verify as a diagram than as prose.
-- Use interspersed repetition for the smallest possible restatement of the highest-risk rule near the step where the rule matters.
-- Use sketch-of-thought or compact mathematical language only when the task is structured enough that notation shrinks the reasoning instead of obscuring it.
-- Read `references/token-efficient-patterns.md` when the user explicitly asks about token optimization, instruction persistence, schema placement, or workflow formalization.
-
-## Decision heuristic
-
-Use this escalation path by default:
-
-1. Start with a clear core task.
-2. Add system instructions, context, or examples if needed.
-3. Use basic techniques like decomposition or output priming.
-4. Move to reasoning, retrieval, or constrained decoding only when the task actually requires them.
-5. Tune parameters only after the prompt itself is doing the right job.
-
-## Final rule
-
-Do not recommend advanced techniques just because they sound sophisticated. Prefer the simplest technique that reliably solves the user's task, and say when prompting is not the real fix.
+- DSPy is strongest when the user has repeatable feedback; it is weaker when success is undefined or only judged informally once.
+- Few-shot-heavy optimized programs may perform better at runtime but often export poorly as one neat Markdown file.
+- If the main blocker is stale retrieval, missing tools, or unclear requirements, DSPy will not fix the root cause.
+- A trainable surface that is too broad makes the exported artifact harder to reason about and the feedback harder to trust.

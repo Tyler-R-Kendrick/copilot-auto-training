@@ -3,78 +3,57 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "The prompt in skills/engineer-prompt/evals/files/pr_review_prompt.md is too vague. Rewrite it so the model behaves like a senior security reviewer, uses the provided diff as context, prioritizes exploitable risks, and returns exactly three bullets.",
-      "expected_output": "The result should identify the task as prompt rewrite work, recommend a minimal technique set such as role plus context plus output constraint, explain why that is enough, and provide a concrete markdown rewrite.",
-      "files": [
-        "evals/files/pr_review_prompt.md"
-      ],
+      "prompt": "I want to optimize an agent skill prompt with DSPy, but the repository expects a stable checked-in SKILL.md file with fixed front matter and sections. Should DSPy generate the whole file or only the instruction body? Show me the smallest design.",
+      "expected_output": "The response should identify the optimization target, recommend a narrow DSPy surface, prefer deterministic wrapping around an optimized instruction body for a stable artifact, and explain the tradeoff against full-file generation.",
       "assertions": [
-        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
-        "The response identifies a primary recommendation for the rewrite.",
-        "The response explains at least one limitation or bad fit.",
-        "The response includes a markdown prompt rewrite.",
-        "The rewritten prompt requires exactly three bullets or an equivalent explicit three-bullet output constraint."
+        "The response uses explicit Optimization target, DSPy surface, Optimization strategy, Metric or evals, Export strategy, and Risks sections, or close equivalents.",
+        "The response recommends optimizing only the instruction body or another narrow prompt surface rather than defaulting to full-file generation.",
+        "The response recommends deterministic wrapping or templating for the final SKILL.md artifact.",
+        "The response mentions the tradeoff between full-file flexibility and stable checked-in artifacts."
       ]
     },
     {
       "id": 2,
-      "prompt": "I need to improve the prompt in skills/engineer-prompt/evals/files/email_extraction_prompt.md for extracting fields from messy support emails into JSON for an ingestion pipeline. Choose between few-shot prompting, prompt chaining, and structured output. Tell me which one should be primary, what the limitations are, and give me a markdown prompt.",
-      "expected_output": "The result should choose a primary technique appropriate for structured extraction, explain the tradeoffs of the other options, and provide a concrete markdown prompt.",
-      "files": [
-        "evals/files/email_extraction_prompt.md"
-      ],
+      "prompt": "I have one prompt-like artifact with a clean input/output contract and no extra orchestration. Should I model it as a dspy.Signature or a dspy.Module? I also need a metric I can rerun while iterating.",
+      "expected_output": "The response should prefer the smallest DSPy surface, distinguish signatures from modules, and recommend a repeatable metric or eval target instead of vague prompt advice.",
       "assertions": [
-        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
-        "The response names one primary recommendation.",
-        "The response discusses limitations or conditional use for at least one alternative technique.",
-        "The response includes a markdown prompt example.",
-        "The response recommends structured output or explains why another technique should still produce structured JSON reliably."
+        "The response recommends dspy.Signature or clearly equivalent wording for the narrow single-predictor case.",
+        "The response explains when a small dspy.Module would be justified instead of a signature.",
+        "The response recommends a repeatable metric, eval set, or structural validation target.",
+        "The response keeps deterministic packaging concerns outside the trainable DSPy surface."
       ]
     },
     {
       "id": 3,
-      "prompt": "I am designing the prompt in skills/engineer-prompt/evals/files/policy_assistant_prompt.md for an internal assistant over policy documents and incident reports. Compare grounding, vector RAG, graph RAG, and ReAct, tell me when each is a bad fit, and draft a grounded first-version prompt.",
-      "expected_output": "The result should compare the requested retrieval and reasoning techniques, recommend a simpler first version where appropriate, call out bad fits, and include a concrete prompt.",
-      "files": [
-        "evals/files/policy_assistant_prompt.md"
-      ],
+      "prompt": "My DSPy optimizer found a strong prompt, but it depends on few-shot demos and now the checked-in artifact is messy and hard to diff. How should I change the setup so the exported markdown prompt is cleaner?",
+      "expected_output": "The response should recommend instruction-only optimization when artifact cleanliness matters, explain that demo-heavy optimization can hurt neat exported artifacts, and suggest saving the compiled DSPy program separately from the final markdown file.",
       "assertions": [
-        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
-        "The response compares more than one technique from the request.",
-        "The response identifies at least one bad fit or overkill option.",
-        "The response includes a primary recommendation for a first version.",
-        "The response includes a markdown prompt example."
+        "The response recommends instruction-only optimization or equivalent wording.",
+        "The response mentions setting DSPy demo counts to zero, or an equivalent way to avoid demo-heavy exports.",
+        "The response explains that few-shot-heavy optimization can export poorly as a checked-in prompt artifact.",
+        "The response recommends saving the compiled program separately from the emitted markdown artifact."
       ]
     },
     {
       "id": 4,
-      "prompt": "The assistant using skills/engineer-prompt/evals/files/stale_retrieval_prompt.md keeps hallucinating because the vector store is months out of date and the retrieved chunks do not include source IDs. Should I fix this with chain-of-thought or few-shot prompting? Give me the right diagnosis and the smallest prompt advice that still helps.",
-      "expected_output": "The result should say the primary problem is not prompt design alone, explain why retrieval freshness or source quality is the main blocker, and only then offer limited prompt guidance if useful.",
-      "files": [
-        "evals/files/stale_retrieval_prompt.md"
-      ],
+      "prompt": "I need to evaluate a generated SKILL.md before committing it. What should the metric check so the artifact is actually usable in an agent-skills repository?",
+      "expected_output": "The response should define artifact-oriented checks such as valid front matter, explicit trigger conditions, concrete instructions, a clear output contract, and runtime compatibility rather than relying on vague quality language.",
       "assertions": [
-        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
-        "The response says prompt changes alone are not the main fix, or equivalent wording.",
-        "The response identifies retrieval freshness, source quality, or missing citations as the primary blocker.",
-        "The response avoids presenting an advanced prompting technique as the sole fix.",
-        "If the response includes prompt advice, it is presented as secondary rather than primary."
+        "The response includes YAML front matter or frontmatter as part of the metric guidance.",
+        "The response checks for explicit trigger conditions or an equivalent When to use contract.",
+        "The response checks for concrete instructions and a clear output contract.",
+        "The response checks for forbidden behaviors, runtime compatibility, or equivalent artifact-level constraints."
       ]
     },
     {
       "id": 5,
-      "prompt": "The prompt in skills/engineer-prompt/evals/files/token_budget_prompt.md keeps ballooning because the team pasted a long JSON schema and a multi-step approval workflow directly into it. I need a rewrite strategy that stays token-efficient. Tell me whether the schema should move into a referenced JSON Schema file, whether Mermaid or BPMN is a better workflow artifact, how to use interspersed repetition without wasting tokens, and whether sketch-of-thought or mathematical notation is appropriate here. Then give me a markdown prompt.",
-      "expected_output": "The result should recommend keeping the live prompt compact, moving bulky schema or workflow artifacts into references where appropriate, explain interspersed repetition as selective restatement of critical constraints, and conditionally recommend compact symbolic reasoning only when it fits the task.",
-      "files": [
-        "evals/files/token_budget_prompt.md"
-      ],
+      "prompt": "The prompt keeps failing because the retrieval index is stale and the source docs are incomplete. Should I solve that by moving the prompt into DSPy? Give me the right diagnosis and only the smallest prompt advice that still helps.",
+      "expected_output": "The response should say DSPy is not the main fix, identify stale retrieval or weak source material as the root blocker, and only then offer limited secondary prompt guidance if useful.",
       "assertions": [
-        "The response uses explicit Task shape and Primary recommendation labels or headed sections.",
-        "The response recommends a referenced JSON Schema file or equivalent external schema artifact instead of keeping a large schema inline.",
-        "The response distinguishes when Mermaid versus BPMN is the better workflow formalization choice, or gives an equivalent conditional recommendation.",
-        "The response explains interspersed repetition as selective repetition of only the highest-risk constraint near the step where it matters.",
-        "The response treats sketch-of-thought or mathematical notation as conditional on task structure rather than as a default.",
-        "The response includes a markdown prompt example."
+        "The response states that DSPy is not the main fix, or uses clearly equivalent wording.",
+        "The response identifies stale retrieval, missing source material, or source quality as the primary blocker.",
+        "The response avoids presenting DSPy as the sole solution to the retrieval problem.",
+        "If the response includes prompt advice, it presents that advice as secondary rather than primary."
       ]
     }
   ]

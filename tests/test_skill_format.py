@@ -327,6 +327,24 @@ class TestOfficialEvalFixtures:
         assert "@trace.model" in manifest_text
         assert "runtime performance" in manifest_text
 
+    def test_engineer_prompt_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "engineer-prompt" / "evals" / "evals.json"
+        assert manifest_path.is_file(), f"Expected engineer-prompt eval manifest at {manifest_path}"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "engineer-prompt"
+        assert len(payload["evals"]) >= 5
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert "dspy" in manifest_text
+        assert "miprov2" in manifest_text
+        assert "instruction-only optimization" in manifest_text
+        assert "skill.md" in manifest_text
+        assert "stale retrieval" in manifest_text
+
     def test_learn_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "learn" / "evals" / "evals.json"
         assert manifest_path.is_file(), f"Expected learn eval manifest at {manifest_path}"
