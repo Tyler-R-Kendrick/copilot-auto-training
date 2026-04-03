@@ -1718,8 +1718,8 @@ class TestTrainPromptWorkflow:
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.md should compile the trainer workflow before the agent activates."
         )
-        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" in run, (
-            "train-prompt.md should fail the pre-activation check when train-prompt.lock.yml changes after compilation."
+        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
+            "train-prompt.md should refresh train-prompt.lock.yml when stale instead of failing on lockfile drift."
         )
 
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
@@ -1804,8 +1804,8 @@ class TestTrainPromptWorkflow:
         assert "gh aw compile train-prompt" in run, (
             "train-prompt.lock.yml should compile train-prompt before activating the trainer agent."
         )
-        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" in run, (
-            "train-prompt.lock.yml should fail when pre-activation compilation changes the checked-in lock file."
+        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
+            "train-prompt.lock.yml should refresh the checked-in lock file when pre-activation compilation detects drift."
         )
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):

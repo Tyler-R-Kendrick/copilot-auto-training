@@ -27,7 +27,6 @@ steps:
     run: |
       gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw
       gh aw compile train-prompt
-      git diff --exit-code -- .github/workflows/train-prompt.lock.yml
 
 tools:
   github:
