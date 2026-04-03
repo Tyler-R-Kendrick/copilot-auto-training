@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
 import re
+from types import SimpleNamespace
 import sys
 from typing import Any
 
@@ -27,6 +28,20 @@ DEFAULT_GOAL = (
     "Improve clarity, structure, and operational usefulness while preserving placeholders, markdown shape, "
     "and the prompt's general task scope."
 )
+DEFAULT_OPTIMIZATION_INSTRUCTIONS = (
+    "Clarify the prompt's task objective, required inputs, and success criteria.",
+    "Improve scanability with a clean markdown structure and a logical instruction order.",
+    "Make the expected response format and output constraints explicit.",
+    "Preserve every placeholder exactly and retain all required text.",
+    "Remove redundant wording without changing the prompt's scope or intent.",
+)
+DEFAULT_VARIANT_FOCUS_AREAS = (
+    ("Emphasize the task objective, user inputs, and success criteria.",),
+    ("Emphasize section structure, heading quality, and instruction order.",),
+    ("Emphasize output formatting rules, required text, and placeholder safety.",),
+    ("Emphasize concision by removing repetition while keeping all constraints.",),
+)
+CHARS_PER_TOKEN_ESTIMATE = 4
 
 
 @dataclass(slots=True)
@@ -35,6 +50,7 @@ class PromptOptimizationTask:
     frontmatter: dict[str, Any]
     prompt_body: str
     optimization_goal: str
+    optimization_instructions: tuple[str, ...]
     supporting_context: str
     required_text: tuple[str, ...]
     forbidden_text: tuple[str, ...]
@@ -84,6 +100,7 @@ def build_prompt_task(
     prompt_file: str,
     *,
     goal: str | None = None,
+    optimization_instructions: list[str] | None = None,
     context_files: list[str] | None = None,
     required_text: list[str] | None = None,
     forbidden_text: list[str] | None = None,
@@ -104,6 +121,9 @@ def build_prompt_task(
         frontmatter=frontmatter,
         prompt_body=prompt_body,
         optimization_goal=(goal or DEFAULT_GOAL).strip(),
+        optimization_instructions=tuple(
+            item.strip() for item in (optimization_instructions or DEFAULT_OPTIMIZATION_INSTRUCTIONS) if item.strip()
+        ),
         supporting_context=_read_context_files(context_files or []),
         required_text=tuple(item.strip() for item in (required_text or []) if item.strip()),
         forbidden_text=tuple(item.strip() for item in (forbidden_text or []) if item.strip()),
@@ -175,24 +195,17 @@ def prompt_metric(example: Any, pred: Any, _trace: Any = None) -> float:
 
 
 def _task_variants(task: PromptOptimizationTask) -> list[dict[str, str]]:
-    return [
-        {
-            "optimization_goal": task.optimization_goal,
-            "supporting_context": task.supporting_context,
-        },
-        {
-            "optimization_goal": f"{task.optimization_goal} Make the instructions easier to scan.",
-            "supporting_context": task.supporting_context,
-        },
-        {
-            "optimization_goal": f"{task.optimization_goal} Preserve placeholders exactly and tighten the output contract.",
-            "supporting_context": task.supporting_context,
-        },
-        {
-            "optimization_goal": f"{task.optimization_goal} Reduce unnecessary verbosity without changing task scope.",
-            "supporting_context": task.supporting_context,
-        },
-    ]
+    variants: list[dict[str, str]] = []
+    for focus_area in ((), *DEFAULT_VARIANT_FOCUS_AREAS):
+        instructions = "\n".join([*task.optimization_instructions, *focus_area])
+        variants.append(
+            {
+                "optimization_goal": task.optimization_goal,
+                "optimization_instructions": instructions,
+                "supporting_context": task.supporting_context,
+            }
+        )
+    return variants
 
 
 def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[Any], list[Any]]:
@@ -202,6 +215,7 @@ def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[An
             dspy.Example(
                 frontmatter=task.frontmatter,
                 optimization_goal=variant["optimization_goal"],
+                optimization_instructions=variant["optimization_instructions"],
                 supporting_context=variant["supporting_context"],
                 required_text=task.required_text,
                 forbidden_text=task.forbidden_text,
@@ -211,6 +225,7 @@ def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[An
                 draft_prompt=task.prompt_body,
             ).with_inputs(
                 "optimization_goal",
+                "optimization_instructions",
                 "supporting_context",
                 "required_text",
                 "forbidden_text",
@@ -221,21 +236,108 @@ def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[An
     return examples[:TRAIN_SET_SIZE], examples[TRAIN_SET_SIZE:]
 
 
-def _configure_dspy_language_model(dspy: Any, *, model: str | None, api_key: str | None, api_base: str | None, temperature: float) -> Any:
-    resolved_model = model or os.getenv("DSPY_MODEL") or os.getenv("OPENAI_MODEL")
-    if not resolved_model:
-        raise RuntimeError(
-            "Model not configured. Set --model or DSPY_MODEL/OPENAI_MODEL "
-            "(for example: openai/gpt-4o-mini) before running --optimize."
-        )
-    kwargs: dict[str, Any] = {"temperature": temperature}
-    resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
-    resolved_api_base = api_base or os.getenv("OPENAI_API_BASE") or os.getenv("OPENAI_BASE_URL")
-    if resolved_api_key:
-        kwargs["api_key"] = resolved_api_key
-    if resolved_api_base:
-        kwargs["api_base"] = resolved_api_base
-    lm = dspy.LM(model=resolved_model, **kwargs)
+def _estimate_tokens_from_text(text: str) -> int:
+    return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
+
+
+def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
+    total = 0
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, str) and content:
+            total += _estimate_tokens_from_text(content)
+    return total
+
+
+def _ensure_trainer_optimize_scripts_on_path() -> None:
+    trainer_optimize_scripts = ENGINEER_PROMPT_DIR.parent / "trainer-optimize" / "scripts"
+    trainer_optimize_scripts_str = str(trainer_optimize_scripts)
+    if trainer_optimize_scripts_str not in sys.path:
+        sys.path.insert(0, trainer_optimize_scripts_str)
+
+
+def _create_copilot_client(prompt_file: str, *, model: str | None, temperature: float) -> tuple[Any, dict[str, Any], Any]:
+    _ensure_trainer_optimize_scripts_on_path()
+    from config import resolve_model_settings
+    from inference.config import InferenceConfig
+    from inference.contract import InferenceRequest
+    from training.lightning_integration import build_runtime_client
+
+    model_settings = resolve_model_settings(prompt_file)
+    if model:
+        model_settings = {**model_settings, "model": model}
+    provider_config = InferenceConfig(
+        model=str(model_settings.get("model") or "default"),
+        temperature=temperature,
+    )
+    client, resolved_settings = build_runtime_client(model_settings, provider_config=provider_config)
+    return client, resolved_settings, InferenceRequest
+
+
+def _run_async(coro: Any) -> Any:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    raise RuntimeError("Copilot-backed prompt optimization cannot run inside an active event loop.")
+
+
+def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: float, inference_request_cls: Any) -> Any:
+    class CopilotDSPyLM(dspy.BaseLM):
+        def __init__(self) -> None:
+            super().__init__(model=model, model_type="chat", temperature=temperature, cache=False)
+            self._client = client
+
+        def forward(
+            self,
+            prompt: str | None = None,
+            messages: list[dict[str, Any]] | None = None,
+            **kwargs: Any,
+        ) -> Any:
+            return _run_async(self.aforward(prompt=prompt, messages=messages, **kwargs))
+
+        async def aforward(
+            self,
+            prompt: str | None = None,
+            messages: list[dict[str, Any]] | None = None,
+            **kwargs: Any,
+        ) -> Any:
+            request_messages = messages or [{"role": "user", "content": prompt or ""}]
+            response = await self._client.provider.generate(
+                inference_request_cls(
+                    messages=request_messages,
+                    model=self.model,
+                    metadata={"interaction": "engineer-prompt.optimize_prompt", **(kwargs.get("metadata") or {})},
+                )
+            )
+            usage = dict(response.usage or {})
+            prompt_tokens = _estimate_prompt_tokens(request_messages)
+            usage.setdefault("prompt_tokens", prompt_tokens)
+            usage.setdefault("completion_tokens", _estimate_tokens_from_text(response.text))
+            usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content=response.text))],
+                usage=usage,
+                model=str(response.model or self.model),
+                finish_reason=response.finish_reason,
+                raw=response.raw,
+            )
+
+    return CopilotDSPyLM()
+
+
+def _configure_dspy_language_model(dspy: Any, *, prompt_file: str, model: str | None, temperature: float) -> Any:
+    client, model_settings, inference_request_cls = _create_copilot_client(prompt_file, model=model, temperature=temperature)
+    resolved_model = str(model_settings.get("model") or "default")
+    client.default_model = resolved_model
+    client.provider.config.model = resolved_model
+    lm = _build_copilot_dspy_lm(
+        dspy,
+        client=client,
+        model=resolved_model,
+        temperature=temperature,
+        inference_request_cls=inference_request_cls,
+    )
     dspy.configure(lm=lm)
     return lm
 
@@ -245,23 +347,24 @@ def compile_prompt(
     *,
     program_file: Path | None = None,
     model: str | None = None,
-    api_key: str | None = None,
-    api_base: str | None = None,
     temperature: float = 0.2,
 ) -> tuple[str, Any]:
     dspy = _load_dspy()
-    _configure_dspy_language_model(dspy, model=model, api_key=api_key, api_base=api_base, temperature=temperature)
+    _configure_dspy_language_model(dspy, prompt_file=str(task.prompt_path), model=model, temperature=temperature)
 
     class PromptOptimizerSignature(dspy.Signature):
         """Rewrite a markdown prompt to improve quality while preserving placeholders and task scope."""
 
-        optimization_goal = dspy.InputField(desc="Concrete optimization goal for the prompt rewrite.")
-        supporting_context = dspy.InputField(desc="Optional supporting notes or reference documents.")
-        required_text = dspy.InputField(desc="Text that must remain in the optimized prompt if provided.")
-        forbidden_text = dspy.InputField(desc="Text that must not appear in the optimized prompt if provided.")
-        placeholders = dspy.InputField(desc="Placeholders that must be preserved exactly.")
-        draft_prompt = dspy.InputField(desc="Current markdown prompt draft to refine.")
-        optimized_prompt = dspy.OutputField(desc="Optimized markdown prompt body.")
+        optimization_goal = dspy.InputField(desc="Primary rewrite objective that defines what outcome the prompt should improve.")
+        optimization_instructions = dspy.InputField(
+            desc="Ordered rewrite instructions covering clarity, structure, output contract, placeholder preservation, and concision."
+        )
+        supporting_context = dspy.InputField(desc="Reference material, style guidance, or product context that should inform the rewrite.")
+        required_text = dspy.InputField(desc="Text that must remain in the rewritten prompt when provided.")
+        forbidden_text = dspy.InputField(desc="Text that must not appear in the rewritten prompt when provided.")
+        placeholders = dspy.InputField(desc="Template placeholders that must be copied exactly into the rewritten prompt.")
+        draft_prompt = dspy.InputField(desc="The current markdown prompt body that needs to be improved.")
+        optimized_prompt = dspy.OutputField(desc="A rewritten markdown prompt body that satisfies the goal and rewrite instructions.")
 
     class PromptOptimizerProgram(dspy.Module):
         def __init__(self) -> None:
@@ -271,6 +374,7 @@ def compile_prompt(
         def forward(
             self,
             optimization_goal: str,
+            optimization_instructions: str,
             supporting_context: str,
             required_text: tuple[str, ...],
             forbidden_text: tuple[str, ...],
@@ -279,6 +383,7 @@ def compile_prompt(
         ) -> Any:
             return self.rewrite(
                 optimization_goal=optimization_goal,
+                optimization_instructions=optimization_instructions,
                 supporting_context=supporting_context,
                 required_text="\n".join(required_text) if required_text else EMPTY_CONSTRAINT_MARKER,
                 forbidden_text="\n".join(forbidden_text) if forbidden_text else EMPTY_CONSTRAINT_MARKER,
@@ -302,6 +407,7 @@ def compile_prompt(
     )
     prediction = compiled(
         optimization_goal=task.optimization_goal,
+        optimization_instructions="\n".join(task.optimization_instructions),
         supporting_context=task.supporting_context,
         required_text=task.required_text,
         forbidden_text=task.forbidden_text,
@@ -322,15 +428,19 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--optimize", action="store_true", help="Run the DSPy optimizer before rendering the markdown artifact.")
     parser.add_argument("--validate-only", action="store_true", help="Validate the rendered prompt contract and print a JSON summary.")
     parser.add_argument("--goal", default=DEFAULT_GOAL, help="Optimization goal for the prompt rewrite.")
+    parser.add_argument(
+        "--optimization-instruction",
+        action="append",
+        default=[],
+        help="Concrete rewrite instruction to apply during optimization. Repeatable.",
+    )
     parser.add_argument("--context-file", action="append", default=[], help="Additional file to pass as supporting context. Repeatable.")
     parser.add_argument("--required-text", action="append", default=[], help="Text that must appear in the optimized prompt. Repeatable.")
     parser.add_argument("--forbidden-text", action="append", default=[], help="Text that must not appear in the optimized prompt. Repeatable.")
     parser.add_argument("--min-body-length", type=int, default=DEFAULT_MIN_BODY_LENGTH, help="Minimum non-frontmatter body length for validation.")
     parser.add_argument("--max-body-length", type=int, help="Maximum non-frontmatter body length for validation.")
-    parser.add_argument("--model", help="DSPy model identifier, or set DSPY_MODEL/OPENAI_MODEL.")
-    parser.add_argument("--api-key", help="API key override for the DSPy LM client.")
-    parser.add_argument("--api-base", help="Base URL override for the DSPy LM client.")
-    parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature passed to the DSPy LM client.")
+    parser.add_argument("--model", help="Optional Copilot model override. Defaults to the repository Copilot runtime configuration.")
+    parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature passed to the Copilot-backed DSPy client.")
     return parser.parse_args()
 
 
@@ -352,6 +462,7 @@ def main() -> int:
         task = build_prompt_task(
             args.prompt_file,
             goal=args.goal,
+            optimization_instructions=args.optimization_instruction,
             context_files=args.context_file,
             required_text=args.required_text,
             forbidden_text=args.forbidden_text,
@@ -364,8 +475,6 @@ def main() -> int:
                 task,
                 program_file=Path(args.program_file) if args.program_file else None,
                 model=args.model,
-                api_key=args.api_key,
-                api_base=args.api_base,
                 temperature=args.temperature,
             )
         markdown = render_prompt_markdown(optimized_body, frontmatter=task.frontmatter)

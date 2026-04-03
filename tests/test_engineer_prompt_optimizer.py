@@ -61,6 +61,7 @@ def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engine
     assert task.frontmatter["title"] == "Example Prompt"
     assert "`${context}`" in task.prompt_body
     assert task.optimization_goal == "Make the prompt clearer."
+    assert task.optimization_instructions == engineer_prompt_optimizer_module.DEFAULT_OPTIMIZATION_INSTRUCTIONS
     assert task.required_text == ("three bullets",)
     assert task.forbidden_text == ("DSPy",)
     assert task.placeholders == ("${context}",)
@@ -145,26 +146,50 @@ Keep the wording concise.
             return student
 
     class FakeLM:
-        def __init__(self, model, **kwargs):
-            dspy_call_trace["lm"] = {"model": model, **kwargs}
+        def __init__(self, label):
+            dspy_call_trace["lm"] = label
 
     fake_dspy = SimpleNamespace(
         Signature=type("Signature", (), {}),
         Module=FakeModule,
         Predict=FakePredict,
         Example=FakeExample,
+        BaseLM=type("BaseLM", (), {}),
         InputField=lambda **kwargs: kwargs,
         OutputField=lambda **kwargs: kwargs,
         MIPROv2=FakeMIPROv2,
-        LM=FakeLM,
         configure=lambda **kwargs: dspy_call_trace.setdefault("configure", kwargs),
     )
 
     monkeypatch.setattr(engineer_prompt_optimizer_module, "_load_dspy", lambda: fake_dspy)
+    monkeypatch.setattr(
+        engineer_prompt_optimizer_module,
+        "_create_copilot_client",
+        lambda prompt_file, model, temperature: (
+            SimpleNamespace(provider=SimpleNamespace(config=SimpleNamespace(model="default")), default_model="default"),
+            {"model": model or "default"},
+            object,
+        ),
+    )
+    monkeypatch.setattr(
+        engineer_prompt_optimizer_module,
+        "_build_copilot_dspy_lm",
+        lambda dspy, client, model, temperature, inference_request_cls: FakeLM(
+            {
+                "model": model,
+                "temperature": temperature,
+                "inference_request_cls": inference_request_cls,
+            }
+        ),
+    )
     prompt_path = _write_prompt(tmp_path / "prompt.md")
     task = engineer_prompt_optimizer_module.build_prompt_task(
         str(prompt_path),
         goal="Make the prompt clearer.",
+        optimization_instructions=[
+            "Clarify the task objective.",
+            "Make the output format explicit.",
+        ],
         required_text=["three bullets"],
         forbidden_text=["DSPy"],
         min_body_length=20,
@@ -172,7 +197,7 @@ Keep the wording concise.
     body, _compiled = engineer_prompt_optimizer_module.compile_prompt(
         task,
         program_file=tmp_path / "program.json",
-        model="openai/gpt-4o-mini",
+        model="default",
     )
 
     assert "`${context}`" in body
@@ -181,8 +206,27 @@ Keep the wording concise.
     assert dspy_call_trace["optimizer_kwargs"]["max_bootstrapped_demos"] == 0
     assert dspy_call_trace["optimizer_kwargs"]["max_labeled_demos"] == 0
     assert dspy_call_trace["compile_kwargs"]["requires_permission_to_run"] is False
-    assert dspy_call_trace["lm"]["model"] == "openai/gpt-4o-mini"
+    assert dspy_call_trace["lm"]["model"] == "default"
+    assert "Clarify the task objective." in dspy_call_trace["prediction_kwargs"]["optimization_instructions"]
+    assert "Make the output format explicit." in dspy_call_trace["prediction_kwargs"]["optimization_instructions"]
     assert (tmp_path / "program.json").is_file()
+
+
+def test_build_prompt_task_allows_custom_optimization_instructions(tmp_path: Path, engineer_prompt_optimizer_module):
+    prompt_path = _write_prompt(tmp_path / "prompt.md")
+
+    task = engineer_prompt_optimizer_module.build_prompt_task(
+        str(prompt_path),
+        optimization_instructions=[
+            "Clarify the user intent and expected result.",
+            "Keep the output contract explicit.",
+        ],
+    )
+
+    assert task.optimization_instructions == (
+        "Clarify the user intent and expected result.",
+        "Keep the output contract explicit.",
+    )
 
 
 def test_validate_only_cli_emits_json_summary(tmp_path: Path):
