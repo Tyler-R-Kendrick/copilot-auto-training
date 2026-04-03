@@ -698,6 +698,7 @@ class TestHookCustomization:
 
         assert "`.github/workflows/*.md`" in text
         assert "`gh aw compile <workflow-name>`" in text
+        assert "`agentic-workflow-validation`" in text
         assert "patch-based edits" in text
 
     def test_agentic_workflow_validation_script_records_changed_workflows(self):
