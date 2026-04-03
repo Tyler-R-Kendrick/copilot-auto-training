@@ -239,6 +239,13 @@ def test_default_optimization_instructions_are_concrete(engineer_prompt_optimize
     assert any("Remove redundant" in instruction for instruction in instructions)
 
 
+def test_optimizer_script_does_not_reach_into_other_skill_directories():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+
+    assert "trainer-optimize" not in source
+    assert "_ensure_trainer_optimize_scripts_on_path" not in source
+
+
 def test_validate_only_cli_emits_json_summary(tmp_path: Path):
     prompt_path = _write_prompt(tmp_path / "prompt.md")
     output = subprocess.run(

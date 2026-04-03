@@ -15,6 +15,7 @@ import yaml
 
 
 ENGINEER_PROMPT_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = ENGINEER_PROMPT_DIR.parents[1]
 DEFAULT_PROGRAM_FILE_PATH = ENGINEER_PROMPT_DIR / "assets" / "prompt_program_optimized.json"
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
 MARKDOWN_TOKENS = ("#", "- ", "1.", "```")
@@ -255,28 +256,17 @@ def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
     return total
 
 
-def _ensure_trainer_optimize_scripts_on_path() -> None:
-    trainer_optimize_scripts = ENGINEER_PROMPT_DIR.parent / "trainer-optimize" / "scripts"
-    trainer_optimize_scripts_str = str(trainer_optimize_scripts)
-    if trainer_optimize_scripts_str not in sys.path:
-        sys.path.insert(0, trainer_optimize_scripts_str)
+def _ensure_repo_root_on_path() -> None:
+    repo_root = str(REPO_ROOT)
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
 
 
 def _create_copilot_client(prompt_file: str, *, model: str | None, temperature: float) -> tuple[Any, dict[str, Any], Any]:
-    _ensure_trainer_optimize_scripts_on_path()
-    from config import resolve_model_settings
-    from inference.config import InferenceConfig
-    from inference.contract import InferenceRequest
-    from training.lightning_integration import build_runtime_client
+    _ensure_repo_root_on_path()
+    from copilot_runtime import InferenceRequest, create_runtime_client
 
-    model_settings = resolve_model_settings(prompt_file)
-    if model:
-        model_settings = {**model_settings, "model": model}
-    provider_config = InferenceConfig(
-        model=str(model_settings.get("model") or "default"),
-        temperature=temperature,
-    )
-    client, resolved_settings = build_runtime_client(model_settings, provider_config=provider_config)
+    client, resolved_settings = create_runtime_client(prompt_file, model=model, temperature=temperature)
     return client, resolved_settings, InferenceRequest
 
 
@@ -324,9 +314,8 @@ def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: f
             except Exception as exc:
                 raise RuntimeError(
                     "Copilot runtime failed while optimizing the prompt. Verify that this command is running in a "
-                    "signed-in GitHub Copilot session, that the selected Copilot model is available, and that "
-                    "python skills/trainer-optimize/scripts/inference/smoke_test.py --model default succeeds in "
-                    "this repository."
+                    "signed-in GitHub Copilot session and that the selected Copilot model is available in this "
+                    "repository."
                 ) from exc
             usage = dict(response.usage or {})
             prompt_tokens = _estimate_prompt_tokens(request_messages)
