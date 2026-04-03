@@ -111,6 +111,8 @@ MIN_INSTRUCTION_BODY_CHARS = 300
 
 def skill_metric(example, pred, trace=None):
     text = pred.instruction_body.lower()
+    # These heuristics bias toward usable skill contracts: explicit guardrails, an output contract,
+    # trigger language, and enough substance to avoid a placeholder-quality export.
     checks = [
         bool(re.search(r"(^|\n)([-*]\s+)?do not\b", text)),
         bool(re.search(r"(^|\n)([-*]\s+)?return\b", text)),
@@ -128,6 +130,7 @@ dspy.configure(lm=lm)
 
 program = SkillProgram()
 trainset = [
+    # Use one or more exemplar skills as training data, then run the compiled program on the real target skill later.
     dspy.Example(
         skill_name="summarize-spec",
         skill_description="Summarize product specification docs into implementation notes.",
