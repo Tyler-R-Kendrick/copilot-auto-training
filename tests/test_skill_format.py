@@ -343,7 +343,6 @@ class TestOfficialEvalFixtures:
         assert "grounding" in manifest_text
         assert "retrieval freshness" in manifest_text
         assert "token-efficient" in manifest_text or "token budget" in manifest_text
-        assert (SKILLS_DIR / "engineer-prompt" / "scripts" / "export_skill_prompt.py").is_file()
 
     def test_learn_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "learn" / "evals" / "evals.json"

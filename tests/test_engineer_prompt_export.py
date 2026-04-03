@@ -56,8 +56,41 @@ def test_validate_skill_markdown_accepts_current_skill(engineer_prompt_export_mo
 
 def test_compile_instruction_body_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_export_module):
     captured: dict[str, object] = {}
+    optimized_body = """# Engineer Prompt
+
+## When to use this skill
+
+- The user wants to improve a prompt.
+
+## Core workflow
+
+1. Diagnose the task shape and failure mode.
+
+## Output contract
+
+1. `Task shape`: what the model is being asked to do
+
+## Diagnose first
+
+Prompt engineering is not just naming a technique.
+
+## Default selection heuristic
+
+Use structured output, grounding, and prompt chaining only when they fit.
+
+## Token-budget guidance
+
+Read `references/token-efficient-patterns.md` when token pressure matters.
+
+## Final rule
+
+If retrieval is stale, prompt changes are secondary.
+"""
 
     class FakeExample(dict):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
         def with_inputs(self, *keys):
             self["_input_keys"] = keys
             return self
@@ -68,9 +101,7 @@ def test_compile_instruction_body_uses_dspy_optimizer(monkeypatch, tmp_path: Pat
 
         def __call__(self, **kwargs):
             captured["prediction_kwargs"] = kwargs
-            return SimpleNamespace(
-                instruction_body="# Engineer Prompt\n\n## When to use this skill\n\n- The user wants to improve a prompt.\n\n## Core workflow\n\n1. Diagnose the task shape and failure mode.\n\n## Output contract\n\n1. `Task shape`: what the model is being asked to do\n\n## Diagnose first\n\nPrompt engineering is not just naming a technique.\n\n## Default selection heuristic\n\nUse structured output, grounding, and prompt chaining only when they fit.\n\n## Token-budget guidance\n\nRead `references/token-efficient-patterns.md` when token pressure matters.\n\n## Final rule\n\nIf retrieval is stale, prompt changes are secondary."
-            )
+            return SimpleNamespace(instruction_body=optimized_body)
 
     class FakeModule:
         def __call__(self, *args, **kwargs):
@@ -131,3 +162,7 @@ def test_validate_only_cli_emits_json_summary():
     payload = json.loads(output.stdout)
     assert payload["valid"] is True
     assert payload["banned_terms_present"] == []
+
+
+def test_exporter_script_exists():
+    assert MODULE_PATH.is_file()

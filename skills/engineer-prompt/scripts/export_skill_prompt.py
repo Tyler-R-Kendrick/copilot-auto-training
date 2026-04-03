@@ -20,6 +20,10 @@ EVAL_PATH = SKILL_DIR / "evals" / "evals.json"
 SOURCE_ANALYSIS_PATH = SKILL_DIR / "references" / "source-analysis.md"
 TOKEN_PATTERNS_PATH = SKILL_DIR / "references" / "token-efficient-patterns.md"
 PROGRAM_OUTPUT_PATH = SKILL_DIR / "assets" / "skill_program_optimized.json"
+# Disable demos so optimization stays instruction-only and the exported markdown artifact remains readable.
+MAX_DEMO_COUNT = 0
+MIN_BODY_LENGTH = 400
+TRAIN_SET_SIZE = 3
 REQUIRED_SECTIONS = (
     "# Engineer Prompt",
     "## When to use this skill",
@@ -144,8 +148,7 @@ def validate_skill_markdown(markdown: str) -> dict[str, Any]:
     return summary
 
 
-def skill_metric(example: Any, pred: Any, trace: Any = None) -> float:
-    del trace
+def skill_metric(example: Any, pred: Any, _trace: Any = None) -> float:
     frontmatter = getattr(example, "frontmatter", None) or example.get("frontmatter", {})
     markdown = render_skill_markdown(getattr(pred, "instruction_body"), frontmatter=frontmatter)
     summary = validate_skill_markdown(markdown)
@@ -154,7 +157,7 @@ def skill_metric(example: Any, pred: Any, trace: Any = None) -> float:
         not summary["missing_sections"],
         not summary["missing_guardrails"],
         not summary["banned_terms_present"],
-        summary["body_length"] >= 400,
+        summary["body_length"] >= MIN_BODY_LENGTH,
     ]
     return sum(1.0 for check in checks if check) / len(checks)
 
@@ -189,7 +192,7 @@ def build_example_sets(contract: SkillContract, dspy: Any) -> tuple[list[Any], l
                 "draft_notes",
             )
         )
-    return examples[:3], examples[3:]
+    return examples[:TRAIN_SET_SIZE], examples[TRAIN_SET_SIZE:]
 
 
 def _configure_dspy_lm(dspy: Any, *, model: str | None, api_key: str | None, api_base: str | None, temperature: float) -> Any:
@@ -262,15 +265,13 @@ def compile_instruction_body(
     optimizer = dspy.MIPROv2(
         metric=skill_metric,
         auto="light",
-        max_bootstrapped_demos=0,
-        max_labeled_demos=0,
+        max_bootstrapped_demos=MAX_DEMO_COUNT,
+        max_labeled_demos=MAX_DEMO_COUNT,
     )
     compiled = optimizer.compile(
         student=program,
         trainset=trainset,
         valset=valset,
-        max_bootstrapped_demos=0,
-        max_labeled_demos=0,
         requires_permission_to_run=False,
     )
     prediction = compiled(
