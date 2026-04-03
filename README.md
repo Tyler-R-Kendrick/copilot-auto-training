@@ -251,6 +251,7 @@ For the full setup, configuration, and artifact walkthrough, start with [docs/ge
 ## Documentation
 
 - [docs/getting-started.md](docs/getting-started.md): installation, configuration, examples, and outputs
+- [docs/dspy-skill-artifacts.md](docs/dspy-skill-artifacts.md): using DSPy to optimize instructions and export a stable `SKILL.md` artifact
 - [docs/copilot-cli-plugins.md](docs/copilot-cli-plugins.md): how to register this repo as a Copilot CLI marketplace and install its plugins
 - [docs/dashboard.md](docs/dashboard.md): how to open and use the Agent Lightning dashboard
 - [docs/troubleshooting.md](docs/troubleshooting.md): common setup, dataset, runtime, and dashboard issues
