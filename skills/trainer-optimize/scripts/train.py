@@ -74,16 +74,10 @@ def load_training_cases(
 
 
 def configure_trace_environment(prompt_file: str) -> dict[str, str | None]:
-    """Map the repo's model settings into the env vars Trace/LiteLLM expects."""
+    """Expose the active Copilot model to Trace/LiteLLM-compatible helpers."""
     model_settings = resolve_model_settings(prompt_file)
-    if model_settings.get("api_key"):
-        os.environ["OPENAI_API_KEY"] = str(model_settings["api_key"])
-    if model_settings.get("base_url"):
-        base_url = str(model_settings["base_url"])
-        os.environ["OPENAI_BASE_URL"] = base_url
-        os.environ["OPENAI_API_BASE"] = base_url
-    if model_settings.get("inference_model"):
-        os.environ["TRACE_LITELLM_MODEL"] = str(model_settings["inference_model"])
+    if model_settings.get("model"):
+        os.environ["TRACE_LITELLM_MODEL"] = str(model_settings["model"])
     return model_settings
 
 
@@ -97,9 +91,9 @@ async def score_prompt_text(
 ) -> float:
     """Score one prompt template across a dataset with the current model settings."""
     llm_client, model_settings = create_openai_client(prompt_file)
-    model_name = model_settings.get("inference_model")
+    model_name = model_settings.get("model")
     if not model_name:
-        raise ValueError("Trace training requires GITHUB_MODELS_MODEL or OPENAI_MODEL to be configured.")
+        raise ValueError("Trace training requires a configured Copilot model.")
 
     assessed = await assess_candidates(
         [prompt_text],
@@ -245,7 +239,7 @@ def train_cases(
 
     normalized_cases = [normalize_training_case(case) for case in cases]
     model_settings = configure_trace_environment(normalized_cases[0]["prompt_file"])
-    model_name = model_settings.get("inference_model")
+    model_name = model_settings.get("model")
     policy = TraceSelfOptimizationPolicy()
     if not model_name:
         history: list[dict[str, Any]] = []
@@ -280,11 +274,10 @@ def train_cases(
         result = {
             "ok": True,
             "mode": "manual_followup",
-            "message": "Trace training skipped external optimization because no inference model was configured; follow-up instructions were generated instead.",
+            "message": "Trace training skipped external optimization because no model was configured; follow-up instructions were generated instead.",
             "epochs": 0,
             "case_count": len(normalized_cases),
-            "model_provider": model_settings["provider"],
-            "inference_model": model_name,
+            "model": model_name,
             "history": history,
             "learned_parameters": serialize_trace_parameters(policy),
         }
@@ -342,8 +335,7 @@ def train_cases(
                     "message": "Trace training stopped after the optimize runtime lost model access; follow-up instructions were generated instead.",
                     "epochs": epoch - 1,
                     "case_count": len(normalized_cases),
-                    "model_provider": model_settings["provider"],
-                    "inference_model": model_name,
+                    "model": model_name,
                     "history": history,
                     "learned_parameters": serialize_trace_parameters(policy),
                 }
@@ -360,8 +352,7 @@ def train_cases(
         "ok": True,
         "epochs": epochs,
         "case_count": len(normalized_cases),
-        "model_provider": model_settings["provider"],
-        "inference_model": model_name,
+        "model": model_name,
         "history": history,
         "learned_parameters": serialize_trace_parameters(policy),
     }

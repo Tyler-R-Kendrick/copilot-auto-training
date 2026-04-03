@@ -17,6 +17,12 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
+AGENT_SKILLS_UVX_BOOTSTRAP = (
+    "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "&& exec uvx --from "
+    "git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp "
+    "agent-skills-mcp"
+)
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
 
@@ -669,7 +675,7 @@ class TestHookCustomization:
         assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("validate-agentic-workflow-compilation.sh --enforce" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
-        assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert any(entry.get("matcher") == "Write|Edit|MultiEdit|ApplyPatch" for entry in post_tool_use)
         assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
         assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("validate-agentic-workflow-compilation.sh" in entry["command"] for entry in post_tool_use)
@@ -685,6 +691,15 @@ class TestHookCustomization:
         assert "collect_git_changed_targets" in text
         assert "origin/main" in text
         assert "normalize_lockfile_writeback_tokens" in text
+
+    def test_agents_memory_records_workflow_compile_rule(self):
+        memory_path = REPO_ROOT / ".agents" / "MEMORY.md"
+        text = _read(memory_path)
+
+        assert "`.github/workflows/*.md`" in text
+        assert "`gh aw compile <workflow-name>`" in text
+        assert "`agentic-workflow-validation`" in text
+        assert "patch-based edits" in text
 
     def test_agentic_workflow_validation_script_records_changed_workflows(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
@@ -1502,6 +1517,7 @@ class TestTrainPromptWorkflow:
 
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
+    AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
 
     def _parse_frontmatter_yaml(self, text: str) -> str:
         """Return the raw YAML block from a frontmatter-delimited file."""
@@ -1544,6 +1560,12 @@ class TestTrainPromptWorkflow:
         parsed = yaml.safe_load(self._lock_text())
         assert isinstance(parsed, dict), "Expected train-prompt.lock.yml to parse as a YAML mapping"
         return parsed
+
+    def _source_agent_skills_runtime(self) -> dict:
+        text = _read(self.AGENT_SKILLS_RUNTIME)
+        frontmatter = self._parse_frontmatter_yaml(text)
+        parsed = yaml.safe_load(frontmatter)
+        return parsed["mcp-servers"]["agent-skills"]
 
     def test_workflow_source_exists(self):
         assert self.WORKFLOW_MD.is_file(), f"train-prompt.md not found: {self.WORKFLOW_MD}"
@@ -1621,6 +1643,38 @@ class TestTrainPromptWorkflow:
             "train-prompt.md guardrails should explicitly preserve stage outputs for GitHub artifact uploads."
         )
 
+    def test_source_limits_repo_analysis_to_tracked_checkout_files(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Build the candidate list only from git-tracked files under `${{ github.workspace }}`." in text, (
+            "train-prompt.md should constrain candidate discovery to tracked files in the checked-out repository."
+        )
+        assert "Do not scan parent directories, `/tmp/**`, `/tmp/gh-aw/**`, sandbox firewall logs or audit directories" in text, (
+            "train-prompt.md should explicitly forbid scanning restricted runtime-owned paths that are outside the repository checkout."
+        )
+
+    def test_source_excludes_training_workspace_artifacts_from_candidate_analysis(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Treat trainer workspace contents as generated artifacts, not source candidates." in text, (
+            "train-prompt.md should tell the agent not to treat trainer workspace contents as source files to optimize."
+        )
+        assert "`inputs/`, `iterations/`, `research/`, `synthesize/`, `optimize/`, `election/`, `validation/`, `candidates/`, and `steering/`" in text, (
+            "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
+        )
+
+    def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
+        runtime = self._source_agent_skills_runtime()
+        assert runtime.get("command") == "/bin/sh", (
+            "agent-skills-runtime.md should use a shell entrypoint that exists in python:alpine "
+            "instead of invoking uvx directly."
+        )
+        assert runtime.get("args") == [
+            "-lc",
+            AGENT_SKILLS_UVX_BOOTSTRAP,
+        ], (
+            "agent-skills-runtime.md should bootstrap uv inside python:alpine before launching the "
+            "agent-skills MCP server so the container does not fail with a missing uvx executable."
+        )
+
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
@@ -1671,6 +1725,19 @@ class TestTrainPromptWorkflow:
         assert "add_reviewer" not in text, (
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
+        )
+
+    def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
+        text = self._lock_text()
+        assert '"container": "python:alpine"' in text
+        assert '"entrypoint": "/bin/sh"' in text, (
+            "train-prompt.lock.yml should start the agent-skills MCP container with /bin/sh so "
+            "the entrypoint exists in python:alpine."
+        )
+        expected_bootstrap = f'"{AGENT_SKILLS_UVX_BOOTSTRAP}"'
+        assert expected_bootstrap in text, (
+            "train-prompt.lock.yml should bootstrap uv inside the python:alpine agent-skills "
+            "container before invoking uvx so the MCP gateway can start reliably."
         )
 
     def test_lock_uploads_trainer_workspace_checkpoint_artifacts(self):

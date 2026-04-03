@@ -37,8 +37,9 @@ Select exactly one prompt-like source file in this repository, run the repositor
 
 ## Scope
 
-1. Search tracked repository files ending in `.md`, `.mdx`, or `.prompty`.
-2. Exclude generated or non-source trees:
+1. Build the candidate list only from git-tracked files under `${{ github.workspace }}`. Do not scan parent directories, `/tmp/**`, `/tmp/gh-aw/**`, sandbox firewall logs or audit directories, or any other runtime-owned path outside the repository checkout.
+2. Search only those tracked repository files ending in `.md`, `.mdx`, or `.prompty`.
+3. Exclude generated or non-source trees:
    - `.git/`
    - `.venv/`
    - any path under `**/.trainer-workspace/**`
@@ -48,11 +49,12 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - `build/`
    - `coverage/`
    - `trials/`
-3. Treat a file as prompt-like when at least one of these is true:
+4. Treat trainer workspace contents as generated artifacts, not source candidates. Ignore anything under workspace stage folders such as `inputs/`, `iterations/`, `research/`, `synthesize/`, `optimize/`, `election/`, `validation/`, `candidates/`, and `steering/` whenever they appear inside a training workspace.
+5. Treat a file as prompt-like when at least one of these is true:
    - the basename is `SKILL.md` or `AGENTS.md`
    - the path ends in `.agent.md`, `.prompt.md`, `.instructions.md`, or `.prompty`
    - the file clearly contains agent or prompt instructions rather than general documentation, for example a role prompt, skill contract, or structured instruction artifact with imperative guidance
-4. Prefer repository-owned prompt artifacts under `.github/agents/`, `.agents/skills/`, `skills/`, and `examples/` over incidental documentation elsewhere.
+6. Prefer repository-owned prompt artifacts under `.github/agents/`, `.agents/skills/`, `skills/`, and `examples/` over incidental documentation elsewhere.
 
 ## Workspace Mapping
 
@@ -68,10 +70,11 @@ Select exactly one prompt-like source file in this repository, run the repositor
 ## Selection Rules
 
 1. Build the candidate list and map each candidate to its associated local `.trainer-workspace` directory.
-2. Partition candidates into:
+2. Never read from or write to `/tmp/gh-aw/**`, sandbox firewall directories, or other restricted runtime-owned paths while selecting the target or analyzing repository files.
+3. Partition candidates into:
    - files whose associated workspace directory does not exist
    - files whose associated workspace directory exists
-3. If any candidates are missing a workspace, choose exactly one target from that group using this deterministic order:
+4. If any candidates are missing a workspace, choose exactly one target from that group using this deterministic order:
    - `.prompty`
    - `.prompt.md`
    - `.instructions.md`
@@ -80,13 +83,13 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - `AGENTS.md`
    - all other prompt-like markdown
    - then repository-relative path ascending as the tiebreaker
-4. If every candidate already has a workspace, choose the oldest trained target by sorting ascending on the last training timestamp.
-5. Resolve the last training timestamp using this fallback order:
+5. If every candidate already has a workspace, choose the oldest trained target by sorting ascending on the last training timestamp.
+6. Resolve the last training timestamp using this fallback order:
    - `workflow-status.json` field `updated_at`
    - the newest `iterations/iteration-N/` directory modification time inside the local workspace
    - the workspace directory modification time
    - repository-relative path ascending as the final tiebreaker
-6. Record the selection reason in the eventual pull request body.
+7. Record the selection reason in the eventual pull request body.
 
 ## Execution
 

@@ -176,43 +176,33 @@ def test_load_training_cases_requires_complete_input():
 
 
 def test_configure_trace_environment_exports_resolved_model_settings(monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
-    monkeypatch.delenv("OPENAI_API_BASE", raising=False)
     monkeypatch.delenv("TRACE_LITELLM_MODEL", raising=False)
 
     monkeypatch.setattr(
         trace_train,
         "resolve_model_settings",
         lambda prompt_file: {
-            "provider": "github",
-            "api_key": "token",
-            "base_url": "https://models.github.ai/inference",
-            "inference_model": "openai/gpt-4.1-mini",
+            "model": "default",
         },
     )
 
     settings = trace_train.configure_trace_environment("prompt.md")
 
-    assert settings["provider"] == "github"
-    assert settings["inference_model"] == "openai/gpt-4.1-mini"
-    assert trace_train.os.environ["OPENAI_API_KEY"] == "token"
-    assert trace_train.os.environ["OPENAI_BASE_URL"] == "https://models.github.ai/inference"
-    assert trace_train.os.environ["OPENAI_API_BASE"] == "https://models.github.ai/inference"
-    assert trace_train.os.environ["TRACE_LITELLM_MODEL"] == "openai/gpt-4.1-mini"
+    assert settings["model"] == "default"
+    assert trace_train.os.environ["TRACE_LITELLM_MODEL"] == "default"
 
 
 @pytest.mark.asyncio
-async def test_score_prompt_text_requires_inference_model(monkeypatch):
-    monkeypatch.setattr(trace_train, "create_openai_client", lambda prompt_file: (object(), {"inference_model": None}))
+async def test_score_prompt_text_requires_model(monkeypatch):
+    monkeypatch.setattr(trace_train, "create_openai_client", lambda prompt_file: (object(), {"model": None}))
 
-    with pytest.raises(ValueError, match="requires GITHUB_MODELS_MODEL or OPENAI_MODEL"):
+    with pytest.raises(ValueError, match="requires a configured Copilot model"):
         await trace_train.score_prompt_text("Answer: {input}", [], prompt_file="prompt.md", judge_mode="deterministic")
 
 
 @pytest.mark.asyncio
 async def test_score_prompt_text_returns_zero_when_no_assessments(monkeypatch):
-    monkeypatch.setattr(trace_train, "create_openai_client", lambda prompt_file: (object(), {"inference_model": "model"}))
+    monkeypatch.setattr(trace_train, "create_openai_client", lambda prompt_file: (object(), {"model": "model"}))
 
     async def fake_assess_candidates(*args, **kwargs):
         return []
@@ -372,7 +362,7 @@ def test_train_cases_requires_positive_epochs_and_cases():
         )
 
 
-def test_train_cases_without_inference_model_returns_manual_followup(tmp_path, monkeypatch):
+def test_train_cases_without_model_returns_manual_followup(tmp_path, monkeypatch):
     prompt_path = tmp_path / "prompt.md"
     train_path = tmp_path / "train.jsonl"
     val_path = tmp_path / "val.jsonl"
@@ -384,7 +374,7 @@ def test_train_cases_without_inference_model_returns_manual_followup(tmp_path, m
     monkeypatch.setattr(
         trace_train,
         "configure_trace_environment",
-        lambda prompt_file: {"provider": "github", "inference_model": None},
+        lambda prompt_file: {"model": None},
     )
     import run_optimize as _ro_module
     monkeypatch.setattr(
@@ -393,12 +383,7 @@ def test_train_cases_without_inference_model_returns_manual_followup(tmp_path, m
         lambda pf: (
             sys.modules["openai"].AsyncOpenAI(),
             {
-                "provider": "github",
-                "api_key": None,
-                "base_url": None,
-                "inference_model": None,
-                "gradient_model": None,
-                "apply_edit_model": None,
+                "model": None,
                 "repo_root": str(tmp_path),
             },
         ),
@@ -468,7 +453,7 @@ def test_train_cases_runs_multiple_epochs_and_writes_report(tmp_path, monkeypatc
     monkeypatch.setattr(
         trace_train,
         "configure_trace_environment",
-        lambda prompt_file: {"provider": "github", "inference_model": "openai/gpt-4.1-mini"},
+        lambda prompt_file: {"model": "default"},
     )
     monkeypatch.setattr(
         trace_train,
@@ -566,14 +551,11 @@ def test_train_module_entrypoint_executes_main(tmp_path, monkeypatch, capsys):
         optimize_module,
         "resolve_model_settings",
         lambda prompt_file: {
-            "provider": "github",
-            "api_key": "token",
-            "base_url": "https://models.github.ai/inference",
-            "inference_model": "openai/gpt-4.1-mini",
+            "model": "default",
         },
     )
     monkeypatch.setattr(optimize_module, "run_optimize", fake_run_optimize)
-    monkeypatch.setattr(optimize_module, "create_openai_client", lambda prompt_file: (object(), {"inference_model": "openai/gpt-4.1-mini"}))
+    monkeypatch.setattr(optimize_module, "create_openai_client", lambda prompt_file: (object(), {"model": "default"}))
     monkeypatch.setattr(optimize_module, "assess_candidates", fake_assess_candidates)
     monkeypatch.setitem(sys.modules, "opto.optimizers", types.SimpleNamespace(OptoPrime=FakeOptoPrime))
     monkeypatch.setitem(sys.modules, "opto.optimizers.optoprime", types.SimpleNamespace(LLM=FakeLLM))

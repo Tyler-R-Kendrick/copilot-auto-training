@@ -1,13 +1,13 @@
 # Getting Started
 
-This guide covers installation, model configuration, the first run, and the optimizer's output modes.
+This guide covers installation, repository configuration, the first run, and the optimizer's output modes.
 
 ## Prerequisites
 
 - Python 3.11 or newer
 - A virtual environment for the repository
-- Model credentials through either `OPENAI_API_KEY` or GitHub Models configuration in the repository root `.env`
-- A model name through `OPENAI_MODEL` or `GITHUB_MODELS_MODEL`
+- An authenticated Copilot session managed by the SDK
+- A `COPILOT_MODEL` value in the repository root `.env`
 
 ## Install Dependencies
 
@@ -21,22 +21,17 @@ The runtime dependency set includes `poml`, which Agent Lightning APO requires d
 
 In the devcontainer, the post-start hook automatically recreates `.venv` with Python 3.12 and reinstalls dependencies when the local environment is missing, stale, or missing `pip`. The Copilot coding-agent setup workflow at `.github/workflows/copilot-setup-steps.yml` calls the same `.devcontainer/post-start.sh` bootstrap so the hosted agent reuses the repository's devcontainer setup logic, including `gh aw`.
 
-## Configure Model Access
+## Configure Copilot Access
 
-If you are using GitHub Models, create a repository-root `.env` file like this:
+Create a repository-root `.env` file like this:
 
 ```dotenv
-GITHUB_MODELS_API_KEY=<github-pat>
-GITHUB_MODELS_ENDPOINT=https://models.github.ai/inference
-GITHUB_MODELS_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_GRADIENT_MODEL=openai/gpt-4.1-mini
-GITHUB_MODELS_APPLY_EDIT_MODEL=openai/gpt-4.1-mini
+COPILOT_MODEL=default
 ```
 
-Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported secret and model keys stay documented in one place.
+Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported Copilot setting stays documented in one place.
 
-When these `GITHUB_MODELS_*` values are present, the optimizer treats the repository-root `.env` as the authoritative source for GitHub Models settings.
-On GitHub Models endpoints, the runtime will try the OpenAI Responses API first and automatically fall back to chat completions when the endpoint rejects that route with `404`.
+The runtime uses the official Python Copilot SDK and the existing signed-in Copilot user session instead of spawning its own chat command. Smoke-test startup fails immediately when the signed-in Copilot SDK runtime is unavailable or not authenticated, while optimization runs that lose live inference after startup fall back to the existing manual-followup handoff so dataset resolution and run metadata are still preserved.
 
 ## Configure GitHub Agentic Workflows Secrets
 
@@ -154,6 +149,12 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --debug-only
 ```
 
+Copilot-only smoke test:
+
+```bash
+python skills/trainer-optimize/scripts/inference/smoke_test.py --model default
+```
+
 Small full run:
 
 ```bash
@@ -190,6 +191,8 @@ python skills/trainer-optimize/scripts/run_optimize.py \
 ```
 
 While the full run is active, open the `dashboard_url` returned by the command, as described in [docs/dashboard.md](dashboard.md). If you need a stable port for forwarding, set `AGL_SERVER_PORT` before starting the run.
+
+For the current Copilot runtime implementation, including the inference adapter, session handling, trace logging, and limits, see [docs/copilot_execution_plan.md](copilot_execution_plan.md).
 
 ## Using The Repository Prompt
 

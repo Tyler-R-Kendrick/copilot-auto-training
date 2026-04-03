@@ -553,12 +553,10 @@ jobs:
               "agent-skills": {
                 "type": "stdio",
                 "container": "python:alpine",
-                "entrypoint": "uvx",
+                "entrypoint": "/bin/sh",
                 "entrypointArgs": [
-                  "uvx",
-                  "--from",
-                  "git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp",
-                  "agent-skills-mcp"
+                  "-lc",
+                  "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && exec uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp agent-skills-mcp"
                 ],
                 "tools": [
                   "find_agent_skill",

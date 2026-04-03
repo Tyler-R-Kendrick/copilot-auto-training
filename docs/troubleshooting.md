@@ -5,7 +5,6 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 ## Setup Issues
 
 - If you see `ModuleNotFoundError: No module named 'poml'`, reinstall dependencies with `pip install -r requirements.txt`.
-- If you see `GitHub Models configuration requires GITHUB_MODELS_API_KEY or OPENAI_API_KEY`, add a valid repository-root `.env` before running optimization.
 - If `python -m pytest -q` fails immediately on async tests, make sure you installed all dependencies from [requirements.txt](../requirements.txt).
 
 ## Dataset Issues
@@ -23,7 +22,6 @@ This page collects the most common setup, dataset, runtime, and dashboard issues
 - If the run completes but trainer workflow artifacts are missing, check the explicit report path you passed or the local `<prompt-dir>/.trainer-workspace/<prompt-name>/benchmark.json` rollup when that workflow generated benchmark artifacts.
 - If you used `--debug-only`, the optimizer intentionally skips writing the optimized prompt and temporary run artifacts. It now runs a single live smoke rollout against the first training row, so failures in that mode usually point to prompt rendering, model access, or judge configuration rather than APO or VERL internals.
 - If a rollout is marked `failed`, treat that as an exception path rather than a poor score. Check CLI stderr, saved `optimize-stderr.txt`, and dashboard traces first.
-- If you see `404 page not found` from `responses.create` on GitHub Models, that is an endpoint/API compatibility problem. Use a runtime version that falls back to chat completions automatically, or verify the configured endpoint.
 - If the dashboard URL changes between runs, use the returned `dashboard_url` from the JSON result or report file. The runtime now chooses a free local port unless `AGL_SERVER_PORT` is set explicitly.
 - If a full `verl` run fails at import time with `ModuleNotFoundError: No module named 'hydra'`, reinstall dependencies from [requirements.txt](../requirements.txt) so the VERL runtime extras are available.
 

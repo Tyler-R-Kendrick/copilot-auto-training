@@ -7,11 +7,10 @@ runtimes:
 
 mcp-servers:
   agent-skills:
-    command: uvx
+    command: /bin/sh
     args:
-      - --from
-      - git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp
-      - agent-skills-mcp
+      - -lc
+      - python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && exec uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp agent-skills-mcp
     env:
       AGENT_SKILLS_RUN_CWD: .
     allowed: [find_agent_skill, load_agent_skill, run_agent_skill]

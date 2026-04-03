@@ -15,8 +15,7 @@ from uuid import uuid4
 from opto import trace
 
 from config import (
-    DEFAULT_GITHUB_APPLY_EDIT_MODEL,
-    DEFAULT_GITHUB_GRADIENT_MODEL,
+    DEFAULT_COPILOT_MODEL,
     create_openai_client,
     resolve_model_settings,
 )
@@ -299,7 +298,7 @@ def run_optimize_sync(
         raise ValueError("val_file must contain at least one task row")
     validate_template_against_task(prompt_text, train_dataset[0])
     openai_client, model_settings = create_openai_client(prompt_file)
-    inference_model = model_settings.get("inference_model")
+    model_name = model_settings.get("model")
     def manual_followup(reason: str, *, dashboard_url: str | None = None, persist_report: bool = True) -> str:
         result = support.build_manual_followup_result(
             prompt_file=prompt_file,
@@ -323,8 +322,8 @@ def run_optimize_sync(
             result["report_file"] = report_file
             Path(report_file).write_text(json.dumps(result, indent=2), encoding="utf-8")
         return json.dumps(result, indent=2)
-    if inference_model is None:
-        return manual_followup("No inference model was configured.")
+    if model_name is None:
+        return manual_followup("No model was configured.")
 
     with _configure_agentlightning_server() as server_settings:
         if debug_only:
@@ -334,7 +333,7 @@ def run_optimize_sync(
                     train_dataset,
                     judge_mode=judge_mode,
                     llm_client=openai_client,
-                    model_name=str(inference_model),
+                    model_name=str(model_name),
                     judge_prompt_file=judge_prompt_file,
                 )
             except Exception as exc:
@@ -354,8 +353,6 @@ def run_optimize_sync(
                 branch_factor=branch_factor,
                 gradient_batch_size=min(4, len(train_dataset)),
                 val_batch_size=min(16, len(val_dataset)),
-                gradient_model=model_settings.get("gradient_model") or DEFAULT_GITHUB_GRADIENT_MODEL,
-                apply_edit_model=model_settings.get("apply_edit_model") or DEFAULT_GITHUB_APPLY_EDIT_MODEL,
             )
             trainer = agl.Trainer(
                 algorithm=algo,
@@ -367,7 +364,7 @@ def run_optimize_sync(
             rollout_fn = _make_rollout(
                 judge_mode,
                 llm_client=openai_client,
-                model_name=str(inference_model),
+                model_name=str(model_name),
                 judge_prompt_file=judge_prompt_file,
             )
             trainer.fit(agent=rollout_fn, train_dataset=train_dataset, val_dataset=val_dataset)
@@ -394,11 +391,7 @@ def run_optimize_sync(
         "report_file": report_file,
         "prompt_file_updated": prompt_file_updated,
         "dashboard_url": server_settings["dashboard_url"],
-        "model_provider": model_settings["provider"],
-        "model_endpoint": model_settings["base_url"],
-        "inference_model": model_settings["inference_model"],
-        "gradient_model": model_settings["gradient_model"],
-        "apply_edit_model": model_settings["apply_edit_model"],
+        "model": model_settings["model"],
         "iterations": iterations,
         "train_size": len(train_dataset),
         "val_size": len(val_dataset),
