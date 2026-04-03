@@ -19,9 +19,9 @@ Prefer instruction-only optimization when the goal is a clean `SKILL.md` artifac
 
 Why:
 
-- optimizing both instructions and demos can improve runtime quality, but often produces a less reusable standalone skill prompt
-- setting demo counts to zero biases the result toward a single instruction artifact
-- deterministic templating gives you cleaner diffs and a more stable repository contract
+- Optimizing both instructions and demos can improve runtime quality, but often produces a less reusable standalone skill prompt
+- Setting demo counts to zero biases the result toward a single instruction artifact
+- Deterministic templating gives you cleaner diffs and a more stable repository contract
 
 ## Suggested layout
 
@@ -105,6 +105,7 @@ def skill_metric(example, pred, trace=None):
         "do not" in text,
         "return" in text,
         "when" in text or "use this skill" in text,
+        # Keep the exported body large enough that the final skill is not just a stub.
         len(pred.instruction_body.strip()) > 300,
     ]
     return sum(checks) / len(checks)
@@ -200,6 +201,6 @@ Check for:
 
 If you already maintain downstream skill evals, prefer those over string-only checks.
 
-## How this fits this repository
+## How this fits into this repository
 
 This repository's checked-in artifact should still be the final Markdown prompt file. If you use DSPy outside the built-in Agent Lightning workflow, keep the export step separate and commit the resulting `SKILL.md`, evals, and datasets like any other prompt artifact in this repo.
