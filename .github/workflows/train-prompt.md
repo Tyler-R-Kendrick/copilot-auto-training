@@ -119,7 +119,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 8. Ensure the active iteration stages the original prompt, the strongest student candidate, and the strongest adversary candidate under `candidates/original/`, `candidates/student/`, and `candidates/adversary/`, along with candidate descriptions, predicted judge responses, and reflection artifacts that the judge can inspect.
 9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
+11. If the selected target is a workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
     - treat this as a target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard
     - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md`; the pre-activation self-check only establishes a clean starting lockfile, and the target-specific compile loop still must run again after edits and again before validation
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation

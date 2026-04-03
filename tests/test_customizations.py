@@ -1669,10 +1669,10 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
         )
 
-    def test_source_requires_compile_loop_for_selected_agentic_workflows(self):
+    def test_source_requires_compile_loop_for_selected_workflow_targets(self):
         text = _read(self.WORKFLOW_MD)
-        assert "If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:" in text, (
-            "train-prompt.md should explicitly require gh aw compilation when it optimizes an agentic workflow source file."
+        assert "If the selected target is a workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:" in text, (
+            "train-prompt.md should explicitly require gh aw compilation when it optimizes a workflow source file."
         )
 
     def test_source_distinguishes_target_compile_loop_from_self_check(self):
@@ -1687,7 +1687,7 @@ class TestTrainPromptWorkflow:
     def test_source_requires_selected_workflow_targets_to_recompile_before_validation(self):
         text = _read(self.WORKFLOW_MD)
         assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
-            "train-prompt.md should require running gh aw compile before validation for selected agentic workflow sources."
+            "train-prompt.md should require running gh aw compile before validation for selected workflow sources."
         )
         assert "confirm the corresponding `.lock.yml` is present and in sync with no remaining diff after that final compile" in text, (
             "train-prompt.md should require the final workflow-target validation compile to leave no remaining lockfile diff."
@@ -1702,7 +1702,7 @@ class TestTrainPromptWorkflow:
     def test_source_blocks_pr_when_selected_workflow_target_compile_fails(self):
         text = _read(self.WORKFLOW_MD)
         assert "if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request" in text, (
-            "train-prompt.md should block PR creation when an edited agentic workflow cannot be recompiled cleanly."
+            "train-prompt.md should block PR creation when an edited workflow target cannot be recompiled cleanly."
         )
 
     def test_source_adds_pre_activation_compile_step_for_train_prompt(self):
