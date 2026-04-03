@@ -6,190 +6,196 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import re
 import sys
-from types import SimpleNamespace
 from typing import Any
 
 import yaml
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 SKILL_DIR = Path(__file__).resolve().parents[1]
-SKILL_PATH = SKILL_DIR / "SKILL.md"
-EVAL_PATH = SKILL_DIR / "evals" / "evals.json"
-SOURCE_ANALYSIS_PATH = SKILL_DIR / "references" / "source-analysis.md"
-TOKEN_PATTERNS_PATH = SKILL_DIR / "references" / "token-efficient-patterns.md"
-PROGRAM_OUTPUT_PATH = SKILL_DIR / "assets" / "skill_program_optimized.json"
-# Disable demos so optimization stays instruction-only and the exported markdown artifact remains readable.
+DEFAULT_PROGRAM_OUTPUT_PATH = SKILL_DIR / "assets" / "prompt_program_optimized.json"
+PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
+# Disable demonstrations so the compiled artifact stays close to a clean checked-in markdown prompt.
 MAX_DEMO_COUNT = 0
-MIN_BODY_LENGTH = 400
+DEFAULT_MIN_BODY_LENGTH = 40
 TRAIN_SET_SIZE = 3
-REQUIRED_SECTIONS = (
-    "# Engineer Prompt",
-    "## When to use this skill",
-    "## Core workflow",
-    "## Output contract",
-    "## Diagnose first",
-    "## Default selection heuristic",
-    "## Token-budget guidance",
-    "## Final rule",
+DEFAULT_GOAL = (
+    "Improve clarity, structure, and operational usefulness while preserving placeholders, markdown shape, "
+    "and the prompt's general task scope."
 )
-GENERAL_GUARDRAILS = (
-    "Prompt engineering is not just naming a technique.",
-    "The user wants to improve a prompt.",
-    "references/token-efficient-patterns.md",
-    "prompt changes are secondary",
-)
-BANNED_PROMPT_TERMS = ("dspy", "miprov2", "instruction-only optimization")
 
 
 @dataclass(slots=True)
-class SkillContract:
+class PromptOptimizationTask:
+    prompt_path: Path
     frontmatter: dict[str, Any]
-    skill_name: str
-    skill_description: str
-    operating_constraints: str
-    inputs_available: str
-    desired_outputs: str
-    draft_notes: str
-    seed_instruction_body: str
+    prompt_body: str
+    optimization_goal: str
+    supporting_context: str
+    required_text: tuple[str, ...]
+    forbidden_text: tuple[str, ...]
+    placeholders: tuple[str, ...]
+    min_body_length: int
+    max_body_length: int
 
 
 def _load_dspy() -> Any:
     try:
         import dspy  # type: ignore
-    except ImportError as exc:  # pragma: no cover - covered by CLI error path
+    except ImportError as exc:  # pragma: no cover - exercised through CLI path
         raise RuntimeError("DSPy is required for --optimize. Install it first, for example with: pip install dspy") from exc
     return dspy
 
 
 def _split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     if not text.startswith("---\n"):
-        raise ValueError("Expected SKILL.md to start with YAML front matter")
-    _, raw_frontmatter, body = text.split("---\n", 2)
+        return {}, text.strip()
+    parts = text.split("---\n", 2)
+    if len(parts) != 3:
+        raise ValueError("Invalid markdown front matter block")
+    _, raw_frontmatter, body = parts
     frontmatter = yaml.safe_load(raw_frontmatter) or {}
     if not isinstance(frontmatter, dict):
-        raise ValueError("SKILL.md front matter must be a YAML mapping")
+        raise ValueError("Markdown front matter must be a YAML mapping")
     return frontmatter, body.strip()
 
 
-def build_default_contract(skill_dir: Path = SKILL_DIR) -> SkillContract:
-    skill_text = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
-    frontmatter, body = _split_frontmatter(skill_text)
-    eval_payload = json.loads((skill_dir / "evals" / "evals.json").read_text(encoding="utf-8"))
-    eval_prompts = [case["prompt"] for case in eval_payload.get("evals", [])[:5]]
-    source_analysis = (skill_dir / "references" / "source-analysis.md").read_text(encoding="utf-8")
-    token_patterns = (skill_dir / "references" / "token-efficient-patterns.md").read_text(encoding="utf-8")
-    operating_constraints = "\n".join(
-        [
-            "Keep the skill focused on general prompt engineering rather than DSPy-specific guidance.",
-            "Preserve the markdown-first contract and existing section structure.",
-            "Tell the user when prompt changes are secondary to retrieval, tooling, or requirements.",
-            "Keep token-budget guidance and retrieval caveats explicit.",
-        ]
-    )
-    inputs_available = "\n".join(
-        [
-            f"Current SKILL body length: {len(body)} characters.",
-            f"Source analysis reference excerpt: {source_analysis[:500].strip()}",
-            f"Token patterns reference excerpt: {token_patterns[:500].strip()}",
-            "Representative eval prompts:",
-            *[f"- {prompt}" for prompt in eval_prompts],
-        ]
-    )
-    desired_outputs = "\n".join(
-        [
-            "Return markdown that can become a checked-in SKILL.md artifact.",
-            "Keep or strengthen the sections for when to use, core workflow, output contract, heuristic selection, token budget guidance, and final rule.",
-            "Keep the guidance general to prompt engineering rather than tool-specific.",
-            "Mention references/token-efficient-patterns.md when token pressure matters.",
-        ]
-    )
-    draft_notes = "\n\n".join(
-        [
-            body,
-            "Preserve the original purpose: diagnose prompt failures, choose the smallest technique that fits, and give concrete markdown rewrites when useful.",
-            "Keep examples spanning structured output, grounding, prompt chaining, reasoning techniques, and token-budget guidance.",
-            "Do not turn the skill itself into DSPy guidance; use DSPy only inside the helper that exports the artifact.",
-        ]
-    )
-    return SkillContract(
+def extract_placeholders(text: str) -> tuple[str, ...]:
+    seen: list[str] = []
+    for match in PLACEHOLDER_PATTERN.findall(text):
+        if match not in seen:
+            seen.append(match)
+    return tuple(seen)
+
+
+def _read_context_files(paths: list[str]) -> str:
+    chunks: list[str] = []
+    for raw_path in paths:
+        path = Path(raw_path).resolve()
+        chunks.append(f"File: {path}\n{path.read_text(encoding='utf-8').strip()}")
+    return "\n\n".join(chunk for chunk in chunks if chunk)
+
+
+def build_prompt_task(
+    prompt_file: str,
+    *,
+    goal: str | None = None,
+    context_files: list[str] | None = None,
+    required_text: list[str] | None = None,
+    forbidden_text: list[str] | None = None,
+    min_body_length: int = DEFAULT_MIN_BODY_LENGTH,
+    max_body_length: int | None = None,
+) -> PromptOptimizationTask:
+    prompt_path = Path(prompt_file).resolve()
+    prompt_text = prompt_path.read_text(encoding="utf-8")
+    frontmatter, prompt_body = _split_frontmatter(prompt_text)
+    placeholders = extract_placeholders(prompt_text)
+    resolved_max_body_length = max_body_length if max_body_length is not None else max(len(prompt_body) * 2, min_body_length)
+    return PromptOptimizationTask(
+        prompt_path=prompt_path,
         frontmatter=frontmatter,
-        skill_name=str(frontmatter.get("name") or "engineer-prompt"),
-        skill_description=str(frontmatter.get("description") or "").strip(),
-        operating_constraints=operating_constraints,
-        inputs_available=inputs_available,
-        desired_outputs=desired_outputs,
-        draft_notes=draft_notes,
-        seed_instruction_body=body,
+        prompt_body=prompt_body,
+        optimization_goal=(goal or DEFAULT_GOAL).strip(),
+        supporting_context=_read_context_files(context_files or []),
+        required_text=tuple(item.strip() for item in (required_text or []) if item.strip()),
+        forbidden_text=tuple(item.strip() for item in (forbidden_text or []) if item.strip()),
+        placeholders=placeholders,
+        min_body_length=max(1, int(min_body_length)),
+        max_body_length=max(1, int(resolved_max_body_length)),
     )
 
 
-def render_skill_markdown(instruction_body: str, *, frontmatter: dict[str, Any]) -> str:
+def render_prompt_markdown(prompt_body: str, *, frontmatter: dict[str, Any]) -> str:
+    cleaned_body = prompt_body.strip()
+    if not frontmatter:
+        return f"{cleaned_body}\n"
     rendered_frontmatter = yaml.safe_dump(frontmatter, sort_keys=False).strip()
-    return f"---\n{rendered_frontmatter}\n---\n\n{instruction_body.strip()}\n"
+    return f"---\n{rendered_frontmatter}\n---\n\n{cleaned_body}\n"
 
 
-def validate_skill_markdown(markdown: str) -> dict[str, Any]:
+def validate_prompt_markdown(
+    markdown: str,
+    *,
+    expected_placeholders: tuple[str, ...] = (),
+    required_text: tuple[str, ...] = (),
+    forbidden_text: tuple[str, ...] = (),
+    min_body_length: int = DEFAULT_MIN_BODY_LENGTH,
+    max_body_length: int | None = None,
+) -> dict[str, Any]:
     frontmatter, body = _split_frontmatter(markdown)
-    text_lower = markdown.lower()
-    missing_sections = [section for section in REQUIRED_SECTIONS if section not in body]
-    missing_guardrails = [rule for rule in GENERAL_GUARDRAILS if rule not in markdown]
-    banned_terms_present = [term for term in BANNED_PROMPT_TERMS if term in text_lower]
-    summary = {
-        "valid": not missing_sections and not missing_guardrails and not banned_terms_present,
-        "name": frontmatter.get("name"),
-        "has_frontmatter": True,
-        "missing_sections": missing_sections,
-        "missing_guardrails": missing_guardrails,
-        "banned_terms_present": banned_terms_present,
-        "body_length": len(body),
+    markdown_lower = markdown.lower()
+    missing_placeholders = [item for item in expected_placeholders if item not in markdown]
+    missing_required_text = [item for item in required_text if item not in markdown]
+    forbidden_text_present = [item for item in forbidden_text if item.lower() in markdown_lower]
+    body_length = len(body.strip())
+    too_short = body_length < min_body_length
+    too_long = max_body_length is not None and body_length > max_body_length
+    looks_like_markdown = bool(body.strip()) and any(token in body for token in ("#", "- ", "1.", "```", ":"))
+    return {
+        "valid": not missing_placeholders and not missing_required_text and not forbidden_text_present and not too_short and not too_long and looks_like_markdown,
+        "has_frontmatter": bool(frontmatter),
+        "body_length": body_length,
+        "missing_placeholders": missing_placeholders,
+        "missing_required_text": missing_required_text,
+        "forbidden_text_present": forbidden_text_present,
+        "too_short": too_short,
+        "too_long": too_long,
+        "looks_like_markdown": looks_like_markdown,
     }
-    return summary
 
 
-def skill_metric(example: Any, pred: Any, _trace: Any = None) -> float:
+def prompt_metric(example: Any, pred: Any, _trace: Any = None) -> float:
     frontmatter = getattr(example, "frontmatter", None) or example.get("frontmatter", {})
-    markdown = render_skill_markdown(getattr(pred, "instruction_body"), frontmatter=frontmatter)
-    summary = validate_skill_markdown(markdown)
+    markdown = render_prompt_markdown(getattr(pred, "optimized_prompt"), frontmatter=frontmatter)
+    summary = validate_prompt_markdown(
+        markdown,
+        expected_placeholders=tuple(getattr(example, "placeholders", ()) or example.get("placeholders", ())),
+        required_text=tuple(getattr(example, "required_text", ()) or example.get("required_text", ())),
+        forbidden_text=tuple(getattr(example, "forbidden_text", ()) or example.get("forbidden_text", ())),
+        min_body_length=int(getattr(example, "min_body_length", DEFAULT_MIN_BODY_LENGTH) or example.get("min_body_length", DEFAULT_MIN_BODY_LENGTH)),
+        max_body_length=getattr(example, "max_body_length", None) or example.get("max_body_length", None),
+    )
     checks = [
-        summary["has_frontmatter"],
-        not summary["missing_sections"],
-        not summary["missing_guardrails"],
-        not summary["banned_terms_present"],
-        summary["body_length"] >= MIN_BODY_LENGTH,
+        not summary["missing_placeholders"],
+        not summary["missing_required_text"],
+        not summary["forbidden_text_present"],
+        not summary["too_short"],
+        not summary["too_long"],
+        summary["looks_like_markdown"],
     ]
     return sum(1.0 for check in checks if check) / len(checks)
 
 
-def _contract_variants(contract: SkillContract) -> list[str]:
-    return [
-        contract.draft_notes,
-        contract.draft_notes + "\n\nEmphasize token-efficiency guidance without dropping the broader technique taxonomy.",
-        contract.draft_notes + "\n\nEmphasize that retrieval freshness, missing tools, and unclear requirements are blockers outside prompt design.",
-        contract.draft_notes + "\n\nEmphasize that the output contract should stay concise and consistently structured for downstream agent use.",
-    ]
+def _task_variants(task: PromptOptimizationTask) -> list[str]:
+    variants = [task.prompt_body]
+    variants.append(task.prompt_body + "\n\nMake the instructions more direct and easier to scan.")
+    variants.append(task.prompt_body + "\n\nPreserve placeholders exactly while making the output contract more explicit.")
+    variants.append(task.prompt_body + "\n\nReduce unnecessary verbosity without changing the task scope.")
+    return variants
 
 
-def build_example_sets(contract: SkillContract, dspy: Any) -> tuple[list[Any], list[Any]]:
+def build_example_sets(task: PromptOptimizationTask, dspy: Any) -> tuple[list[Any], list[Any]]:
     examples = []
-    for draft_notes in _contract_variants(contract):
+    for draft_prompt in _task_variants(task):
         examples.append(
             dspy.Example(
-                frontmatter=contract.frontmatter,
-                skill_name=contract.skill_name,
-                skill_description=contract.skill_description,
-                operating_constraints=contract.operating_constraints,
-                inputs_available=contract.inputs_available,
-                desired_outputs=contract.desired_outputs,
-                draft_notes=draft_notes,
+                frontmatter=task.frontmatter,
+                optimization_goal=task.optimization_goal,
+                supporting_context=task.supporting_context,
+                required_text=task.required_text,
+                forbidden_text=task.forbidden_text,
+                placeholders=task.placeholders,
+                min_body_length=task.min_body_length,
+                max_body_length=task.max_body_length,
+                draft_prompt=draft_prompt,
             ).with_inputs(
-                "skill_name",
-                "skill_description",
-                "operating_constraints",
-                "inputs_available",
-                "desired_outputs",
-                "draft_notes",
+                "optimization_goal",
+                "supporting_context",
+                "required_text",
+                "forbidden_text",
+                "placeholders",
+                "draft_prompt",
             )
         )
     return examples[:TRAIN_SET_SIZE], examples[TRAIN_SET_SIZE:]
@@ -214,8 +220,8 @@ def _configure_dspy_lm(dspy: Any, *, model: str | None, api_key: str | None, api
     return lm
 
 
-def compile_instruction_body(
-    contract: SkillContract,
+def compile_prompt(
+    task: PromptOptimizationTask,
     *,
     program_file: Path | None = None,
     model: str | None = None,
@@ -226,44 +232,44 @@ def compile_instruction_body(
     dspy = _load_dspy()
     _configure_dspy_lm(dspy, model=model, api_key=api_key, api_base=api_base, temperature=temperature)
 
-    class SkillWriter(dspy.Signature):
-        """Write a general prompt-engineering skill body for a checked-in markdown artifact."""
+    class PromptOptimizerSignature(dspy.Signature):
+        """Rewrite a markdown prompt to improve quality while preserving placeholders and task scope."""
 
-        skill_name = dspy.InputField(desc="Skill name for the markdown artifact.")
-        skill_description = dspy.InputField(desc="Short description used in front matter.")
-        operating_constraints = dspy.InputField(desc="Non-negotiable guardrails and scope boundaries.")
-        inputs_available = dspy.InputField(desc="Repository references, evals, and source notes available to the writer.")
-        desired_outputs = dspy.InputField(desc="Required sections and artifact expectations for the markdown output.")
-        draft_notes = dspy.InputField(desc="Existing skill content and rewrite notes to refine.")
-        instruction_body = dspy.OutputField(desc="Markdown body for SKILL.md excluding YAML front matter.")
+        optimization_goal = dspy.InputField(desc="Concrete optimization goal for the prompt rewrite.")
+        supporting_context = dspy.InputField(desc="Optional supporting notes or reference documents.")
+        required_text = dspy.InputField(desc="Text that must remain in the optimized prompt if provided.")
+        forbidden_text = dspy.InputField(desc="Text that must not appear in the optimized prompt if provided.")
+        placeholders = dspy.InputField(desc="Placeholders that must be preserved exactly.")
+        draft_prompt = dspy.InputField(desc="Current markdown prompt draft to refine.")
+        optimized_prompt = dspy.OutputField(desc="Optimized markdown prompt body.")
 
-    class SkillWriterProgram(dspy.Module):
+    class PromptOptimizerProgram(dspy.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.writer = dspy.Predict(SkillWriter)
+            self.rewrite = dspy.Predict(PromptOptimizerSignature)
 
         def forward(
             self,
-            skill_name: str,
-            skill_description: str,
-            operating_constraints: str,
-            inputs_available: str,
-            desired_outputs: str,
-            draft_notes: str,
+            optimization_goal: str,
+            supporting_context: str,
+            required_text: tuple[str, ...],
+            forbidden_text: tuple[str, ...],
+            placeholders: tuple[str, ...],
+            draft_prompt: str,
         ) -> Any:
-            return self.writer(
-                skill_name=skill_name,
-                skill_description=skill_description,
-                operating_constraints=operating_constraints,
-                inputs_available=inputs_available,
-                desired_outputs=desired_outputs,
-                draft_notes=draft_notes,
+            return self.rewrite(
+                optimization_goal=optimization_goal,
+                supporting_context=supporting_context,
+                required_text="\n".join(required_text) if required_text else "<none>",
+                forbidden_text="\n".join(forbidden_text) if forbidden_text else "<none>",
+                placeholders="\n".join(placeholders) if placeholders else "<none>",
+                draft_prompt=draft_prompt,
             )
 
-    trainset, valset = build_example_sets(contract, dspy)
-    program = SkillWriterProgram()
+    trainset, valset = build_example_sets(task, dspy)
+    program = PromptOptimizerProgram()
     optimizer = dspy.MIPROv2(
-        metric=skill_metric,
+        metric=prompt_metric,
         auto="light",
         max_bootstrapped_demos=MAX_DEMO_COUNT,
         max_labeled_demos=MAX_DEMO_COUNT,
@@ -275,26 +281,32 @@ def compile_instruction_body(
         requires_permission_to_run=False,
     )
     prediction = compiled(
-        skill_name=contract.skill_name,
-        skill_description=contract.skill_description,
-        operating_constraints=contract.operating_constraints,
-        inputs_available=contract.inputs_available,
-        desired_outputs=contract.desired_outputs,
-        draft_notes=contract.draft_notes,
+        optimization_goal=task.optimization_goal,
+        supporting_context=task.supporting_context,
+        required_text=task.required_text,
+        forbidden_text=task.forbidden_text,
+        placeholders=task.placeholders,
+        draft_prompt=task.prompt_body,
     )
     if program_file is not None and hasattr(compiled, "save"):
         compiled.save(str(program_file), save_program=True)
-    return str(prediction.instruction_body).strip(), compiled
+    return str(prediction.optimized_prompt).strip(), compiled
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Render or optimize the engineer-prompt SKILL.md artifact.")
-    parser.add_argument("--skill-dir", default=str(SKILL_DIR), help="Path to the engineer-prompt skill directory.")
+    parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file with DSPy.")
+    parser.add_argument("--prompt-file", default=str(SKILL_DIR / "SKILL.md"), help="Path to the markdown prompt file to validate or optimize.")
     parser.add_argument("--output-file", help="Optional path for the rendered markdown artifact.")
-    parser.add_argument("--program-file", default=str(PROGRAM_OUTPUT_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
-    parser.add_argument("--in-place", action="store_true", help="Overwrite the skill's canonical SKILL.md file.")
+    parser.add_argument("--program-file", default=str(DEFAULT_PROGRAM_OUTPUT_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
+    parser.add_argument("--in-place", action="store_true", help="Overwrite the source prompt file.")
     parser.add_argument("--optimize", action="store_true", help="Run the DSPy optimizer before rendering the markdown artifact.")
-    parser.add_argument("--validate-only", action="store_true", help="Validate the rendered markdown contract and print a JSON summary.")
+    parser.add_argument("--validate-only", action="store_true", help="Validate the rendered prompt contract and print a JSON summary.")
+    parser.add_argument("--goal", default=DEFAULT_GOAL, help="Optimization goal for the prompt rewrite.")
+    parser.add_argument("--context-file", action="append", default=[], help="Additional file to pass as supporting context. Repeatable.")
+    parser.add_argument("--required-text", action="append", default=[], help="Text that must appear in the optimized prompt. Repeatable.")
+    parser.add_argument("--forbidden-text", action="append", default=[], help="Text that must not appear in the optimized prompt. Repeatable.")
+    parser.add_argument("--min-body-length", type=int, default=DEFAULT_MIN_BODY_LENGTH, help="Minimum non-frontmatter body length for validation.")
+    parser.add_argument("--max-body-length", type=int, help="Maximum non-frontmatter body length for validation.")
     parser.add_argument("--model", help="DSPy model identifier, or set DSPY_MODEL/OPENAI_MODEL.")
     parser.add_argument("--api-key", help="API key override for the DSPy LM client.")
     parser.add_argument("--api-base", help="Base URL override for the DSPy LM client.")
@@ -302,10 +314,10 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _write_output(markdown: str, *, output_file: str | None, in_place: bool, skill_dir: Path) -> str | None:
+def _write_output(markdown: str, *, output_file: str | None, in_place: bool, prompt_path: Path) -> str | None:
     target_path: Path | None = None
     if in_place:
-        target_path = skill_dir / "SKILL.md"
+        target_path = prompt_path
     elif output_file:
         target_path = Path(output_file)
     if target_path is None:
@@ -316,26 +328,41 @@ def _write_output(markdown: str, *, output_file: str | None, in_place: bool, ski
 
 def main() -> int:
     args = _parse_args()
-    skill_dir = Path(args.skill_dir).resolve()
     try:
-        contract = build_default_contract(skill_dir)
-        instruction_body = contract.seed_instruction_body
+        task = build_prompt_task(
+            args.prompt_file,
+            goal=args.goal,
+            context_files=args.context_file,
+            required_text=args.required_text,
+            forbidden_text=args.forbidden_text,
+            min_body_length=args.min_body_length,
+            max_body_length=args.max_body_length,
+        )
+        optimized_body = task.prompt_body
         if args.optimize:
-            instruction_body, _ = compile_instruction_body(
-                contract,
+            optimized_body, _ = compile_prompt(
+                task,
                 program_file=Path(args.program_file) if args.program_file else None,
                 model=args.model,
                 api_key=args.api_key,
                 api_base=args.api_base,
                 temperature=args.temperature,
             )
-        markdown = render_skill_markdown(instruction_body, frontmatter=contract.frontmatter)
+        markdown = render_prompt_markdown(optimized_body, frontmatter=task.frontmatter)
         if args.validate_only:
-            summary = validate_skill_markdown(markdown)
+            summary = validate_prompt_markdown(
+                markdown,
+                expected_placeholders=task.placeholders,
+                required_text=task.required_text,
+                forbidden_text=task.forbidden_text,
+                min_body_length=task.min_body_length,
+                max_body_length=task.max_body_length,
+            )
+            summary["prompt_file"] = str(task.prompt_path)
             print(json.dumps(summary, indent=2, sort_keys=True))
             return 0 if summary["valid"] else 1
-        written = _write_output(markdown, output_file=args.output_file, in_place=args.in_place, skill_dir=skill_dir)
-    except Exception as exc:  # pragma: no cover - exercised via CLI tests
+        written = _write_output(markdown, output_file=args.output_file, in_place=args.in_place, prompt_path=task.prompt_path)
+    except Exception as exc:  # pragma: no cover - exercised via CLI path
         print(str(exc), file=sys.stderr)
         return 1
 

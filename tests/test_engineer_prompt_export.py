@@ -11,7 +11,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODULE_PATH = REPO_ROOT / "skills" / "engineer-prompt" / "scripts" / "export_skill_prompt.py"
-SKILL_DIR = REPO_ROOT / "skills" / "engineer-prompt"
 
 
 def _load_module():
@@ -28,63 +27,72 @@ def engineer_prompt_export_module():
     return _load_module()
 
 
-def test_render_skill_markdown_preserves_general_prompt_contract(engineer_prompt_export_module):
-    contract = engineer_prompt_export_module.build_default_contract(SKILL_DIR)
+def _write_prompt(path: Path) -> Path:
+    path.write_text(
+        "---\n"
+        "title: Example Prompt\n"
+        "owner: tests\n"
+        "---\n\n"
+        "# Support Prompt\n\n"
+        "Answer the request using `${context}`.\n"
+        "Return exactly three bullets and keep the wording concise.\n",
+        encoding="utf-8",
+    )
+    return path
 
-    markdown = engineer_prompt_export_module.render_skill_markdown(
-        contract.seed_instruction_body,
-        frontmatter=contract.frontmatter,
+
+def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engineer_prompt_export_module):
+    prompt_path = _write_prompt(tmp_path / "prompt.md")
+    context_path = tmp_path / "context.md"
+    context_path.write_text("Reference material for the prompt rewrite.", encoding="utf-8")
+
+    task = engineer_prompt_export_module.build_prompt_task(
+        str(prompt_path),
+        goal="Make the prompt clearer.",
+        context_files=[str(context_path)],
+        required_text=["three bullets"],
+        forbidden_text=["DSPy"],
+        min_body_length=20,
     )
 
-    assert markdown.startswith("---\n")
-    assert "# Engineer Prompt" in markdown
-    assert "The user wants to improve a prompt." in markdown
-    assert "references/token-efficient-patterns.md" in markdown
-    assert "dspy" not in markdown.lower()
+    assert task.prompt_path == prompt_path.resolve()
+    assert task.frontmatter["title"] == "Example Prompt"
+    assert "`${context}`" in task.prompt_body
+    assert task.optimization_goal == "Make the prompt clearer."
+    assert task.required_text == ("three bullets",)
+    assert task.forbidden_text == ("DSPy",)
+    assert task.placeholders == ("${context}",)
+    assert str(context_path.resolve()) in task.supporting_context
 
 
-def test_validate_skill_markdown_accepts_current_skill(engineer_prompt_export_module):
-    markdown = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_export_module):
+    markdown = (
+        "# Prompt\n\n"
+        "Use `${context}` to answer the user.\n"
+        "Return exactly three bullets.\n"
+    )
 
-    summary = engineer_prompt_export_module.validate_skill_markdown(markdown)
+    summary = engineer_prompt_export_module.validate_prompt_markdown(
+        markdown,
+        expected_placeholders=("${context}",),
+        required_text=("three bullets",),
+        forbidden_text=("DSPy",),
+        min_body_length=20,
+    )
 
     assert summary["valid"] is True
-    assert summary["missing_sections"] == []
-    assert summary["missing_guardrails"] == []
-    assert summary["banned_terms_present"] == []
+    assert summary["missing_placeholders"] == []
+    assert summary["missing_required_text"] == []
+    assert summary["forbidden_text_present"] == []
 
 
-def test_compile_instruction_body_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_export_module):
+def test_compile_prompt_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_export_module):
     captured: dict[str, object] = {}
-    optimized_body = """# Engineer Prompt
+    optimized_prompt = """# Better Prompt
 
-## When to use this skill
-
-- The user wants to improve a prompt.
-
-## Core workflow
-
-1. Diagnose the task shape and failure mode.
-
-## Output contract
-
-1. `Task shape`: what the model is being asked to do
-
-## Diagnose first
-
-Prompt engineering is not just naming a technique.
-
-## Default selection heuristic
-
-Use structured output, grounding, and prompt chaining only when they fit.
-
-## Token-budget guidance
-
-Read `references/token-efficient-patterns.md` when token pressure matters.
-
-## Final rule
-
-If retrieval is stale, prompt changes are secondary.
+Use `${context}` to answer the request.
+Return exactly three bullets.
+Keep the wording concise.
 """
 
     class FakeExample(dict):
@@ -101,7 +109,7 @@ If retrieval is stale, prompt changes are secondary.
 
         def __call__(self, **kwargs):
             captured["prediction_kwargs"] = kwargs
-            return SimpleNamespace(instruction_body=optimized_body)
+            return SimpleNamespace(optimized_prompt=optimized_prompt)
 
     class FakeModule:
         def __call__(self, *args, **kwargs):
@@ -135,14 +143,22 @@ If retrieval is stale, prompt changes are secondary.
     )
 
     monkeypatch.setattr(engineer_prompt_export_module, "_load_dspy", lambda: fake_dspy)
-    contract = engineer_prompt_export_module.build_default_contract(SKILL_DIR)
-    body, _compiled = engineer_prompt_export_module.compile_instruction_body(
-        contract,
+    prompt_path = _write_prompt(tmp_path / "prompt.md")
+    task = engineer_prompt_export_module.build_prompt_task(
+        str(prompt_path),
+        goal="Make the prompt clearer.",
+        required_text=["three bullets"],
+        forbidden_text=["DSPy"],
+        min_body_length=20,
+    )
+    body, _compiled = engineer_prompt_export_module.compile_prompt(
+        task,
         program_file=tmp_path / "program.json",
         model="openai/gpt-4o-mini",
     )
 
-    assert "The user wants to improve a prompt." in body
+    assert "`${context}`" in body
+    assert "three bullets" in body
     assert captured["optimizer_kwargs"]["max_bootstrapped_demos"] == 0
     assert captured["optimizer_kwargs"]["max_labeled_demos"] == 0
     assert captured["compile_kwargs"]["requires_permission_to_run"] is False
@@ -150,9 +166,22 @@ If retrieval is stale, prompt changes are secondary.
     assert (tmp_path / "program.json").is_file()
 
 
-def test_validate_only_cli_emits_json_summary():
+def test_validate_only_cli_emits_json_summary(tmp_path: Path):
+    prompt_path = _write_prompt(tmp_path / "prompt.md")
     output = __import__("subprocess").run(
-        [sys.executable, str(MODULE_PATH), "--validate-only"],
+        [
+            sys.executable,
+            str(MODULE_PATH),
+            "--validate-only",
+            "--prompt-file",
+            str(prompt_path),
+            "--required-text",
+            "three bullets",
+            "--forbidden-text",
+            "DSPy",
+            "--min-body-length",
+            "20",
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -161,7 +190,9 @@ def test_validate_only_cli_emits_json_summary():
 
     payload = json.loads(output.stdout)
     assert payload["valid"] is True
-    assert payload["banned_terms_present"] == []
+    assert payload["missing_placeholders"] == []
+    assert payload["forbidden_text_present"] == []
+    assert payload["prompt_file"] == str(prompt_path.resolve())
 
 
 def test_exporter_script_exists():
