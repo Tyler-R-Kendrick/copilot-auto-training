@@ -55,7 +55,7 @@ def _load_dspy() -> Any:
     try:
         import dspy  # type: ignore
     except ImportError as exc:  # pragma: no cover - covered by CLI error path
-        raise RuntimeError("DSPy is required for --optimize. Install dependencies from requirements.txt first.") from exc
+        raise RuntimeError("DSPy is required for --optimize. Install it first, for example with: pip install dspy") from exc
     return dspy
 
 
@@ -195,7 +195,10 @@ def build_example_sets(contract: SkillContract, dspy: Any) -> tuple[list[Any], l
 def _configure_dspy_lm(dspy: Any, *, model: str | None, api_key: str | None, api_base: str | None, temperature: float) -> Any:
     resolved_model = model or os.getenv("DSPY_MODEL") or os.getenv("OPENAI_MODEL")
     if not resolved_model:
-        raise RuntimeError("Set --model or the DSPY_MODEL/OPENAI_MODEL environment variable before running --optimize.")
+        raise RuntimeError(
+            "Model not configured. Set --model or DSPY_MODEL/OPENAI_MODEL "
+            "(for example: openai/gpt-4o-mini) before running --optimize."
+        )
     kwargs: dict[str, Any] = {"temperature": temperature}
     resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
     resolved_api_base = api_base or os.getenv("OPENAI_API_BASE") or os.getenv("OPENAI_BASE_URL")
