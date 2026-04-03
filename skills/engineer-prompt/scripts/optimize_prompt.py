@@ -314,7 +314,7 @@ def compile_prompt(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file with DSPy.")
+    parser = argparse.ArgumentParser(description="Validate or optimize a markdown prompt file using DSPy.")
     parser.add_argument("--prompt-file", required=True, help="Required path to the markdown prompt file to validate or optimize.")
     parser.add_argument("--output-file", help="Optional path for the rendered markdown artifact.")
     parser.add_argument("--program-file", default=str(DEFAULT_PROGRAM_OUTPUT_PATH), help="Path to save the compiled DSPy program when --optimize is used.")
