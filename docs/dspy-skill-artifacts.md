@@ -37,7 +37,7 @@ agent-skills/
 
 ## Minimal DSPy pattern
 
-If you are adapting this pattern inside this repository, keep model credentials in the repository root `.env` and start from [/.env.sample](../.env.sample).
+If you are adapting this pattern inside this repository, keep model credentials in the repository root `.env` and start from [../.env.sample](../.env.sample).
 
 ```python
 from pathlib import Path
@@ -118,7 +118,7 @@ def skill_metric(example, pred, trace=None):
 
 
 # Example only: replace this with the provider/model resolved from your repository .env.
-# In this repo, start from /.env.sample and use the same repository-root model settings your runtime already expects.
+# In this repo, start from ../.env.sample and use the same repository-root model settings your runtime already expects.
 lm = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=lm)
 
