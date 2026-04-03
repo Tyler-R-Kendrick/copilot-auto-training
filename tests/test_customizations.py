@@ -1518,12 +1518,6 @@ class TestTrainPromptWorkflow:
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
     AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
-    EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS = [
-        'export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"',
-        "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
-        "gh aw compile train-prompt",
-    ]
-
     def _parse_frontmatter_yaml(self, text: str) -> str:
         """Return the raw YAML block from a frontmatter-delimited file."""
         assert text.startswith("---"), "Expected frontmatter starting with ---"
@@ -1684,11 +1678,11 @@ class TestTrainPromptWorkflow:
 
     def test_source_distinguishes_target_compile_loop_from_self_check(self):
         text = _read(self.WORKFLOW_MD)
-        assert "target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard" in text, (
-            "train-prompt.md should distinguish workflow-target compilation from the workflow's own pre-activation compile check."
+        assert "target-specific compile loop that is separate from repository-level lockfile maintenance for stale agentic workflow sources" in text, (
+            "train-prompt.md should distinguish workflow-target compilation from separate repository-level lockfile repair."
         )
-        assert "including `train-prompt.md`; the pre-activation self-check only establishes a clean starting lockfile, and the target-specific compile loop still must run again after edits and again before validation" in text, (
-            "train-prompt.md should clarify that when train-prompt itself is the selected workflow target, the later target-specific compile loop still applies after the initial self-check."
+        assert "including `train-prompt.md`; changes to `train-prompt.md` do not take effect until `train-prompt.lock.yml` has already been regenerated, so do not rely on this workflow to repair its own lockfile before activation" in text, (
+            "train-prompt.md should explain that runtime changes in train-prompt cannot self-heal a stale train-prompt lockfile before activation."
         )
 
     def test_source_requires_selected_workflow_targets_to_recompile_before_validation(self):
@@ -1712,23 +1706,16 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should block PR creation when an edited workflow target cannot be recompiled cleanly."
         )
 
-    def test_source_adds_pre_activation_compile_step_for_train_prompt(self):
+    def test_source_does_not_define_runtime_self_heal_steps_for_train_prompt(self):
         steps = self._source_steps()
-        pre_activation_compile_step = next((step for step in steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
-        assert pre_activation_compile_step is not None, (
-            "train-prompt.md should define a deterministic pre-activation step that recompiles the trainer workflow."
+        assert steps == [], (
+            "train-prompt.md should not define frontmatter steps for train-prompt lockfile self-healing because those steps do not run before activation."
         )
-        assert "env" not in pre_activation_compile_step, (
-            "train-prompt.md should rely on runner-provided GH_TOKEN/GITHUB_TOKEN for the pre-activation compile step instead of redefining GH_TOKEN in frontmatter."
-        )
-        run = pre_activation_compile_step.get("run", "")
-        normalized_run_lines = [line.strip() for line in run.splitlines() if line.strip()]
-        for command in self.EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS:
-            assert command in normalized_run_lines, (
-                "train-prompt.md should refresh train-prompt.lock.yml by compiling the workflow without adding a separate diff-based failure gate."
-            )
-        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
-            "train-prompt.md should refresh train-prompt.lock.yml when stale instead of failing on lockfile drift."
+
+    def test_source_directs_stale_lockfile_repairs_to_manual_workflow(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "run the manual `Refresh gh-aw workflow lockfiles` workflow so GitHub Actions can regenerate lockfiles and open a reviewable pull request before rerunning `train-prompt`" in text, (
+            "train-prompt.md should direct stale workflow-lockfile recovery to the manual lock-refresh workflow instead of claiming it can self-heal before activation."
         )
 
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
@@ -1797,23 +1784,11 @@ class TestTrainPromptWorkflow:
             "issue creation leaves no pull request context for reviewer automation."
         )
 
-    def test_lock_runs_pre_activation_compile_for_train_prompt(self):
+    def test_lock_does_not_run_runtime_self_heal_compile_for_train_prompt(self):
         agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
         pre_activation_compile_step = next((step for step in agent_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
-        assert pre_activation_compile_step is not None, (
-            "train-prompt.lock.yml should run a pre-activation compile check for the trainer workflow."
-        )
-        assert "env" not in pre_activation_compile_step, (
-            "train-prompt.lock.yml should rely on runner-provided GH_TOKEN/GITHUB_TOKEN for the pre-activation compile step instead of redefining GH_TOKEN in the compiled workflow."
-        )
-        run = pre_activation_compile_step.get("run", "")
-        normalized_run_lines = [line.strip() for line in run.splitlines() if line.strip()]
-        for command in self.EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS:
-            assert command in normalized_run_lines, (
-                "train-prompt.lock.yml should refresh the checked-in lock file by compiling the workflow without a separate diff-based failure gate."
-            )
-        assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
-            "train-prompt.lock.yml should refresh the checked-in lock file when pre-activation compilation detects drift."
+        assert pre_activation_compile_step is None, (
+            "train-prompt.lock.yml should not contain a runtime compile self-heal step because agent job steps do not execute before activation."
         )
 
     def test_source_steps_helper_rejects_missing_steps_key(self):
@@ -1920,4 +1895,53 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "
             "back to a token that cannot open pull requests."
+        )
+
+
+class TestRefreshGhAwWorkflowLockfilesWorkflow:
+    WORKFLOW_YML = REPO_ROOT / ".github" / "workflows" / "refresh-gh-aw-workflow-lockfiles.yml"
+
+    def _workflow_yaml(self) -> dict:
+        parsed = yaml.safe_load(_read(self.WORKFLOW_YML))
+        assert isinstance(parsed, dict), "Expected refresh-gh-aw-workflow-lockfiles.yml to parse as a YAML mapping"
+        return parsed
+
+    def _workflow_on(self) -> dict:
+        parsed = self._workflow_yaml()
+        workflow_on = parsed.get("on", parsed.get(True))
+        assert isinstance(workflow_on, dict), "Expected workflow `on` block to parse as a YAML mapping"
+        return workflow_on
+
+    def test_workflow_exists(self):
+        assert self.WORKFLOW_YML.is_file(), f"refresh-gh-aw-workflow-lockfiles.yml not found: {self.WORKFLOW_YML}"
+
+    def test_workflow_is_manually_dispatchable(self):
+        assert self._workflow_on() == {"workflow_dispatch": None}, (
+            "refresh-gh-aw-workflow-lockfiles.yml should be a manual recovery workflow."
+        )
+
+    def test_workflow_can_write_contents_and_pull_requests(self):
+        parsed = self._workflow_yaml()
+        assert parsed.get("permissions") == {"contents": "write", "pull-requests": "write"}, (
+            "refresh-gh-aw-workflow-lockfiles.yml should be able to commit regenerated lockfiles and open a pull request."
+        )
+
+    def test_workflow_compiles_top_level_agentic_workflows_only(self):
+        steps = self._workflow_yaml()["jobs"]["refresh-lockfiles"]["steps"]
+        compile_step = next((step for step in steps if step.get("name") == "Compile top-level gh-aw workflows"), None)
+        assert compile_step is not None, "Expected a compile step in refresh-gh-aw-workflow-lockfiles.yml"
+        run = compile_step.get("run", "")
+        assert "find .github/workflows -maxdepth 1 -type f -name '*.md'" in run, (
+            "refresh-gh-aw-workflow-lockfiles.yml should compile top-level gh-aw workflow sources without traversing shared imports."
+        )
+        assert 'gh aw compile "${workflow%.md}"' in run, (
+            "refresh-gh-aw-workflow-lockfiles.yml should compile each discovered workflow source by workflow id."
+        )
+
+    def test_workflow_opens_pull_request_only_when_diff_exists(self):
+        steps = self._workflow_yaml()["jobs"]["refresh-lockfiles"]["steps"]
+        pr_step = next((step for step in steps if step.get("name") == "Create pull request for regenerated lockfiles"), None)
+        assert pr_step is not None, "Expected a PR creation step in refresh-gh-aw-workflow-lockfiles.yml"
+        assert pr_step.get("uses") == "peter-evans/create-pull-request@v7", (
+            "refresh-gh-aw-workflow-lockfiles.yml should use create-pull-request so no PR is opened when compilation produces no diff."
         )

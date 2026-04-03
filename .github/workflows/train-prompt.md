@@ -20,12 +20,7 @@ permissions:
 
 engine: copilot
 
-steps:
-  - name: Verify train-prompt workflow compile state
-    run: |
-      export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-      gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw
-      gh aw compile train-prompt
+steps: []
 
 tools:
   github:
@@ -119,17 +114,18 @@ Select exactly one prompt-like source file in this repository, run the repositor
 9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
 11. If the selected target is a workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
-    - treat this as a target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard
-    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md`; the pre-activation self-check only establishes a clean starting lockfile, and the target-specific compile loop still must run again after edits and again before validation
+    - treat this as a target-specific compile loop that is separate from repository-level lockfile maintenance for stale agentic workflow sources
+    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md`; changes to `train-prompt.md` do not take effect until `train-prompt.lock.yml` has already been regenerated, so do not rely on this workflow to repair its own lockfile before activation
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
     - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
     - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
-12. Keep the change set tightly scoped to:
+12. If a run starts with any stale `.github/workflows/*.lock.yml` file already checked in, stop relying on `train-prompt` for first-pass repair. Instead, run the manual `Refresh gh-aw workflow lockfiles` workflow so GitHub Actions can regenerate lockfiles and open a reviewable pull request before rerunning `train-prompt`.
+13. Keep the change set tightly scoped to:
     - the selected prompt-like file
     - the compiled `.lock.yml` generated from a selected `.github/workflows/*.md` target
     - its local `.trainer-workspace/<prompt-name>/` artifacts
     - directly related supporting prompt-evaluation assets created by the trainer loop
-13. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
+14. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
 
 ## Validation
 
