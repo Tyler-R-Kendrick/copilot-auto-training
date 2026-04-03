@@ -1502,6 +1502,7 @@ class TestTrainPromptWorkflow:
 
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
+    AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
 
     def _parse_frontmatter_yaml(self, text: str) -> str:
         """Return the raw YAML block from a frontmatter-delimited file."""
@@ -1544,6 +1545,12 @@ class TestTrainPromptWorkflow:
         parsed = yaml.safe_load(self._lock_text())
         assert isinstance(parsed, dict), "Expected train-prompt.lock.yml to parse as a YAML mapping"
         return parsed
+
+    def _source_agent_skills_runtime(self) -> dict:
+        text = _read(self.AGENT_SKILLS_RUNTIME)
+        frontmatter = self._parse_frontmatter_yaml(text)
+        parsed = yaml.safe_load(frontmatter)
+        return parsed["mcp-servers"]["agent-skills"]
 
     def test_workflow_source_exists(self):
         assert self.WORKFLOW_MD.is_file(), f"train-prompt.md not found: {self.WORKFLOW_MD}"
@@ -1639,6 +1646,20 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
         )
 
+    def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
+        runtime = self._source_agent_skills_runtime()
+        assert runtime.get("command") == "/bin/sh", (
+            "agent-skills-runtime.md should use a shell entrypoint that exists in python:alpine "
+            "instead of invoking uvx directly."
+        )
+        assert runtime.get("args") == [
+            "-lc",
+            "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && exec uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp agent-skills-mcp",
+        ], (
+            "agent-skills-runtime.md should bootstrap uv inside python:alpine before launching the "
+            "agent-skills MCP server so the container does not fail with a missing uvx executable."
+        )
+
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
         configs = self._lock_safe_outputs_configs()
         assert configs, "Could not find safe-outputs config JSON blocks in train-prompt.lock.yml"
@@ -1689,6 +1710,24 @@ class TestTrainPromptWorkflow:
         assert "add_reviewer" not in text, (
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
+        )
+
+    def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
+        text = self._lock_text()
+        assert '"container": "python:alpine"' in text
+        assert '"entrypoint": "/bin/sh"' in text, (
+            "train-prompt.lock.yml should start the agent-skills MCP container with /bin/sh so "
+            "the entrypoint exists in python:alpine."
+        )
+        expected_bootstrap = (
+            '"python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv '
+            '&& exec uvx --from '
+            'git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp '
+            'agent-skills-mcp"'
+        )
+        assert expected_bootstrap in text, (
+            "train-prompt.lock.yml should bootstrap uv inside the python:alpine agent-skills "
+            "container before invoking uvx so the MCP gateway can start reliably."
         )
 
     def test_lock_uploads_trainer_workspace_checkpoint_artifacts(self):
