@@ -121,7 +121,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
 11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
     - treat this as a target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard
-    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md` after the pre-activation self-check or any other workflow markdown source
+    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md`; the pre-activation self-check only establishes a clean starting lockfile, and the target-specific compile loop still must run again after edits and again before validation
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
     - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
     - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
@@ -134,7 +134,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 
 ## Validation
 
-1. If the selected target is an agentic workflow source under `.github/workflows/*.md`, rerun `gh aw compile <workflow-name>` as a final pre-validation check and confirm the corresponding `.lock.yml` is present and in sync.
+1. If the selected target is an agentic workflow source under `.github/workflows/*.md`, rerun `gh aw compile <workflow-name>` as a final pre-validation check and confirm the corresponding `.lock.yml` is present and in sync with no remaining diff after that final compile.
 2. Run repository validation with:
 
    ```bash

@@ -1680,14 +1680,17 @@ class TestTrainPromptWorkflow:
         assert "target-specific compile loop that is separate from the workflow's own pre-activation `gh aw compile train-prompt` safeguard" in text, (
             "train-prompt.md should distinguish workflow-target compilation from the workflow's own pre-activation compile check."
         )
-        assert "including `train-prompt.md` after the pre-activation self-check or any other workflow markdown source" in text, (
-            "train-prompt.md should clarify that the target-specific compile loop covers both train-prompt itself and other workflow targets."
+        assert "including `train-prompt.md`; the pre-activation self-check only establishes a clean starting lockfile, and the target-specific compile loop still must run again after edits and again before validation" in text, (
+            "train-prompt.md should clarify that when train-prompt itself is the selected workflow target, the later target-specific compile loop still applies after the initial self-check."
         )
 
     def test_source_requires_selected_workflow_targets_to_recompile_before_validation(self):
         text = _read(self.WORKFLOW_MD)
         assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
             "train-prompt.md should require running gh aw compile before validation for selected agentic workflow sources."
+        )
+        assert "confirm the corresponding `.lock.yml` is present and in sync with no remaining diff after that final compile" in text, (
+            "train-prompt.md should require the final workflow-target validation compile to leave no remaining lockfile diff."
         )
 
     def test_source_requires_selected_workflow_targets_to_include_lockfile(self):
