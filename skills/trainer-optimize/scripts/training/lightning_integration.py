@@ -68,8 +68,11 @@ class _ProviderResponses:
         model: str,
         input: str,
         metadata: dict[str, Any] | None = None,
-        **_: Any,
+        **_unused: Any,
     ) -> Any:
+        # Some OpenAI-compatible callers pass extra kwargs (for example temperature
+        # or max_tokens) that the Copilot-backed provider does not use. Accept and
+        # ignore them here so those callers remain compatible with this wrapper.
         return await self._client._responses_create(model=model, input_text=input, metadata=metadata)
 
 
@@ -83,8 +86,11 @@ class _ProviderChatCompletions:
         model: str,
         messages: list[dict[str, Any]],
         metadata: dict[str, Any] | None = None,
-        **_: Any,
+        **_unused: Any,
     ) -> Any:
+        # Keep parity with OpenAI-shaped call sites that may forward unsupported
+        # kwargs such as temperature, max_tokens, or tools. The Copilot-backed
+        # provider only consumes model, messages, and metadata.
         return await self._client._chat_completions_create(model=model, messages=messages, metadata=metadata)
 
 
