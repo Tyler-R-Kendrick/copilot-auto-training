@@ -36,6 +36,8 @@ agent-skills/
 
 ## Minimal DSPy pattern
 
+If you are adapting this pattern inside this repository, keep model credentials in the repository root `.env` and start from [/.env.sample](../.env.sample).
+
 ```python
 from pathlib import Path
 
@@ -99,18 +101,21 @@ Return the requested artifact or result in the format requested by the user.
 """
 
 
+MIN_INSTRUCTION_BODY_CHARS = 300
+
+
 def skill_metric(example, pred, trace=None):
     text = pred.instruction_body.lower()
     checks = [
         "do not" in text,
         "return" in text,
         "when" in text or "use this skill" in text,
-        # Keep the exported body large enough that the final skill is not just a stub.
-        len(pred.instruction_body.strip()) > 300,
+        len(pred.instruction_body.strip()) > MIN_INSTRUCTION_BODY_CHARS,
     ]
     return sum(checks) / len(checks)
 
 
+# Configure model credentials outside the script, for example from a repository-root .env.
 lm = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=lm)
 
