@@ -14,8 +14,8 @@
     },
     {
       "id": 2,
-      "prompt": "I have one prompt-like artifact with a clean input/output contract and no extra orchestration. Should I model it as a dspy.Signature or a dspy.Module? I also need a metric I can rerun while iterating.",
-      "expected_output": "The response should prefer the smallest DSPy surface, distinguish signatures from modules, and recommend a repeatable metric or eval target instead of vague prompt advice.",
+      "prompt": "I have one prompt-like artifact with a clean input/output contract and no extra orchestration. Should I model it as a dspy.Signature or a dspy.Module, and is MIPROv2 the right optimizer for this? I also need a metric I can rerun while iterating.",
+      "expected_output": "The response should prefer the smallest DSPy surface, distinguish signatures from modules, explain when a light optimizer such as MIPROv2 fits, and recommend a repeatable metric or eval target instead of vague prompt advice.",
       "assertions": [
         "The response recommends dspy.Signature or clearly equivalent wording for the narrow single-predictor case.",
         "The response explains when a small dspy.Module would be justified instead of a signature.",
