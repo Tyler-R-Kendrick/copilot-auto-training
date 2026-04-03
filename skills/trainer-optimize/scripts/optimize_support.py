@@ -331,6 +331,12 @@ def _metadata_not_supported(exc: TypeError) -> bool:
 
 
 def _supports_keyword_argument(call: Any, keyword: str) -> bool | None:
+    """Inspect whether ``call`` accepts ``keyword``.
+
+    Returns True when the callable clearly accepts the keyword, False when the
+    signature clearly rejects it, and None when the callable cannot be
+    introspected reliably.
+    """
     try:
         signature = inspect.signature(call)
     except (TypeError, ValueError):

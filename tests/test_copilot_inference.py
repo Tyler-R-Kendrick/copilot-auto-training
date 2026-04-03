@@ -11,7 +11,7 @@ import pytest
 import config as optimize_config
 from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
-from inference.copilot_provider import CopilotAuthenticationError, CopilotInferenceProvider
+from inference.copilot_provider import CopilotAuthenticationError, CopilotInferenceProvider, _retry_delay_seconds
 from inference.local_adapter_service import MAX_REQUEST_BYTES, _build_handler, _response_body
 from training.lightning_integration import ProviderBackedOpenAIClient
 
@@ -245,6 +245,10 @@ class TestCopilotProvider:
         assert result.text == "second"
         assert len(fake_client.created_sessions) == 2
         assert fake_client.created_sessions[0].disconnected is True
+
+    def test_retry_delay_seconds_rejects_non_positive_attempts(self):
+        with pytest.raises(ValueError, match="attempt must be >= 1"):
+            _retry_delay_seconds(0.5, 0)
 
 
 def test_local_adapter_response_shape_matches_chat_completions():

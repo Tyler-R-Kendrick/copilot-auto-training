@@ -96,7 +96,9 @@ def _extract_text_from_payload(payload: Any) -> str:
 
 
 def _retry_delay_seconds(base_delay: float, attempt: int) -> float:
-    # attempt is 1-indexed: attempt=1 waits base_delay, then doubles on each later retry.
+    # attempt is 1-indexed: attempt=1 waits base_delay, attempt=2 waits 2x, etc.
+    if attempt < 1:
+        raise ValueError(f"retry attempt must be >= 1, got {attempt}")
     return base_delay * (2 ** (attempt - 1))
 
 

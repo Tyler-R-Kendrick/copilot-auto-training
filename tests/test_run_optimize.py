@@ -216,15 +216,15 @@ class TestRunOptimizeInputValidation:
 
 class TestRunOptimizeDebugOnly:
     @staticmethod
-    def _stub_debug_generation(monkeypatch, response_text: str = "pong") -> None:
-        async def _fake_complete_text(llm_client, model_name, prompt_text, *, metadata=None):
+    def _stub_complete_text(monkeypatch, response_text: str = "pong") -> None:
+        async def fake_complete_text(llm_client, model_name, prompt_text, *, metadata=None):
             return response_text
 
-        monkeypatch.setattr(optimize_module.support, "_complete_text", _fake_complete_text)
+        monkeypatch.setattr(optimize_module.support, "_complete_text", fake_complete_text)
 
     @pytest.mark.asyncio
     async def test_debug_only_returns_debug_json(self, monkeypatch):
-        self._stub_debug_generation(monkeypatch)
+        self._stub_complete_text(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -246,7 +246,7 @@ class TestRunOptimizeDebugOnly:
 
     @pytest.mark.asyncio
     async def test_debug_only_skips_algorithm_instantiation_and_trainer_dev(self, monkeypatch):
-        self._stub_debug_generation(monkeypatch)
+        self._stub_complete_text(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -276,7 +276,7 @@ class TestRunOptimizeDebugOnly:
 
     @pytest.mark.asyncio
     async def test_debug_only_verl_does_not_require_hydra_bound_algorithm_import(self, monkeypatch):
-        self._stub_debug_generation(monkeypatch)
+        self._stub_complete_text(monkeypatch)
         prompt = _write_file(SIMPLE_TEMPLATE)
         train = _write_jsonl(SIMPLE_TRAIN)
         val = _write_jsonl(SIMPLE_VAL)
@@ -331,7 +331,7 @@ class TestRunOptimizeDebugOnly:
 
     @pytest.mark.asyncio
     async def test_debug_only_does_not_write_files(self, tmp_path, monkeypatch):
-        self._stub_debug_generation(monkeypatch)
+        self._stub_complete_text(monkeypatch)
         prompt_path = tmp_path / "prompt.md"
         prompt_path.write_text(SIMPLE_TEMPLATE, encoding="utf-8")
         out = tmp_path / "out.md"
