@@ -8,7 +8,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit|MultiEdit|ApplyPatch",
         "command": "bash .github/hooks/validate-agentic-workflow-compilation.sh",
         "timeout": 15
       }

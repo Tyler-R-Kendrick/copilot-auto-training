@@ -675,7 +675,7 @@ class TestHookCustomization:
         assert all(entry["command"].startswith("bash .github/hooks/") for entry in stop_hooks)
         assert any("validate-agentic-workflow-compilation.sh --enforce" in entry["command"] for entry in stop_hooks)
         assert post_tool_use
-        assert any(entry.get("matcher") == "Write|Edit|MultiEdit" for entry in post_tool_use)
+        assert any(entry.get("matcher") == "Write|Edit|MultiEdit|ApplyPatch" for entry in post_tool_use)
         assert all("/workspaces/" not in entry["command"] for entry in post_tool_use)
         assert all(entry["command"].startswith("bash .github/hooks/") for entry in post_tool_use)
         assert any("validate-agentic-workflow-compilation.sh" in entry["command"] for entry in post_tool_use)
@@ -691,6 +691,14 @@ class TestHookCustomization:
         assert "collect_git_changed_targets" in text
         assert "origin/main" in text
         assert "normalize_lockfile_writeback_tokens" in text
+
+    def test_agents_memory_records_workflow_compile_rule(self):
+        memory_path = REPO_ROOT / ".agents" / "MEMORY.md"
+        text = _read(memory_path)
+
+        assert "`.github/workflows/*.md`" in text
+        assert "`gh aw compile <workflow-name>`" in text
+        assert "patch-based edits" in text
 
     def test_agentic_workflow_validation_script_records_changed_workflows(self):
         script_path = REPO_ROOT / ".github" / "hooks" / "validate-agentic-workflow-compilation.sh"
