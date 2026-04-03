@@ -1707,14 +1707,14 @@ class TestTrainPromptWorkflow:
 
     def test_source_adds_pre_activation_compile_step_for_train_prompt(self):
         steps = self._source_steps()
-        compile_step = next((step for step in steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
-        assert compile_step is not None, (
+        pre_activation_compile_step = next((step for step in steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        assert pre_activation_compile_step is not None, (
             "train-prompt.md should define a deterministic pre-activation step that recompiles the trainer workflow."
         )
-        assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+        assert pre_activation_compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.md should use the COPILOT_GITHUB_TOKEN fallback chain when running the pre-activation compile step."
         )
-        run = compile_step.get("run", "")
+        run = pre_activation_compile_step.get("run", "")
         assert run.strip().splitlines() == [
             "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
             "gh aw compile train-prompt",
@@ -1793,14 +1793,14 @@ class TestTrainPromptWorkflow:
 
     def test_lock_runs_pre_activation_compile_for_train_prompt(self):
         agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
-        compile_step = next((step for step in agent_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
-        assert compile_step is not None, (
+        pre_activation_compile_step = next((step for step in agent_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        assert pre_activation_compile_step is not None, (
             "train-prompt.lock.yml should run a pre-activation compile check for the trainer workflow."
         )
-        assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+        assert pre_activation_compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
         )
-        run = compile_step.get("run", "")
+        run = pre_activation_compile_step.get("run", "")
         assert run.strip().splitlines() == [
             "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
             "gh aw compile train-prompt",
