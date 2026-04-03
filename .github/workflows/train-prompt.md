@@ -22,9 +22,8 @@ engine: copilot
 
 steps:
   - name: Verify train-prompt workflow compile state
-    env:
-      GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
     run: |
+      export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
       gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw
       gh aw compile train-prompt
 

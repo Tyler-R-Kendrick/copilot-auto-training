@@ -1519,6 +1519,7 @@ class TestTrainPromptWorkflow:
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
     AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
     EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS = [
+        'export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"',
         "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
         "gh aw compile train-prompt",
     ]
@@ -1717,8 +1718,8 @@ class TestTrainPromptWorkflow:
         assert pre_activation_compile_step is not None, (
             "train-prompt.md should define a deterministic pre-activation step that recompiles the trainer workflow."
         )
-        assert pre_activation_compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
-            "train-prompt.md should use the COPILOT_GITHUB_TOKEN fallback chain when running the pre-activation compile step."
+        assert "env" not in pre_activation_compile_step, (
+            "train-prompt.md should rely on runner-provided GH_TOKEN/GITHUB_TOKEN for the pre-activation compile step instead of redefining GH_TOKEN in frontmatter."
         )
         run = pre_activation_compile_step.get("run", "")
         normalized_run_lines = [line.strip() for line in run.splitlines() if line.strip()]
@@ -1802,8 +1803,8 @@ class TestTrainPromptWorkflow:
         assert pre_activation_compile_step is not None, (
             "train-prompt.lock.yml should run a pre-activation compile check for the trainer workflow."
         )
-        assert pre_activation_compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
-            "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
+        assert "env" not in pre_activation_compile_step, (
+            "train-prompt.lock.yml should rely on runner-provided GH_TOKEN/GITHUB_TOKEN for the pre-activation compile step instead of redefining GH_TOKEN in the compiled workflow."
         )
         run = pre_activation_compile_step.get("run", "")
         normalized_run_lines = [line.strip() for line in run.splitlines() if line.strip()]
