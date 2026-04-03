@@ -1589,10 +1589,12 @@ class TestTrainPromptWorkflow:
         assert isinstance(safe_outputs, dict), "Expected safe-outputs to be a YAML mapping"
         return safe_outputs
 
-    def _source_steps(self) -> list[dict]:
-        text = _read(self.WORKFLOW_MD)
+    def _source_steps(self, text: str | None = None) -> list[dict]:
+        text = _read(self.WORKFLOW_MD) if text is None else text
         frontmatter = self._parse_frontmatter_yaml(text)
         parsed = yaml.safe_load(frontmatter)
+        assert isinstance(parsed, dict), "Expected workflow frontmatter to parse as a YAML mapping"
+        assert "steps" in parsed, "Expected workflow frontmatter to define steps"
         steps = parsed["steps"]
         assert isinstance(steps, list), "Expected steps to be a YAML list"
         return steps
@@ -1810,6 +1812,14 @@ class TestTrainPromptWorkflow:
         assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
             "train-prompt.lock.yml should refresh the checked-in lock file when pre-activation compilation detects drift."
         )
+
+    def test_source_steps_helper_rejects_missing_steps_key(self):
+        with pytest.raises(AssertionError, match="Expected workflow frontmatter to define steps"):
+            self._source_steps("---\nname: Missing steps\n---\nBody\n")
+
+    def test_source_steps_helper_rejects_malformed_yaml(self):
+        with pytest.raises(yaml.YAMLError):
+            self._source_steps("---\nsteps: [\n---\nBody\n")
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
         text = self._lock_text()

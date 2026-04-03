@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from inference.config import InferenceConfig
 from training.lightning_integration import build_runtime_client
@@ -10,6 +10,12 @@ from training.lightning_integration import build_runtime_client
 
 DEFAULT_COPILOT_MODEL = "default"
 DEFAULT_COPILOT_TIMEOUT_SECONDS = 180
+
+
+class ModelSettings(TypedDict):
+    model: str
+    repo_root: str
+    timeout_seconds: int
 
 
 def find_repo_root(start_path: str) -> Path:
@@ -45,6 +51,13 @@ def _pick_int_setting(
     default: int,
     minimum: int = 1,
 ) -> int:
+    """Return a validated integer setting or the safe default.
+
+    The repository `.env` takes precedence when it exists, even if the key is
+    missing there. Process-level environment variables are only consulted when
+    no repository `.env` file is present. Non-integer values and values smaller
+    than `minimum` fall back to `default`.
+    """
     raw_value = dotenv_values.get(name)
     if raw_value in (None, "") and not dotenv_present:
         raw_value = os.getenv(name)
@@ -57,7 +70,7 @@ def _pick_int_setting(
     return parsed if parsed >= minimum else default
 
 
-def resolve_model_settings(prompt_file: str) -> dict[str, Any]:
+def resolve_model_settings(prompt_file: str) -> ModelSettings:
     repo_root = find_repo_root(prompt_file)
     dotenv_path = repo_root / ".env"
     dotenv_values = load_dotenv_file(dotenv_path)
@@ -87,7 +100,7 @@ def resolve_model_settings(prompt_file: str) -> dict[str, Any]:
     }
 
 
-def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, Any]]:
+def create_openai_client(prompt_file: str) -> tuple[Any, ModelSettings]:
     model_settings = resolve_model_settings(prompt_file)
     provider_config = InferenceConfig(
         model=str(model_settings.get("model") or DEFAULT_COPILOT_MODEL),
