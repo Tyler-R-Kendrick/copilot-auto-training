@@ -29,7 +29,7 @@
 #     - shared/repo-runtime-context.md
 #     - shared/trainer-loop-contract.md
 #
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"02b34bfd368d2cfac1b4183701891d69e21aba4940d165793fe3e047563e1229","compiler_version":"v0.65.4","strict":true,"agent_id":"copilot"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"f0c2b9d4d7866f8468ac9c0a63a18526418ccb799e09ed3b17f46b8f48bdde49","compiler_version":"v0.65.4","strict":true,"agent_id":"copilot"}
 
 name: "Train Prompt"
 "on":
@@ -322,6 +322,13 @@ jobs:
         run: bash ${RUNNER_TEMP}/gh-aw/actions/configure_gh_for_ghe.sh
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Verify train-prompt workflow compile state
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          gh aw --help >/dev/null
+          gh aw compile train-prompt
+          git diff --exit-code -- .github/workflows/train-prompt.lock.yml
       - name: Configure Git credentials
         env:
           REPO_NAME: ${{ github.repository }}

@@ -1766,8 +1766,8 @@ class TestTrainPromptWorkflow:
         )
 
     def test_lock_runs_pre_activation_compile_for_train_prompt(self):
-        activation_steps = self._lock_yaml()["jobs"]["activation"]["steps"]
-        compile_step = next((step for step in activation_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
+        compile_step = next((step for step in agent_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
         assert compile_step is not None, (
             "train-prompt.lock.yml should run a pre-activation compile check for the trainer workflow."
         )
