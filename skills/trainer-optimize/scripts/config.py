@@ -13,17 +13,11 @@ DEFAULT_COPILOT_TIMEOUT_SECONDS = 180
 
 
 class ModelSettings(TypedDict):
-    """Resolved optimizer runtime settings derived from the repository environment.
+    """Optimizer runtime settings resolved from the repository environment."""
 
-    Fields:
-        model: Copilot model name passed to the provider-backed client.
-        repo_root: Repository root used for workspace-scoped runtime operations.
-        timeout_seconds: Per-request Copilot SDK timeout after validation/defaulting.
-    """
-
-    model: str
-    repo_root: str
-    timeout_seconds: int
+    model: str  # Copilot model name passed to the provider-backed client.
+    repo_root: str  # Repository root used for workspace-scoped runtime operations.
+    timeout_seconds: int  # Per-request Copilot SDK timeout after validation/defaulting.
 
 
 def find_repo_root(start_path: str) -> Path:
@@ -111,7 +105,7 @@ def resolve_model_settings(prompt_file: str) -> ModelSettings:
 def create_openai_client(prompt_file: str) -> tuple[Any, ModelSettings]:
     model_settings = resolve_model_settings(prompt_file)
     provider_config = InferenceConfig(
-        model=str(model_settings.get("model") or DEFAULT_COPILOT_MODEL),
-        timeout_seconds=int(model_settings.get("timeout_seconds") or DEFAULT_COPILOT_TIMEOUT_SECONDS),
+        model=model_settings["model"],
+        timeout_seconds=model_settings["timeout_seconds"],
     )
     return build_runtime_client(model_settings, provider_config=provider_config)
