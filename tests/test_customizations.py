@@ -1672,7 +1672,7 @@ class TestTrainPromptWorkflow:
         assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
             "train-prompt.md should require including the compiled lock file alongside workflow source edits."
         )
-        assert "if compilation fails or the lock file stays outdated, stop after recording the failure details" in text, (
+        assert "if compilation fails or the lock file still differs from the compiled output, stop after recording the failure details" in text, (
             "train-prompt.md should block PR creation when an edited agentic workflow cannot be recompiled cleanly."
         )
 
