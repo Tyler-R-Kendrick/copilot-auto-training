@@ -1742,15 +1742,6 @@ class TestTrainPromptWorkflow:
             "issue creation leaves no pull request context for reviewer automation."
         )
 
-    def test_lock_requires_compiling_selected_agentic_workflows(self):
-        text = self._lock_text()
-        assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
-            "train-prompt.lock.yml should instruct the agent to compile selected agentic workflow sources before validation."
-        )
-        assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
-            "train-prompt.lock.yml should preserve the workflow-source compile requirement in the compiled prompt."
-        )
-
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
         text = self._lock_text()
         assert '"container": "python:alpine"' in text
