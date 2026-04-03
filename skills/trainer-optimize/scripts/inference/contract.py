@@ -8,9 +8,6 @@ from typing import Any, Protocol
 class InferenceRequest:
     messages: list[dict[str, Any]]
     model: str
-    temperature: float | None = None
-    max_tokens: int | None = None
-    tools: list[dict[str, Any]] | None = None
     metadata: dict[str, Any] | None = None
 
 

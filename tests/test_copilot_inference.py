@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from http import HTTPStatus
+import json
 from pathlib import Path
 import types
 
@@ -10,7 +12,7 @@ import config as optimize_config
 from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
 from inference.copilot_provider import CopilotAuthenticationError, CopilotInferenceProvider
-from inference.local_adapter_service import _response_body
+from inference.local_adapter_service import _build_handler, _response_body
 from training.lightning_integration import ProviderBackedOpenAIClient
 
 
@@ -212,6 +214,53 @@ def test_local_adapter_response_shape_defaults_usage_and_finish_reason():
 
     assert body["choices"][0]["finish_reason"] == "stop"
     assert body["usage"] == {}
+
+
+def test_local_adapter_ignores_unsupported_provider_kwargs(monkeypatch):
+    captured = {}
+
+    class StubProvider:
+        config = types.SimpleNamespace(model="default")
+
+        async def generate(self, request):
+            captured["request"] = request
+            return types.SimpleNamespace(model="default", text="ok", finish_reason="stop", usage={})
+
+    handler_cls = _build_handler(StubProvider())
+
+    def send_error(self, code, message=None, explain=None):
+        raise AssertionError(f"unexpected send_error({code})")
+
+    monkeypatch.setattr(handler_cls, "send_error", send_error)
+
+    handler = handler_cls.__new__(handler_cls)
+    payload = {
+        "messages": [{"role": "user", "content": "hi"}],
+        "model": "custom-model",
+        "temperature": 0.7,
+        "max_tokens": 42,
+        "tools": [{"type": "function", "function": {"name": "demo"}}],
+        "metadata": {"episode_id": "ep"},
+    }
+    body_bytes = json.dumps(payload).encode("utf-8")
+    handler.path = "/v1/chat/completions"
+    handler.headers = {"Content-Length": str(len(body_bytes))}
+    handler.rfile = types.SimpleNamespace(read=lambda _: body_bytes)
+    handler.wfile = types.SimpleNamespace(write=lambda data: captured.setdefault("response", data))
+    handler.send_response = lambda status: captured.setdefault("status", status)
+    handler.send_header = lambda name, value: None
+    handler.end_headers = lambda: None
+
+    handler.do_POST()
+
+    request = captured["request"]
+    assert request.model == "custom-model"
+    assert request.messages == payload["messages"]
+    assert request.metadata == payload["metadata"]
+    assert not hasattr(request, "temperature")
+    assert not hasattr(request, "max_tokens")
+    assert not hasattr(request, "tools")
+    assert captured["status"] == HTTPStatus.OK
 
 
 @pytest.mark.asyncio

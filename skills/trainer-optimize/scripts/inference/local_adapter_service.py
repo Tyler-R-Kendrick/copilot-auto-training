@@ -40,9 +40,6 @@ def _build_handler(provider: CopilotInferenceProvider):
             request = InferenceRequest(
                 messages=payload.get("messages") or [],
                 model=str(payload.get("model") or provider.config.model),
-                temperature=payload.get("temperature"),
-                max_tokens=payload.get("max_tokens"),
-                tools=payload.get("tools"),
                 metadata=payload.get("metadata"),
             )
             try:
