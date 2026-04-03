@@ -354,6 +354,46 @@ class TestRunOptimizeDebugOnly:
         assert not report.exists()
 
 
+class TestOptimizeSupportMetadataCompatibility:
+    @pytest.mark.asyncio
+    async def test_call_with_optional_metadata_omits_metadata_for_signature_without_metadata(self):
+        captured = {}
+
+        async def no_metadata_call(*, model, input):
+            captured["kwargs"] = {"model": model, "input": input}
+            return "ok"
+
+        result = await optimize_module.support._call_with_optional_metadata(
+            no_metadata_call,
+            model="default",
+            input="ping",
+            metadata={"episode_id": "ep-1"},
+        )
+
+        assert result == "ok"
+        assert captured["kwargs"] == {"model": "default", "input": "ping"}
+
+    @pytest.mark.asyncio
+    async def test_complete_text_with_metadata_fallback_skips_metadata_for_simple_stub(self, monkeypatch):
+        captured = {}
+
+        async def fake_complete_text(llm_client, model_name, prompt_text):
+            captured["args"] = (llm_client, model_name, prompt_text)
+            return "ok"
+
+        monkeypatch.setattr(optimize_module.support, "_complete_text", fake_complete_text)
+
+        result = await optimize_module.support._complete_text_with_metadata_fallback(
+            llm_client=object(),
+            model_name="default",
+            prompt="prompt body",
+            metadata={"episode_id": "ep-2"},
+        )
+
+        assert result == "ok"
+        assert captured["args"][1:] == ("default", "prompt body")
+
+
 class TestRunOptimizeManualFallback:
     @pytest.mark.asyncio
     async def test_missing_model_returns_manual_followup_payload(self, tmp_path, monkeypatch):

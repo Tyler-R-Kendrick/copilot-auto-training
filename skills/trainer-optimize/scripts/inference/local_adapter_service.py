@@ -12,6 +12,8 @@ from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
 from inference.copilot_provider import CopilotInferenceProvider
 
+MAX_REQUEST_BYTES = 1_048_576
+
 
 def _response_body(result: Any) -> dict[str, Any]:
     return {
@@ -35,7 +37,17 @@ def _build_handler(provider: CopilotInferenceProvider):
             if self.path != "/v1/chat/completions":
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self.send_error(HTTPStatus.BAD_REQUEST)
+                return
+            if length < 0:
+                self.send_error(HTTPStatus.BAD_REQUEST)
+                return
+            if length > MAX_REQUEST_BYTES:
+                self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                return
             payload = json.loads(self.rfile.read(length) or b"{}")
             request = InferenceRequest(
                 messages=payload.get("messages") or [],

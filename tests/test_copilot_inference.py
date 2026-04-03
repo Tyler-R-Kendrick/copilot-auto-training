@@ -12,7 +12,7 @@ import config as optimize_config
 from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
 from inference.copilot_provider import CopilotAuthenticationError, CopilotInferenceProvider
-from inference.local_adapter_service import _build_handler, _response_body
+from inference.local_adapter_service import MAX_REQUEST_BYTES, _build_handler, _response_body
 from training.lightning_integration import ProviderBackedOpenAIClient
 
 
@@ -311,6 +311,34 @@ def test_local_adapter_ignores_unsupported_provider_kwargs(monkeypatch):
     assert not hasattr(request, "max_tokens")
     assert not hasattr(request, "tools")
     assert captured["status"] == HTTPStatus.OK
+
+
+def test_local_adapter_rejects_oversized_payloads(monkeypatch):
+    captured = {}
+
+    class StubProvider:
+        config = types.SimpleNamespace(model="default")
+
+        async def generate(self, request):
+            raise AssertionError("oversized requests should be rejected before provider.generate")
+
+    handler_cls = _build_handler(StubProvider())
+    monkeypatch.setattr(
+        handler_cls,
+        "send_error",
+        lambda self, code, message=None, explain=None: captured.setdefault("error", code),
+    )
+
+    handler = handler_cls.__new__(handler_cls)
+    handler.path = "/v1/chat/completions"
+    handler.headers = {"Content-Length": str(MAX_REQUEST_BYTES + 1)}
+    handler.rfile = types.SimpleNamespace(
+        read=lambda _: (_ for _ in ()).throw(AssertionError("oversized requests should not be read"))
+    )
+
+    handler.do_POST()
+
+    assert captured["error"] == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
 
 @pytest.mark.asyncio

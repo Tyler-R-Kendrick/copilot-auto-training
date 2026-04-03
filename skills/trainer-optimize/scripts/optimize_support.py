@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import re
@@ -329,7 +330,26 @@ def _metadata_not_supported(exc: TypeError) -> bool:
     return "metadata" in message and "unexpected keyword argument" in message
 
 
+def _supports_keyword_argument(call: Any, keyword: str) -> bool | None:
+    try:
+        signature = inspect.signature(call)
+    except (TypeError, ValueError):
+        return None
+    for parameter in signature.parameters.values():
+        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+            return True
+    parameter = signature.parameters.get(keyword)
+    if parameter is None:
+        return False
+    return parameter.kind in {
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY,
+    }
+
+
 async def _call_with_optional_metadata(call: Any, **kwargs: Any) -> Any:
+    if "metadata" in kwargs and _supports_keyword_argument(call, "metadata") is False:
+        kwargs = {key: value for key, value in kwargs.items() if key != "metadata"}
     try:
         return await call(**kwargs)
     except TypeError as exc:
@@ -349,6 +369,8 @@ async def _complete_text_with_metadata_fallback(
     # _complete_text already downgrades client calls that reject metadata, but this
     # wrapper preserves compatibility with tests or stubs that replace _complete_text
     # itself with a simpler signature.
+    if metadata is not None and _supports_keyword_argument(_complete_text, "metadata") is False:
+        return await _complete_text(llm_client, model_name, prompt)
     try:
         return await _complete_text(llm_client, model_name, prompt, metadata=metadata)
     except TypeError as exc:
