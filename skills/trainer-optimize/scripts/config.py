@@ -13,6 +13,8 @@ DEFAULT_COPILOT_TIMEOUT_SECONDS = 180
 
 
 class ModelSettings(TypedDict):
+    """Resolved optimizer runtime settings derived from the repository environment."""
+
     model: str
     repo_root: str
     timeout_seconds: int
@@ -64,7 +66,7 @@ def _pick_int_setting(
     if raw_value in (None, ""):
         return default
     try:
-        parsed = int(str(raw_value).strip())
+        parsed = int(raw_value.strip())
     except ValueError:
         return default
     return parsed if parsed >= minimum else default
