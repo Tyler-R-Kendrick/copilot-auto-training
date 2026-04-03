@@ -20,7 +20,21 @@ permissions:
 
 engine: copilot
 
-steps: []
+steps:
+  - name: Validate GitHub token for MCP startup
+    env:
+      GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
+      GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      set -euo pipefail
+      if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        exit 0
+      fi
+      echo "::error::Missing GitHub token for MCP startup. Set GH_AW_GITHUB_MCP_SERVER_TOKEN or GH_AW_GITHUB_TOKEN, or enable GITHUB_TOKEN."
+      exit 1
+  - name: Validate agent-skills MCP bootstrap
+    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c "import agent_skills_mcp"
 
 tools:
   github:

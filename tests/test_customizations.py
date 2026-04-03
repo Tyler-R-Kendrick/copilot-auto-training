@@ -18,10 +18,15 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
 AGENT_SKILLS_UVX_BOOTSTRAP = (
-    "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
     "&& exec uvx --from "
-    "git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp "
+    "git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
     "agent-skills-mcp"
+)
+AGENT_SKILLS_PREFLIGHT = (
+    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "&& uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
+    'python -c "import agent_skills_mcp"'
 )
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
@@ -1709,9 +1714,29 @@ class TestTrainPromptWorkflow:
 
     def test_source_does_not_define_runtime_self_heal_steps_for_train_prompt(self):
         steps = self._source_steps()
-        assert steps == [], (
-            "train-prompt.md should not define frontmatter steps for train-prompt lockfile self-healing because those steps do not run before activation."
+        assert [step.get("name") for step in steps] == [
+            "Validate GitHub token for MCP startup",
+            "Validate agent-skills MCP bootstrap",
+        ], (
+            "train-prompt.md should define only preflight steps that fail early for missing MCP tokens "
+            "or agent-skills bootstrap/install errors."
         )
+
+    def test_source_preflights_github_token_for_mcp_startup(self):
+        steps = self._source_steps()
+        token_step = next(step for step in steps if step.get("name") == "Validate GitHub token for MCP startup")
+        assert token_step["env"] == {
+            "GH_AW_GITHUB_MCP_SERVER_TOKEN": "${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}",
+            "GH_AW_GITHUB_TOKEN": "${{ secrets.GH_AW_GITHUB_TOKEN }}",
+            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+        }
+        assert "Missing GitHub token for MCP startup" in token_step["run"]
+        assert 'if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then' in token_step["run"]
+
+    def test_source_preflights_agent_skills_bootstrap_install(self):
+        steps = self._source_steps()
+        bootstrap_step = next(step for step in steps if step.get("name") == "Validate agent-skills MCP bootstrap")
+        assert bootstrap_step["run"] == AGENT_SKILLS_PREFLIGHT
 
     def test_source_directs_stale_lockfile_repairs_to_manual_workflow(self):
         text = _read(self.WORKFLOW_MD)
@@ -1791,6 +1816,13 @@ class TestTrainPromptWorkflow:
         assert pre_activation_compile_step is None, (
             "train-prompt.lock.yml should not contain a runtime compile self-heal step because agent job steps do not execute before activation."
         )
+
+    def test_lock_preflights_mcp_token_and_agent_skills_bootstrap(self):
+        text = self._lock_text()
+        assert "name: Validate GitHub token for MCP startup" in text
+        assert "name: Validate agent-skills MCP bootstrap" in text
+        assert "Missing GitHub token for MCP startup" in text
+        assert "uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c \"import agent_skills_mcp\"" in text
 
     def test_source_steps_helper_rejects_missing_steps_key(self):
         with pytest.raises(AssertionError, match="Expected workflow frontmatter to define steps"):
