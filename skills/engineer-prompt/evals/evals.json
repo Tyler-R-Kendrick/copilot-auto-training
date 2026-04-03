@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I want to optimize an agent skill prompt with DSPy, but the repository expects a stable checked-in SKILL.md file with fixed front matter and sections. Should DSPy generate the whole file or only the instruction body? Show me the smallest design.",
-      "expected_output": "The response should identify the optimization target, recommend a narrow DSPy surface, prefer deterministic wrapping around an optimized instruction body for a stable artifact, and explain the tradeoff against full-file generation.",
+      "expected_output": "The response should choose a narrow DSPy surface, preserve stable checked-in artifact structure, recommend an export approach that keeps diffs reviewable, and explain the tradeoff against letting DSPy generate the full file.",
       "assertions": [
         "The response uses explicit Optimization target, DSPy surface, Optimization strategy, Metric or evals, Export strategy, and Risks sections, or close equivalents.",
         "The response recommends optimizing only the instruction body or another narrow prompt surface rather than defaulting to full-file generation.",
