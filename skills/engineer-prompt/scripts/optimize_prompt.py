@@ -13,8 +13,8 @@ from typing import Any
 import yaml
 
 
-SKILL_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_PROGRAM_OUTPUT_PATH = SKILL_DIR / "assets" / "prompt_program_optimized.json"
+ENGINEER_PROMPT_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_PROGRAM_OUTPUT_PATH = ENGINEER_PROMPT_DIR / "assets" / "prompt_program_optimized.json"
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
 MARKDOWN_TOKENS = ("#", "- ", "1.", "```")
 EMPTY_CONSTRAINT_MARKER = "<none>"

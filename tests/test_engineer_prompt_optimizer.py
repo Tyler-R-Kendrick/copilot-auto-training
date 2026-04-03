@@ -12,20 +12,20 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENGINEER_PROMPT_DIR = REPO_ROOT / "skills" / "engineer-prompt"
-MODULE_PATH = ENGINEER_PROMPT_DIR / "scripts" / "export_skill_prompt.py"
+MODULE_PATH = ENGINEER_PROMPT_DIR / "scripts" / "optimize_prompt.py"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("engineer_prompt_export", MODULE_PATH)
+    spec = importlib.util.spec_from_file_location("engineer_prompt_optimizer", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
-    sys.modules.setdefault("engineer_prompt_export", module)
+    sys.modules.setdefault("engineer_prompt_optimizer", module)
     spec.loader.exec_module(module)
     return module
 
 
 @pytest.fixture
-def engineer_prompt_export_module():
+def engineer_prompt_optimizer_module():
     return _load_module()
 
 
@@ -43,12 +43,12 @@ def _write_prompt(path: Path) -> Path:
     return path
 
 
-def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engineer_prompt_export_module):
+def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engineer_prompt_optimizer_module):
     prompt_path = _write_prompt(tmp_path / "prompt.md")
     context_path = tmp_path / "context.md"
     context_path.write_text("Reference material for the prompt rewrite.", encoding="utf-8")
 
-    task = engineer_prompt_export_module.build_prompt_task(
+    task = engineer_prompt_optimizer_module.build_prompt_task(
         str(prompt_path),
         goal="Make the prompt clearer.",
         context_files=[str(context_path)],
@@ -68,24 +68,24 @@ def test_build_prompt_task_extracts_generic_prompt_fields(tmp_path: Path, engine
     assert "Reference material for the prompt rewrite." in task.supporting_context
 
 
-def test_build_prompt_task_raises_for_missing_context_file(tmp_path: Path, engineer_prompt_export_module):
+def test_build_prompt_task_raises_for_missing_context_file(tmp_path: Path, engineer_prompt_optimizer_module):
     prompt_path = _write_prompt(tmp_path / "prompt.md")
 
     with pytest.raises(FileNotFoundError):
-        engineer_prompt_export_module.build_prompt_task(
+        engineer_prompt_optimizer_module.build_prompt_task(
             str(prompt_path),
             context_files=[str(tmp_path / "missing-context.md")],
         )
 
 
-def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_export_module):
+def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_optimizer_module):
     markdown = (
         "# Prompt\n\n"
         "Use `${context}` to answer the user.\n"
         "Return exactly three bullets.\n"
     )
 
-    summary = engineer_prompt_export_module.validate_prompt_markdown(
+    summary = engineer_prompt_optimizer_module.validate_prompt_markdown(
         markdown,
         expected_placeholders=("${context}",),
         required_text=("three bullets",),
@@ -99,7 +99,7 @@ def test_validate_prompt_markdown_accepts_generic_prompt(engineer_prompt_export_
     assert summary["forbidden_text_present"] == []
 
 
-def test_compile_prompt_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_export_module):
+def test_compile_prompt_uses_dspy_optimizer(monkeypatch, tmp_path: Path, engineer_prompt_optimizer_module):
     dspy_call_trace: dict[str, object] = {}
     optimized_prompt = """# Better Prompt
 
@@ -160,16 +160,16 @@ Keep the wording concise.
         configure=lambda **kwargs: dspy_call_trace.setdefault("configure", kwargs),
     )
 
-    monkeypatch.setattr(engineer_prompt_export_module, "_load_dspy", lambda: fake_dspy)
+    monkeypatch.setattr(engineer_prompt_optimizer_module, "_load_dspy", lambda: fake_dspy)
     prompt_path = _write_prompt(tmp_path / "prompt.md")
-    task = engineer_prompt_export_module.build_prompt_task(
+    task = engineer_prompt_optimizer_module.build_prompt_task(
         str(prompt_path),
         goal="Make the prompt clearer.",
         required_text=["three bullets"],
         forbidden_text=["DSPy"],
         min_body_length=20,
     )
-    body, _compiled = engineer_prompt_export_module.compile_prompt(
+    body, _compiled = engineer_prompt_optimizer_module.compile_prompt(
         task,
         program_file=tmp_path / "program.json",
         model="openai/gpt-4o-mini",
@@ -234,5 +234,5 @@ def test_validate_only_cli_reports_missing_prompt_file(tmp_path: Path):
     assert str(missing_prompt.resolve()) in output.stderr
 
 
-def test_exporter_script_exists():
+def test_optimizer_script_exists():
     assert MODULE_PATH.is_file()

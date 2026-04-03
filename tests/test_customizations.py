@@ -270,13 +270,13 @@ class TestAgentCustomizations:
         assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "engineer-prompt").resolve()
         assert "Name: engineer-prompt" in payload
         assert "The user wants to improve a prompt." in payload
-        assert "export_skill_prompt.py" in payload
+        assert "optimize_prompt.py" in payload
         assert "DSPy-backed helper" in payload
         assert 'Call `run_agent_skill` only when the `engineer-prompt` skill exposes a runnable helper under `scripts/`' in agent_text
 
         result = agent_skills_module.run_agent_skill(
             "engineer-prompt",
-            script_path="scripts/export_skill_prompt.py",
+            script_path="scripts/optimize_prompt.py",
             argv=["--validate-only", "--prompt-file", "SKILL.md"],
         )
         assert result["exit_code"] == 0
