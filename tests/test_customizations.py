@@ -1680,7 +1680,7 @@ class TestTrainPromptWorkflow:
         assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
             "train-prompt.md should require including the compiled lock file alongside workflow source edits."
         )
-        assert "if compilation fails or the lock file still differs from the compiled output, stop after recording the failure details" in text, (
+        assert "if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request" in text, (
             "train-prompt.md should block PR creation when an edited agentic workflow cannot be recompiled cleanly."
         )
 
@@ -1775,6 +1775,13 @@ class TestTrainPromptWorkflow:
         )
         assert compile_step.get("env", {}).get("GH_TOKEN") == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
             "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
+        )
+        compile_step_index = agent_steps.index(compile_step)
+        install_cli_index = next(
+            index for index, step in enumerate(agent_steps) if step.get("name") == "Install GitHub Copilot CLI"
+        )
+        assert compile_step_index < install_cli_index, (
+            "train-prompt.lock.yml should run the pre-activation compile check before the trainer agent setup installs the CLI."
         )
         run = compile_step.get("run", "")
         assert "gh aw compile train-prompt" in run, (

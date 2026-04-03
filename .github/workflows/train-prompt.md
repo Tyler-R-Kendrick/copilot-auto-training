@@ -123,7 +123,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
 11. If the selected target is an agentic workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
     - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
     - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
-    - if compilation fails or the lock file still differs from the compiled output, stop after recording the failure details in the selected local workspace instead of opening a pull request
+    - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
 12. Keep the change set tightly scoped to:
     - the selected prompt-like file
     - the compiled `.lock.yml` generated from a selected `.github/workflows/*.md` target
