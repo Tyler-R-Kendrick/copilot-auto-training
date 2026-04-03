@@ -11,7 +11,8 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MODULE_PATH = REPO_ROOT / "skills" / "engineer-prompt" / "scripts" / "export_skill_prompt.py"
+ENGINEER_PROMPT_DIR = REPO_ROOT / "skills" / "engineer-prompt"
+MODULE_PATH = ENGINEER_PROMPT_DIR / "scripts" / "export_skill_prompt.py"
 
 
 def _load_module():
