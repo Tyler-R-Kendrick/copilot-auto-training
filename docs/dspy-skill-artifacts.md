@@ -30,7 +30,8 @@ agent-skills/
   my-skill/
     SKILL.md
     export_skill_prompt.py
-    trainset.jsonl
+    train.jsonl
+    val.jsonl
     evals/
 ```
 
@@ -115,7 +116,8 @@ def skill_metric(example, pred, trace=None):
     return sum(checks) / len(checks)
 
 
-# Configure model credentials outside the script, for example from a repository-root .env.
+# Example only: replace this with the provider/model resolved from your repository .env.
+# In this repo, start from /.env.sample and set COPILOT_MODEL before wiring DSPy to a provider.
 lm = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=lm)
 
