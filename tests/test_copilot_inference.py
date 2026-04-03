@@ -82,11 +82,13 @@ class TestCopilotProvider:
         def __init__(self):
             self.started = False
             self.created_sessions: list[object] = []
+            self.create_session_kwargs: list[dict[str, object]] = []
 
         async def start(self):
             self.started = True
 
         async def create_session(self, **kwargs):
+            self.create_session_kwargs.append(dict(kwargs))
             session = TestCopilotProvider._FakeSDKSession(kwargs.get("session_id"))
             self.created_sessions.append(session)
             return session
@@ -196,6 +198,54 @@ class TestCopilotProvider:
         assert result.text == "hi"
         assert fake_client.created_sessions[0].disconnected is True
 
+    @pytest.mark.asyncio
+    async def test_generate_passes_working_directory_and_session_id_to_sdk(self, monkeypatch):
+        fake_client = self._patch_sdk(monkeypatch)
+
+        provider = CopilotInferenceProvider(
+            InferenceConfig(),
+            model_settings={"repo_root": "/tmp/repo-root"},
+        )
+
+        await provider.generate(
+            InferenceRequest(
+                messages=[{"role": "user", "content": "hello"}],
+                model="default",
+                metadata={"episode_id": "episode-7"},
+            )
+        )
+
+        created_session = fake_client.created_sessions[0]
+        session_kwargs = fake_client.create_session_kwargs[0]
+        assert created_session.session_id == "episode-7"
+        assert session_kwargs["working_directory"] == "/tmp/repo-root"
+        assert session_kwargs["model"] == "default"
+
+    @pytest.mark.asyncio
+    async def test_generate_with_preserve_history_false_restarts_sdk_session(self, monkeypatch):
+        fake_client = self._patch_sdk(monkeypatch)
+
+        provider = CopilotInferenceProvider(InferenceConfig())
+        await provider.generate(
+            InferenceRequest(
+                messages=[{"role": "user", "content": "first"}],
+                model="default",
+                metadata={"episode_id": "episode-9"},
+            )
+        )
+
+        result = await provider.generate(
+            InferenceRequest(
+                messages=[{"role": "user", "content": "second"}],
+                model="default",
+                metadata={"episode_id": "episode-9", "preserve_history": False},
+            )
+        )
+
+        assert result.text == "second"
+        assert len(fake_client.created_sessions) == 2
+        assert fake_client.created_sessions[0].disconnected is True
+
 
 def test_local_adapter_response_shape_matches_chat_completions():
     result = types.SimpleNamespace(model="default", text="hello", finish_reason="stop", usage={"total_tokens": 3})
@@ -285,3 +335,39 @@ async def test_provider_backed_client_maps_output_token_usage(monkeypatch):
     assert response.usage.prompt_tokens == 3
     assert response.usage.completion_tokens == 5
     assert response.usage.total_tokens == 8
+
+
+@pytest.mark.asyncio
+async def test_provider_backed_client_chat_completions_ignores_unsupported_kwargs():
+    captured = {}
+
+    class StubProvider:
+        async def generate(self, request):
+            captured["request"] = request
+            return types.SimpleNamespace(
+                text="hello",
+                model=request.model,
+                finish_reason="stop",
+                usage={"prompt_tokens": 1, "output_tokens": 2},
+                raw={"ok": True},
+            )
+
+    client = ProviderBackedOpenAIClient(StubProvider(), default_model="default")
+
+    response = await client.chat.completions.create(
+        model="default",
+        messages=[{"role": "user", "content": "hello"}],
+        temperature=0.2,
+        max_tokens=25,
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+        metadata={"episode_id": "episode-sdk"},
+    )
+
+    request = captured["request"]
+    assert request.model == "default"
+    assert request.messages == [{"role": "user", "content": "hello"}]
+    assert request.metadata == {"interaction": "chat.completions.create", "episode_id": "episode-sdk"}
+    assert not hasattr(request, "temperature")
+    assert not hasattr(request, "max_tokens")
+    assert not hasattr(request, "tools")
+    assert response.choices[0].message.content == "hello"

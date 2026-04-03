@@ -62,7 +62,14 @@ class _ProviderResponses:
     def __init__(self, client: "ProviderBackedOpenAIClient"):
         self._client = client
 
-    async def create(self, *, model: str, input: str, metadata: dict[str, Any] | None = None) -> Any:
+    async def create(
+        self,
+        *,
+        model: str,
+        input: str,
+        metadata: dict[str, Any] | None = None,
+        **_: Any,
+    ) -> Any:
         return await self._client._responses_create(model=model, input_text=input, metadata=metadata)
 
 
@@ -76,6 +83,7 @@ class _ProviderChatCompletions:
         model: str,
         messages: list[dict[str, Any]],
         metadata: dict[str, Any] | None = None,
+        **_: Any,
     ) -> Any:
         return await self._client._chat_completions_create(model=model, messages=messages, metadata=metadata)
 
