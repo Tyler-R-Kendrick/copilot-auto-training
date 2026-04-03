@@ -13,7 +13,13 @@ DEFAULT_COPILOT_TIMEOUT_SECONDS = 180
 
 
 class ModelSettings(TypedDict):
-    """Resolved optimizer runtime settings derived from the repository environment."""
+    """Resolved optimizer runtime settings derived from the repository environment.
+
+    Fields:
+        model: Copilot model name passed to the provider-backed client.
+        repo_root: Repository root used for workspace-scoped runtime operations.
+        timeout_seconds: Per-request Copilot SDK timeout after validation/defaulting.
+    """
 
     model: str
     repo_root: str
@@ -45,7 +51,7 @@ def load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
     return parsed
 
 
-def _pick_int_setting(
+def _resolve_int_setting_with_validation(
     name: str,
     *,
     dotenv_values: dict[str, str],
@@ -93,7 +99,7 @@ def resolve_model_settings(prompt_file: str) -> ModelSettings:
     return {
         "model": model,
         "repo_root": str(repo_root),
-        "timeout_seconds": _pick_int_setting(
+        "timeout_seconds": _resolve_int_setting_with_validation(
             "COPILOT_TIMEOUT_SECONDS",
             dotenv_values=dotenv_values,
             dotenv_present=dotenv_present,

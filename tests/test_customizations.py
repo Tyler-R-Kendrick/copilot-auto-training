@@ -1518,7 +1518,7 @@ class TestTrainPromptWorkflow:
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "train-prompt.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "train-prompt.lock.yml"
     AGENT_SKILLS_RUNTIME = REPO_ROOT / ".github" / "workflows" / "shared" / "agent-skills-runtime.md"
-    PRE_ACTIVATION_COMPILE_LINES = [
+    EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS = [
         "gh aw --help >/dev/null 2>&1 || gh extension install github/gh-aw",
         "gh aw compile train-prompt",
     ]
@@ -1721,7 +1721,7 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should use the COPILOT_GITHUB_TOKEN fallback chain when running the pre-activation compile step."
         )
         run = pre_activation_compile_step.get("run", "")
-        assert run.strip().splitlines() == self.PRE_ACTIVATION_COMPILE_LINES, (
+        assert run.strip().splitlines() == self.EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS, (
             "train-prompt.md should refresh train-prompt.lock.yml by compiling the workflow without adding a separate diff-based failure gate."
         )
         assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
@@ -1804,7 +1804,7 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should preserve the COPILOT_GITHUB_TOKEN fallback chain for the pre-activation compile step."
         )
         run = pre_activation_compile_step.get("run", "")
-        assert run.strip().splitlines() == self.PRE_ACTIVATION_COMPILE_LINES, (
+        assert run.strip().splitlines() == self.EXPECTED_PRE_ACTIVATION_COMPILE_COMMANDS, (
             "train-prompt.lock.yml should refresh the checked-in lock file by compiling the workflow without a separate diff-based failure gate."
         )
         assert "git diff --exit-code -- .github/workflows/train-prompt.lock.yml" not in run, (
