@@ -164,7 +164,7 @@ class TestAgentCustomizations:
         frontmatter = text[:frontmatter_end]
 
         assert 'name: "researcher"' in text
-        assert 'description: "Use when researching public datasets, benchmarks, documentation, and source material before eval synthesis or prompt optimization."' in text
+        assert 'description: "Use when researching public datasets, benchmarks, documentation, and source material before eval synthesis or prompt optimization.' in text
         assert 'tools:' in frontmatter
         assert 'read' in frontmatter
         assert 'edit' in frontmatter
@@ -174,6 +174,7 @@ class TestAgentCustomizations:
         assert 'agents:' not in frontmatter
         assert 'handoffs:' not in frontmatter
         assert 'Use the `agent-skills` MCP server as the execution path for the `researcher-research` skill' in text
+        assert 'For public-source discovery tasks, first discover and load `researcher-research`' in text
         assert 'Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.' in text
         assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
         assert 'Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`' in text
