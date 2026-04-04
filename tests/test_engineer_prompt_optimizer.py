@@ -239,7 +239,7 @@ def test_default_optimization_instructions_are_concrete(engineer_prompt_optimize
     assert any("Remove redundant" in instruction for instruction in instructions)
 
 
-def test_optimizer_script_does_not_reach_into_other_skill_directories():
+def test_optimizer_script_uses_shared_runtime_instead_of_trainer_optimize_imports():
     source = MODULE_PATH.read_text(encoding="utf-8")
 
     assert "trainer-optimize" not in source

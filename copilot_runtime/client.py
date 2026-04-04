@@ -8,7 +8,7 @@ from typing import Any
 from tokenizers.pre_tokenizers import ByteLevel
 try:
     from openai.types import CompletionUsage
-except Exception:  # pragma: no cover - exercised by test stubs that replace openai
+except ImportError:  # pragma: no cover - exercised by test stubs that replace openai
     class CompletionUsage(SimpleNamespace):
         def __init__(self, *, prompt_tokens: int, completion_tokens: int, total_tokens: int):
             super().__init__(
@@ -18,27 +18,29 @@ except Exception:  # pragma: no cover - exercised by test stubs that replace ope
             )
 
         def model_dump(self, *, exclude_none: bool = False) -> dict[str, int]:
-            data = {
+            _ = exclude_none
+            return {
                 "prompt_tokens": self.prompt_tokens,
                 "completion_tokens": self.completion_tokens,
                 "total_tokens": self.total_tokens,
             }
-            return {key: value for key, value in data.items() if not exclude_none or value is not None}
 
 from .contract import InferenceRequest
 from .provider import CopilotInferenceProvider
 from .types import InferenceConfig
 
-@lru_cache(maxsize=32)
-def _pretokenizer_for_model(_model: str | None) -> ByteLevel:
+@lru_cache(maxsize=None)
+def _pretokenizer() -> ByteLevel:
+    """Cache the shared ByteLevel pre-tokenizer used for offline token-count estimates."""
     return ByteLevel(add_prefix_space=False, use_regex=True)
 
 
 def estimate_tokens_from_text(text: str, *, model: str | None = None) -> int:
     """Return a library-derived token estimate for text."""
+    _ = model
     if not text:
         return 0
-    return len(_pretokenizer_for_model(model).pre_tokenize_str(text))
+    return len(_pretokenizer().pre_tokenize_str(text))
 
 
 def _coerce_usage_mapping(usage: Any) -> Mapping[str, Any]:

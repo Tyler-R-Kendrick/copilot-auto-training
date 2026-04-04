@@ -12,7 +12,7 @@ DEFAULT_COPILOT_MODEL = "default"
 
 def find_repo_root(start_path: str) -> Path:
     path = Path(start_path).resolve()
-    candidates = [path.parent, *path.parents]
+    candidates = list(path.parents)
     for candidate in candidates:
         if (candidate / ".env").exists():
             return candidate

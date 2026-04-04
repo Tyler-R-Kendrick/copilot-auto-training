@@ -19,16 +19,18 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from copilot_runtime import InferenceRequest, create_runtime_client
-from copilot_runtime.client import estimate_prompt_tokens, estimate_tokens_from_text
+from copilot_runtime.client import build_completion_usage
 
 
 ENGINEER_PROMPT_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = ENGINEER_PROMPT_DIR.parents[1]
 DEFAULT_PROGRAM_FILE_PATH = ENGINEER_PROMPT_DIR / "assets" / "prompt_program_optimized.json"
+# Support both ${name} shell-style placeholders and {{name}} template-style placeholders.
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]+\}|\{\{[^}]+\}\}")
 MARKDOWN_TOKENS = ("#", "- ", "1.", "```")
 EMPTY_CONSTRAINT_MARKER = "<none>"
-# Disable demonstrations so the compiled artifact stays close to a clean checked-in markdown prompt.
+# Disable DSPy demonstrations (few-shot examples) so the compiled artifact stays close to a clean
+# checked-in markdown prompt and avoids injecting optimizer-generated examples into the saved program.
 MAX_DEMO_COUNT = 0
 DEFAULT_MIN_BODY_LENGTH = 40
 DEFAULT_MAX_BODY_LENGTH_MULTIPLIER = 2
@@ -210,8 +212,8 @@ def prompt_metric(example: Any, pred: Any, _trace: Any = None) -> float:
 
 def _task_variants(task: PromptOptimizationTask) -> list[dict[str, str]]:
     variants: list[dict[str, str]] = []
-    for focus_area in ((), *DEFAULT_VARIANT_FOCUS_AREAS):
-        instructions = "\n".join([*task.optimization_instructions, *focus_area])
+    for additional_instructions in ((), *DEFAULT_VARIANT_FOCUS_AREAS):
+        instructions = "\n".join([*task.optimization_instructions, *additional_instructions])
         variants.append(
             {
                 "optimization_goal": task.optimization_goal,
@@ -263,7 +265,8 @@ def _run_async(coro: Any) -> Any:
     raise RuntimeError(
         "Copilot-backed prompt optimization cannot run inside an active event loop. "
         "DSPy calls this optimizer synchronously, so run this script outside of an async context or invoke it in a "
-        "separate process, for example: python skills/engineer-prompt/scripts/optimize_prompt.py --optimize ..."
+        "separate process, for example: python skills/engineer-prompt/scripts/optimize_prompt.py --optimize "
+        "--prompt-file path/to/prompt.md"
     )
 
 
@@ -302,11 +305,12 @@ def _build_copilot_dspy_lm(dspy: Any, *, client: Any, model: str, temperature: f
                     "signed-in GitHub Copilot session and that the selected Copilot model is available in this "
                     "repository."
                 ) from exc
-            usage = dict(response.usage or {})
-            prompt_tokens = estimate_prompt_tokens(request_messages)
-            usage.setdefault("prompt_tokens", prompt_tokens)
-            usage.setdefault("completion_tokens", estimate_tokens_from_text(response.text))
-            usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
+            usage = build_completion_usage(
+                response.usage,
+                messages=request_messages,
+                text=response.text,
+                model=self.model,
+            )
             return SimpleNamespace(
                 choices=[SimpleNamespace(message=SimpleNamespace(content=response.text))],
                 usage=usage,
@@ -487,7 +491,7 @@ def main() -> int:
         written = _write_output(markdown, output_file=args.output_file, in_place=args.in_place, prompt_path=task.prompt_path)
     except FileNotFoundError as exc:  # pragma: no cover - exercised via CLI path
         missing_path = exc.filename or str(exc)
-        print(f"File not found: {missing_path}", file=sys.stderr)
+        print(f"File not found: {missing_path}. Verify the referenced path is correct.", file=sys.stderr)
         return 1
     except ImportError as exc:  # pragma: no cover - exercised via CLI path
         print(f"Missing dependency for prompt optimization: {exc}", file=sys.stderr)
