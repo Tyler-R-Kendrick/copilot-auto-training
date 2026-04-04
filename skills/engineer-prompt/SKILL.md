@@ -6,7 +6,6 @@ compatibility: Requires Python 3.11+. Designed for markdown-first prompt work in
 metadata:
   author: Tyler Kendrick
   version: "0.2.0"
-
 ---
 
 # Engineer Prompt
