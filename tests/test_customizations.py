@@ -18,10 +18,15 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
 AGENT_SKILLS_UVX_BOOTSTRAP = (
-    "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
     "&& exec uvx --from "
-    "git+https://github.com/Tyler-R-Kendrick/copilot-apo#subdirectory=tools/agent-skills-mcp "
+    "git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
     "agent-skills-mcp"
+)
+AGENT_SKILLS_PREFLIGHT = (
+    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
+    "&& uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
+    'python -c "import agent_skills_mcp"'
 )
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
@@ -645,6 +650,9 @@ class TestInstructionCustomization:
         assert 'skill contracts live in `skills/*/SKILL.md`, authored evals live in adjacent `evals/evals.json`, and executable code belongs under `skills/*/scripts/`.' in text
         assert '`trainer-optimize` is a single-shot optimizer.' in text
         assert '[instructions/prompt-optimization.instructions.md](instructions/prompt-optimization.instructions.md)' in text
+        assert '[instructions/agentic-workflow-editing.instructions.md](instructions/agentic-workflow-editing.instructions.md)' in text
+        assert '`agentic-workflow-validation` hook' in text
+        assert '`gh aw compile <workflow-name>`' in text
         assert '`trainer-optimize` requires explicit `train.jsonl` and `val.jsonl` inputs' in text
 
     def test_prompt_file_instruction_exists_with_scalar_applyto(self):
@@ -653,6 +661,15 @@ class TestInstructionCustomization:
 
         assert 'applyTo: "**/{*.prompt.md,*.prompty,*.instructions.md,SKILL.md,AGENTS.md,*.agent.md}"' in text
         assert 'Use the `trainer-optimize` skill for single-shot optimization, `trainer-election` only for external leader selection' in text
+
+    def test_agentic_workflow_instruction_exists_with_scalar_applyto(self):
+        instructions_path = REPO_ROOT / ".github" / "instructions" / "agentic-workflow-editing.instructions.md"
+        text = _read(instructions_path)
+
+        assert 'applyTo: ".github/workflows/*.md"' in text
+        assert 'run `gh aw compile <workflow-name>` before finishing' in text
+        assert '`agentic-workflow-validation` hook' in text
+        assert 'Do not rely on the stop hook as the primary mechanism' in text
 
     def test_evals_dataset_instruction_exists(self):
         instructions_path = REPO_ROOT / ".github" / "instructions" / "evals-dataset.instructions.md"
@@ -1595,6 +1612,16 @@ class TestTrainPromptWorkflow:
         assert isinstance(safe_outputs, dict), "Expected safe-outputs to be a YAML mapping"
         return safe_outputs
 
+    def _source_steps(self, text: str | None = None) -> list[dict]:
+        text = _read(self.WORKFLOW_MD) if text is None else text
+        frontmatter = self._parse_frontmatter_yaml(text)
+        parsed = yaml.safe_load(frontmatter)
+        assert isinstance(parsed, dict), "Expected workflow frontmatter to parse as a YAML mapping"
+        assert "steps" in parsed, "Expected workflow frontmatter to define steps"
+        steps = parsed["steps"]
+        assert isinstance(steps, list), "Expected steps to be a YAML list"
+        return steps
+
     def test_source_create_pull_request_has_no_allowed_files_restriction(self):
         config = self._source_create_pull_request_config()
         assert "allowed-files" not in config, (
@@ -1667,6 +1694,74 @@ class TestTrainPromptWorkflow:
             "train-prompt.md should explicitly name trainer workspace stage directories that must be ignored during candidate analysis."
         )
 
+    def test_source_requires_compile_loop_for_selected_workflow_targets(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "If the selected target is a workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:" in text, (
+            "train-prompt.md should explicitly require gh aw compilation when it optimizes a workflow source file."
+        )
+
+    def test_source_distinguishes_target_compile_loop_from_self_check(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "target-specific compile loop that is separate from repository-level lockfile maintenance for stale agentic workflow sources" in text, (
+            "train-prompt.md should distinguish workflow-target compilation from separate repository-level lockfile repair."
+        )
+        assert "including `train-prompt.md`; changes to `train-prompt.md` do not take effect until `train-prompt.lock.yml` has already been regenerated, so do not rely on this workflow to repair its own lockfile before activation" in text, (
+            "train-prompt.md should explain that runtime changes in train-prompt cannot self-heal a stale train-prompt lockfile before activation."
+        )
+
+    def test_source_requires_selected_workflow_targets_to_recompile_before_validation(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation" in text, (
+            "train-prompt.md should require running gh aw compile before validation for selected workflow sources."
+        )
+        assert "confirm the corresponding `.lock.yml` is present and in sync with no remaining diff after that final compile" in text, (
+            "train-prompt.md should require the final workflow-target validation compile to leave no remaining lockfile diff."
+        )
+
+    def test_source_requires_selected_workflow_targets_to_include_lockfile(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set" in text, (
+            "train-prompt.md should require including the compiled lock file alongside workflow source edits."
+        )
+
+    def test_source_blocks_pr_when_selected_workflow_target_compile_fails(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request" in text, (
+            "train-prompt.md should block PR creation when an edited workflow target cannot be recompiled cleanly."
+        )
+
+    def test_source_does_not_define_runtime_self_heal_steps_for_train_prompt(self):
+        steps = self._source_steps()
+        assert [step.get("name") for step in steps] == [
+            "Validate GitHub token for MCP startup",
+            "Validate agent-skills MCP bootstrap",
+        ], (
+            "train-prompt.md should define only preflight steps that fail early for missing MCP tokens "
+            "or agent-skills bootstrap/install errors."
+        )
+
+    def test_source_preflights_github_token_for_mcp_startup(self):
+        steps = self._source_steps()
+        token_step = next(step for step in steps if step.get("name") == "Validate GitHub token for MCP startup")
+        assert token_step["env"] == {
+            "GH_AW_GITHUB_MCP_SERVER_TOKEN": "${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}",
+            "GH_AW_GITHUB_TOKEN": "${{ secrets.GH_AW_GITHUB_TOKEN }}",
+            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+        }
+        assert "Missing GitHub token for MCP startup" in token_step["run"]
+        assert 'if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then' in token_step["run"]
+
+    def test_source_preflights_agent_skills_bootstrap_install(self):
+        steps = self._source_steps()
+        bootstrap_step = next(step for step in steps if step.get("name") == "Validate agent-skills MCP bootstrap")
+        assert bootstrap_step["run"] == AGENT_SKILLS_PREFLIGHT
+
+    def test_source_directs_stale_lockfile_repairs_to_manual_workflow(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "run the manual `Refresh gh-aw workflow lockfiles` workflow so GitHub Actions can regenerate lockfiles and open a reviewable pull request before rerunning `train-prompt`" in text, (
+            "train-prompt.md should direct stale workflow-lockfile recovery to the manual lock-refresh workflow instead of claiming it can self-heal before activation."
+        )
+
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
         runtime = self._source_agent_skills_runtime()
         assert runtime.get("command") == "/bin/sh", (
@@ -1732,6 +1827,32 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should not configure add_reviewer because fallback "
             "issue creation leaves no pull request context for reviewer automation."
         )
+
+    def test_lock_does_not_run_runtime_self_heal_compile_for_train_prompt(self):
+        agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
+        pre_activation_compile_step = next((step for step in agent_steps if step.get("name") == "Verify train-prompt workflow compile state"), None)
+        assert pre_activation_compile_step is None, (
+            "train-prompt.lock.yml should not contain a runtime compile self-heal step because agent job steps do not execute before activation."
+        )
+
+    def test_lock_preflights_mcp_token_and_agent_skills_bootstrap(self):
+        text = self._lock_text()
+        assert "name: Validate GitHub token for MCP startup" in text
+        assert "name: Validate agent-skills MCP bootstrap" in text
+        assert "Missing GitHub token for MCP startup" in text
+        assert "uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c \"import agent_skills_mcp\"" in text
+
+    def test_source_steps_helper_rejects_missing_steps_key(self):
+        with pytest.raises(AssertionError, match="Expected workflow frontmatter to define steps"):
+            self._source_steps("---\nname: Missing steps\n---\nBody\n")
+
+    def test_source_steps_helper_rejects_non_list_steps(self):
+        with pytest.raises(AssertionError, match="Expected steps to be a YAML list"):
+            self._source_steps("---\nsteps: invalid\n---\nBody\n")
+
+    def test_source_steps_helper_rejects_malformed_yaml(self):
+        with pytest.raises(yaml.YAMLError, match="while parsing a flow node"):
+            self._source_steps("---\nsteps: [\n---\nBody\n")
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
         text = self._lock_text()
@@ -1825,4 +1946,53 @@ class TestTrainPromptWorkflow:
             "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
             "Process Safe Outputs github-script step so create_pull_request does not fall "
             "back to a token that cannot open pull requests."
+        )
+
+
+class TestRefreshGhAwWorkflowLockfilesWorkflow:
+    WORKFLOW_YML = REPO_ROOT / ".github" / "workflows" / "refresh-gh-aw-workflow-lockfiles.yml"
+
+    def _workflow_yaml(self) -> dict:
+        parsed = yaml.safe_load(_read(self.WORKFLOW_YML))
+        assert isinstance(parsed, dict), "Expected refresh-gh-aw-workflow-lockfiles.yml to parse as a YAML mapping"
+        return parsed
+
+    def _workflow_on(self) -> dict:
+        parsed = self._workflow_yaml()
+        workflow_on = parsed.get("on", parsed.get(True))
+        assert isinstance(workflow_on, dict), "Expected workflow `on` block to parse as a YAML mapping"
+        return workflow_on
+
+    def test_workflow_exists(self):
+        assert self.WORKFLOW_YML.is_file(), f"refresh-gh-aw-workflow-lockfiles.yml not found: {self.WORKFLOW_YML}"
+
+    def test_workflow_is_manually_dispatchable(self):
+        assert self._workflow_on() == {"workflow_dispatch": None}, (
+            "refresh-gh-aw-workflow-lockfiles.yml should be a manual recovery workflow."
+        )
+
+    def test_workflow_can_write_contents_and_pull_requests(self):
+        parsed = self._workflow_yaml()
+        assert parsed.get("permissions") == {"contents": "write", "pull-requests": "write"}, (
+            "refresh-gh-aw-workflow-lockfiles.yml should be able to commit regenerated lockfiles and open a pull request."
+        )
+
+    def test_workflow_compiles_top_level_agentic_workflows_only(self):
+        steps = self._workflow_yaml()["jobs"]["refresh-lockfiles"]["steps"]
+        compile_step = next((step for step in steps if step.get("name") == "Compile top-level gh-aw workflows"), None)
+        assert compile_step is not None, "Expected a compile step in refresh-gh-aw-workflow-lockfiles.yml"
+        run = compile_step.get("run", "")
+        assert "find .github/workflows -maxdepth 1 -type f -name '*.md'" in run, (
+            "refresh-gh-aw-workflow-lockfiles.yml should compile top-level gh-aw workflow sources without traversing shared imports."
+        )
+        assert 'gh aw compile "${workflow%.md}"' in run, (
+            "refresh-gh-aw-workflow-lockfiles.yml should compile each discovered workflow source by workflow id."
+        )
+
+    def test_workflow_opens_pull_request_only_when_diff_exists(self):
+        steps = self._workflow_yaml()["jobs"]["refresh-lockfiles"]["steps"]
+        pr_step = next((step for step in steps if step.get("name") == "Create pull request for regenerated lockfiles"), None)
+        assert pr_step is not None, "Expected a PR creation step in refresh-gh-aw-workflow-lockfiles.yml"
+        assert pr_step.get("uses") == "peter-evans/create-pull-request@v7", (
+            "refresh-gh-aw-workflow-lockfiles.yml should use create-pull-request so no PR is opened when compilation produces no diff."
         )

@@ -41,6 +41,29 @@ class TestCopilotConfig:
         settings = optimize_config.resolve_model_settings(str(prompt_path))
 
         assert settings["model"] == "default"
+        assert settings["timeout_seconds"] == 180
+
+    def test_resolve_model_settings_uses_copilot_timeout_override(self, tmp_path):
+        prompt_path = _write_repo_env(
+            tmp_path,
+            "COPILOT_MODEL=default",
+            "COPILOT_TIMEOUT_SECONDS=240",
+        )
+
+        settings = optimize_config.resolve_model_settings(str(prompt_path))
+
+        assert settings["timeout_seconds"] == 240
+
+    def test_resolve_model_settings_defaults_invalid_timeout_override(self, tmp_path):
+        prompt_path = _write_repo_env(
+            tmp_path,
+            "COPILOT_MODEL=default",
+            "COPILOT_TIMEOUT_SECONDS=0",
+        )
+
+        settings = optimize_config.resolve_model_settings(str(prompt_path))
+
+        assert settings["timeout_seconds"] == 180
 
     def test_create_openai_client_returns_provider_backed_client_for_copilot(self, tmp_path, monkeypatch):
         prompt_path = _write_repo_env(
@@ -56,6 +79,7 @@ class TestCopilotConfig:
 
         assert isinstance(client, ProviderBackedOpenAIClient)
         assert settings["model"] == "default"
+        assert client.provider.config.timeout_seconds == 180
 
 
 class TestCopilotProvider:

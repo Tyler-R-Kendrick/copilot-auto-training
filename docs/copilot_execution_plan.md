@@ -22,9 +22,11 @@ Set the repository root `.env` like this:
 
 ```dotenv
 COPILOT_MODEL=default
+COPILOT_TIMEOUT_SECONDS=180
 ```
 
 The runtime initializes the Python Copilot SDK and uses the logged-in Copilot user session managed by that SDK.
+If `COPILOT_TIMEOUT_SECONDS` is unset, the provider uses a 180-second per-request timeout to reduce avoidable validation failures on slower runs.
 
 ## Supported environments
 

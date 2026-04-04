@@ -20,6 +20,46 @@ permissions:
 
 engine: copilot
 
+steps:
+  - name: Validate GitHub token for MCP startup
+    env:
+      GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
+      GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      set -euo pipefail
+      if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        exit 0
+      fi
+      echo "::error::Missing GitHub token for MCP startup. Set GH_AW_GITHUB_MCP_SERVER_TOKEN or GH_AW_GITHUB_TOKEN, or enable GITHUB_TOKEN."
+      exit 1
+  - name: Start agent-skills MCP server
+    run: |
+      set -euo pipefail
+      mkdir -p /tmp/gh-aw
+      # Override XDG_RUNTIME_DIR so post-tool hooks can write PID files
+      echo "XDG_RUNTIME_DIR=/tmp" >> "$GITHUB_ENV"
+      export MCP_TRANSPORT=streamable-http
+      export MCP_PORT=3002
+      export MCP_HOST=0.0.0.0
+      export AGENT_SKILLS_RUN_CWD="${GITHUB_WORKSPACE}"
+      export AGENT_SKILLS_REPO_ROOT="${GITHUB_WORKSPACE}"
+      # Use the local repo checkout to avoid slow git-clone startup
+      cd "${GITHUB_WORKSPACE}"
+      nohup uv run --with ./tools/agent-skills-mcp python ./tools/agent-skills-mcp/server.py \
+        > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &
+      echo "Waiting for agent-skills MCP server to start on port 3002..."
+      for i in $(seq 1 60); do
+        if timeout 1 bash -c "echo >/dev/tcp/localhost/3002" 2>/dev/null; then
+          echo "agent-skills MCP server ready (attempt $i)"
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "::error::agent-skills MCP server did not start within 60 seconds"
+      cat /tmp/gh-aw/agent-skills-mcp.log || true
+      exit 1
+
 tools:
   github:
     toolsets: [default]
@@ -111,22 +151,31 @@ Select exactly one prompt-like source file in this repository, run the repositor
 8. Ensure the active iteration stages the original prompt, the strongest student candidate, and the strongest adversary candidate under `candidates/original/`, `candidates/student/`, and `candidates/adversary/`, along with candidate descriptions, predicted judge responses, and reflection artifacts that the judge can inspect.
 9. If an adversary candidate wins or reveals a credible exploit, record extra judge steering that blocks the exploit in future judging. If the old prompt wins, record extra teacher steering that explains what the student should change next.
 10. If the trainer workflow produces a defensible optimized prompt candidate, persist that chosen result back to the selected source file before final validation.
-11. Keep the change set tightly scoped to:
+11. If the selected target is a workflow source under `.github/workflows/*.md`, treat compilation as mandatory workflow maintenance:
+    - treat this as a target-specific compile loop that is separate from repository-level lockfile maintenance for stale agentic workflow sources
+    - apply this target-specific loop whenever the selected optimization target is an agentic workflow source, including `train-prompt.md`; changes to `train-prompt.md` do not take effect until `train-prompt.lock.yml` has already been regenerated, so do not rely on this workflow to repair its own lockfile before activation
+    - run `gh aw compile <workflow-name>` after editing that workflow source and again before final validation
+    - keep the generated `.github/workflows/<workflow-name>.lock.yml` in sync with the source file and include it in the change set
+    - if compilation fails or the lock file still differs from the compiled output, record the command output in the selected local workspace validation artifacts and stop instead of opening a pull request
+12. If a run starts with any stale `.github/workflows/*.lock.yml` file already checked in, stop relying on `train-prompt` for first-pass repair. Instead, run the manual `Refresh gh-aw workflow lockfiles` workflow so GitHub Actions can regenerate lockfiles and open a reviewable pull request before rerunning `train-prompt`.
+13. Keep the change set tightly scoped to:
     - the selected prompt-like file
+    - the compiled `.lock.yml` generated from a selected `.github/workflows/*.md` target
     - its local `.trainer-workspace/<prompt-name>/` artifacts
     - directly related supporting prompt-evaluation assets created by the trainer loop
-12. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
+14. Do not modify unrelated prompts, skills, agents, workflow files, or repo-root `*-workspace` trees.
 
 ## Validation
 
-1. Run repository validation with:
+1. If the selected target is an agentic workflow source under `.github/workflows/*.md`, rerun `gh aw compile <workflow-name>` as a final pre-validation check and confirm the corresponding `.lock.yml` is present and in sync with no remaining diff after that final compile.
+2. Run repository validation with:
 
    ```bash
    python -m pytest -q
    ```
 
-2. If validation fails, do not open a pull request. Instead, stop after recording the failure details in the selected local workspace.
-3. If the trainer loop produces no meaningful repository diff, do not open a pull request.
+3. If validation fails, do not open a pull request. Instead, stop after recording the failure details in the selected local workspace.
+4. If the trainer loop produces no meaningful repository diff, do not open a pull request.
 
 ## Pull Request
 

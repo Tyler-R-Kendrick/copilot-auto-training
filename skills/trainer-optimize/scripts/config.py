@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from inference.config import InferenceConfig
 from training.lightning_integration import build_runtime_client
 
 
 DEFAULT_COPILOT_MODEL = "default"
+DEFAULT_COPILOT_TIMEOUT_SECONDS = 180
+
+
+class ModelSettings(TypedDict):
+    """Optimizer runtime settings resolved from the repository environment."""
+
+    model: str  # Copilot model name passed to the provider-backed client.
+    repo_root: str  # Repository root used for workspace-scoped runtime operations.
+    timeout_seconds: int  # Per-request Copilot SDK timeout after validation/defaulting.
 
 
 def find_repo_root(start_path: str) -> Path:
@@ -36,7 +45,35 @@ def load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
     return parsed
 
 
-def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
+def _resolve_int_setting_with_validation(
+    name: str,
+    *,
+    dotenv_values: dict[str, str],
+    dotenv_present: bool,
+    default: int,
+    minimum: int = 1,
+) -> int:
+    """Return a validated integer setting or the safe default.
+
+    The repository `.env` takes precedence when it exists, even if the key is
+    missing there. Process-level environment variables are only consulted when
+    no repository `.env` file is present. Non-integer values and values smaller
+    than `minimum` fall back to `default`. The `minimum` parameter defines the
+    smallest accepted value after parsing.
+    """
+    raw_value = dotenv_values.get(name)
+    if raw_value in (None, "") and not dotenv_present:
+        raw_value = os.getenv(name)
+    if raw_value in (None, ""):
+        return default
+    try:
+        parsed = int(raw_value.strip())
+    except ValueError:
+        return default
+    return parsed if parsed >= minimum else default
+
+
+def resolve_model_settings(prompt_file: str) -> ModelSettings:
     repo_root = find_repo_root(prompt_file)
     dotenv_path = repo_root / ".env"
     dotenv_values = load_dotenv_file(dotenv_path)
@@ -57,12 +94,19 @@ def resolve_model_settings(prompt_file: str) -> dict[str, str | None]:
     return {
         "model": model,
         "repo_root": str(repo_root),
+        "timeout_seconds": _resolve_int_setting_with_validation(
+            "COPILOT_TIMEOUT_SECONDS",
+            dotenv_values=dotenv_values,
+            dotenv_present=dotenv_present,
+            default=DEFAULT_COPILOT_TIMEOUT_SECONDS,
+        ),
     }
 
 
-def create_openai_client(prompt_file: str) -> tuple[Any, dict[str, str | None]]:
+def create_openai_client(prompt_file: str) -> tuple[Any, ModelSettings]:
     model_settings = resolve_model_settings(prompt_file)
     provider_config = InferenceConfig(
-        model=str(model_settings.get("model") or DEFAULT_COPILOT_MODEL),
+        model=model_settings["model"],
+        timeout_seconds=model_settings["timeout_seconds"],
     )
     return build_runtime_client(model_settings, provider_config=provider_config)

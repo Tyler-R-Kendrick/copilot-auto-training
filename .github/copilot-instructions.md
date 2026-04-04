@@ -15,6 +15,7 @@
 ## Conventions
 
 - When editing prompt-like files, agents, or instruction files, follow [instructions/prompt-optimization.instructions.md](instructions/prompt-optimization.instructions.md). When editing authored eval manifests, follow [instructions/evals-dataset.instructions.md](instructions/evals-dataset.instructions.md).
+- When editing agentic workflow source files under `.github/workflows/*.md`, follow [instructions/agentic-workflow-editing.instructions.md](instructions/agentic-workflow-editing.instructions.md), allow the `agentic-workflow-validation` hook to run, and run `gh aw compile <workflow-name>` yourself before finishing so the checked-in `.lock.yml` stays in sync.
 - Preserve prompt placeholders and keep evaluator-only fields out of prompt-visible render paths.
 - `trainer-optimize` requires explicit `train.jsonl` and `val.jsonl` inputs; do not infer or synthesize missing datasets at runtime. Use [README.md](../README.md), [docs/troubleshooting.md](../docs/troubleshooting.md), and [docs/dashboard.md](../docs/dashboard.md) for repository-wide context instead of duplicating those details here.
 - Optimization runs require model credentials from the repository root `.env`; start from [/.env.sample](../.env.sample) when you need the supported variables.
