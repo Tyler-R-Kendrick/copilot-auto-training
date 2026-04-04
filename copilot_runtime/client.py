@@ -1,43 +1,103 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from functools import lru_cache
 from types import SimpleNamespace
 from typing import Any
+
+from tokenizers.pre_tokenizers import ByteLevel
+try:
+    from openai.types import CompletionUsage
+except Exception:  # pragma: no cover - exercised by test stubs that replace openai
+    class CompletionUsage(SimpleNamespace):
+        def __init__(self, *, prompt_tokens: int, completion_tokens: int, total_tokens: int):
+            super().__init__(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
+
+        def model_dump(self, *, exclude_none: bool = False) -> dict[str, int]:
+            data = {
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "total_tokens": self.total_tokens,
+            }
+            return {key: value for key, value in data.items() if not exclude_none or value is not None}
 
 from .contract import InferenceRequest
 from .provider import CopilotInferenceProvider
 from .types import InferenceConfig
 
-CHARS_PER_TOKEN_ESTIMATE = 4
+@lru_cache(maxsize=32)
+def _pretokenizer_for_model(_model: str | None) -> ByteLevel:
+    return ByteLevel(add_prefix_space=False, use_regex=True)
 
 
-def estimate_tokens_from_text(text: str) -> int:
-    """Return 0 for empty text; otherwise use a lightweight character-count heuristic."""
-    return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
-
-
-def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
-    if not usage:
+def estimate_tokens_from_text(text: str, *, model: str | None = None) -> int:
+    """Return a library-derived token estimate for text."""
+    if not text:
         return 0
-    value = usage.get("prompt_tokens", 0)
+    return len(_pretokenizer_for_model(model).pre_tokenize_str(text))
+
+
+def _coerce_usage_mapping(usage: Any) -> Mapping[str, Any]:
+    if usage is None:
+        return {}
+    if isinstance(usage, CompletionUsage):
+        return usage.model_dump(exclude_none=True)
+    if isinstance(usage, Mapping):
+        return usage
+    if hasattr(usage, "model_dump"):
+        dumped = usage.model_dump(exclude_none=True)
+        if isinstance(dumped, Mapping):
+            return dumped
+    return {
+        key: value
+        for key in ("prompt_tokens", "completion_tokens", "output_tokens", "total_tokens")
+        if (value := getattr(usage, key, None)) is not None
+    }
+
+
+def _coerce_usage_int(value: Any) -> int | None:
     try:
         return max(0, int(value))
     except (TypeError, ValueError):
-        return 0
+        return None
 
 
-def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
-    if not usage:
-        return estimate_tokens_from_text(text)
-    value = usage.get("completion_tokens", usage.get("output_tokens", 0))
-    try:
-        return max(0, int(value))
-    except (TypeError, ValueError):
-        return estimate_tokens_from_text(text)
+def build_completion_usage(
+    usage: Any,
+    *,
+    messages: list[dict[str, Any]],
+    text: str,
+    model: str | None = None,
+) -> CompletionUsage:
+    usage_mapping = _coerce_usage_mapping(usage)
+    prompt_tokens = _coerce_usage_int(usage_mapping.get("prompt_tokens"))
+    completion_tokens = _coerce_usage_int(usage_mapping.get("completion_tokens"))
+    if completion_tokens is None:
+        completion_tokens = _coerce_usage_int(usage_mapping.get("output_tokens"))
+
+    resolved_prompt_tokens = prompt_tokens if prompt_tokens is not None else estimate_prompt_tokens(messages, model=model)
+    resolved_completion_tokens = (
+        completion_tokens if completion_tokens is not None else estimate_tokens_from_text(text, model=model)
+    )
+    total_tokens = _coerce_usage_int(usage_mapping.get("total_tokens"))
+    resolved_total_tokens = (
+        total_tokens if total_tokens is not None else resolved_prompt_tokens + resolved_completion_tokens
+    )
+
+    return CompletionUsage(
+        prompt_tokens=resolved_prompt_tokens,
+        completion_tokens=resolved_completion_tokens,
+        total_tokens=resolved_total_tokens,
+    )
 
 
-def estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
+def estimate_prompt_tokens(messages: list[dict[str, Any]], *, model: str | None = None) -> int:
     return sum(
-        estimate_tokens_from_text(str(message["content"]))
+        estimate_tokens_from_text(str(message["content"]), model=model)
         for message in messages
         if isinstance(message.get("content"), str) and message["content"]
     )
@@ -111,19 +171,10 @@ class ProviderBackedOpenAIClient:
                 metadata={"interaction": "chat.completions.create", **(metadata or {})},
             )
         )
-        prompt_tokens = estimate_prompt_tokens(messages)
-        usage = dict(result.usage or {})
-        reported_prompt_tokens = _usage_to_prompt_tokens(result.usage)
-        usage.setdefault("prompt_tokens", reported_prompt_tokens or prompt_tokens)
-        usage.setdefault("completion_tokens", _usage_to_completion_tokens(result.usage, result.text))
-        usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
+        usage = build_completion_usage(result.usage, messages=messages, text=result.text, model=model or self.default_model)
         return SimpleNamespace(
             choices=[_as_choice_message(result.text)],
-            usage=SimpleNamespace(
-                prompt_tokens=usage["prompt_tokens"],
-                completion_tokens=usage["completion_tokens"],
-                total_tokens=usage["total_tokens"],
-            ),
+            usage=usage,
             raw=result.raw,
             finish_reason=result.finish_reason,
         )

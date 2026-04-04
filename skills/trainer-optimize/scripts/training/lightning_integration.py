@@ -10,49 +10,20 @@ module and passes that concrete client into AgentLightning algorithms.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+import sys
 
+_MODULE_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _MODULE_DIR.parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from copilot_runtime.client import build_completion_usage
 from inference.config import InferenceConfig
 from inference.contract import InferenceRequest
 from inference.copilot_provider import CopilotInferenceProvider
-
-CHARS_PER_TOKEN_ESTIMATE = 4
-
-
-def _usage_to_prompt_tokens(usage: dict[str, Any] | None) -> int:
-    if not usage:
-        return 0
-    value = usage.get("prompt_tokens", 0)
-    try:
-        return max(0, int(value))
-    except (TypeError, ValueError):
-        return 0
-
-
-def _usage_to_completion_tokens(usage: dict[str, Any] | None, text: str) -> int:
-    if not usage:
-        return _estimate_tokens_from_text(text)
-    # Prefer completion_tokens when present; some Copilot SDK responses only expose output_tokens.
-    value = usage.get("completion_tokens", usage.get("output_tokens", 0))
-    try:
-        return max(0, int(value))
-    except (TypeError, ValueError):
-        return _estimate_tokens_from_text(text)
-
-
-def _estimate_tokens_from_text(text: str) -> int:
-    """Fallback heuristic when the provider does not return token usage."""
-    return max(1, len(text) // CHARS_PER_TOKEN_ESTIMATE) if text else 0
-
-
-def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
-    return sum(
-        _estimate_tokens_from_text(str(message["content"]))
-        for message in messages
-        if isinstance(message.get("content"), str) and message["content"]
-    )
-
 
 def _as_choice_message(text: str) -> Any:
     return SimpleNamespace(message=SimpleNamespace(content=text))
@@ -165,19 +136,10 @@ class ProviderBackedOpenAIClient:
                 metadata={"interaction": "chat.completions.create", **(metadata or {})},
             )
         )
-        prompt_tokens = _estimate_prompt_tokens(messages)
-        usage = dict(result.usage or {})
-        reported_prompt_tokens = _usage_to_prompt_tokens(result.usage)
-        usage.setdefault("prompt_tokens", reported_prompt_tokens or prompt_tokens)
-        usage.setdefault("completion_tokens", _usage_to_completion_tokens(result.usage, result.text))
-        usage.setdefault("total_tokens", usage["prompt_tokens"] + usage["completion_tokens"])
+        usage = build_completion_usage(result.usage, messages=messages, text=result.text, model=model or self.default_model)
         return SimpleNamespace(
             choices=[_as_choice_message(result.text)],
-            usage=SimpleNamespace(
-                prompt_tokens=usage["prompt_tokens"],
-                completion_tokens=usage["completion_tokens"],
-                total_tokens=usage["total_tokens"],
-            ),
+            usage=usage,
             raw=result.raw,
             finish_reason=result.finish_reason,
         )
