@@ -37,7 +37,9 @@ steps:
     run: |
       set -euo pipefail
       mkdir -p /tmp/gh-aw
-      export MCP_TRANSPORT=sse
+      # Override XDG_RUNTIME_DIR so post-tool hooks can write PID files
+      echo "XDG_RUNTIME_DIR=/tmp" >> "$GITHUB_ENV"
+      export MCP_TRANSPORT=streamable-http
       export MCP_PORT=3002
       export MCP_HOST=0.0.0.0
       export AGENT_SKILLS_RUN_CWD="${GITHUB_WORKSPACE}"

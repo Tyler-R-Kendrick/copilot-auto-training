@@ -29,7 +29,7 @@
 #     - shared/repo-runtime-context.md
 #     - shared/trainer-loop-contract.md
 #
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"a63d456bbbc548d5d4a2091b6ebbd4687be14451449867213679a70f8ced078f","compiler_version":"v0.66.1","strict":true,"agent_id":"copilot"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"0e98c8a811df47531c77a43756ef87d9eec21c33864852f9183c7422204808eb","compiler_version":"v0.66.1","strict":true,"agent_id":"copilot"}
 
 name: "Train Prompt"
 "on":
@@ -144,19 +144,19 @@ jobs:
         run: |
           bash ${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh
           {
-          cat << 'GH_AW_PROMPT_a82d10b8951cf726_EOF'
+          cat << 'GH_AW_PROMPT_eccf001bc556664e_EOF'
           <system>
-          GH_AW_PROMPT_a82d10b8951cf726_EOF
+          GH_AW_PROMPT_eccf001bc556664e_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_a82d10b8951cf726_EOF'
+          cat << 'GH_AW_PROMPT_eccf001bc556664e_EOF'
           <safe-output-tools>
           Tools: create_pull_request, missing_tool, missing_data, noop
-          GH_AW_PROMPT_a82d10b8951cf726_EOF
+          GH_AW_PROMPT_eccf001bc556664e_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_create_pull_request.md"
-          cat << 'GH_AW_PROMPT_a82d10b8951cf726_EOF'
+          cat << 'GH_AW_PROMPT_eccf001bc556664e_EOF'
           </safe-output-tools>
           <github-context>
           The following GitHub context information is available for this workflow:
@@ -186,16 +186,16 @@ jobs:
           {{/if}}
           </github-context>
           
-          GH_AW_PROMPT_a82d10b8951cf726_EOF
+          GH_AW_PROMPT_eccf001bc556664e_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_a82d10b8951cf726_EOF'
+          cat << 'GH_AW_PROMPT_eccf001bc556664e_EOF'
           </system>
           {{#runtime-import .github/agents/trainer.agent.md}}
           {{#runtime-import .github/workflows/shared/agent-skills-runtime.md}}
           {{#runtime-import .github/workflows/shared/trainer-loop-contract.md}}
           {{#runtime-import .github/workflows/shared/repo-runtime-context.md}}
           {{#runtime-import .github/workflows/train-prompt.md}}
-          GH_AW_PROMPT_a82d10b8951cf726_EOF
+          GH_AW_PROMPT_eccf001bc556664e_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -327,7 +327,7 @@ jobs:
           echo "::error::Missing GitHub token for MCP startup. Set GH_AW_GITHUB_MCP_SERVER_TOKEN or GH_AW_GITHUB_TOKEN, or enable GITHUB_TOKEN."
           exit 1
       - name: Start agent-skills MCP server
-        run: "set -euo pipefail\nmkdir -p /tmp/gh-aw\nexport MCP_TRANSPORT=sse\nexport MCP_PORT=3002\nexport MCP_HOST=0.0.0.0\nexport AGENT_SKILLS_RUN_CWD=\"${GITHUB_WORKSPACE}\"\nexport AGENT_SKILLS_REPO_ROOT=\"${GITHUB_WORKSPACE}\"\n# Use the local repo checkout to avoid slow git-clone startup\ncd \"${GITHUB_WORKSPACE}\"\nnohup uv run --with ./tools/agent-skills-mcp python ./tools/agent-skills-mcp/server.py \\\n  > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &\necho \"Waiting for agent-skills MCP server to start on port 3002...\"\nfor i in $(seq 1 60); do\n  if timeout 1 bash -c \"echo >/dev/tcp/localhost/3002\" 2>/dev/null; then\n    echo \"agent-skills MCP server ready (attempt $i)\"\n    exit 0\n  fi\n  sleep 1\ndone\necho \"::error::agent-skills MCP server did not start within 60 seconds\"\ncat /tmp/gh-aw/agent-skills-mcp.log || true\nexit 1\n"
+        run: "set -euo pipefail\nmkdir -p /tmp/gh-aw\n# Override XDG_RUNTIME_DIR so post-tool hooks can write PID files\necho \"XDG_RUNTIME_DIR=/tmp\" >> \"$GITHUB_ENV\"\nexport MCP_TRANSPORT=streamable-http\nexport MCP_PORT=3002\nexport MCP_HOST=0.0.0.0\nexport AGENT_SKILLS_RUN_CWD=\"${GITHUB_WORKSPACE}\"\nexport AGENT_SKILLS_REPO_ROOT=\"${GITHUB_WORKSPACE}\"\n# Use the local repo checkout to avoid slow git-clone startup\ncd \"${GITHUB_WORKSPACE}\"\nnohup uv run --with ./tools/agent-skills-mcp python ./tools/agent-skills-mcp/server.py \\\n  > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &\necho \"Waiting for agent-skills MCP server to start on port 3002...\"\nfor i in $(seq 1 60); do\n  if timeout 1 bash -c \"echo >/dev/tcp/localhost/3002\" 2>/dev/null; then\n    echo \"agent-skills MCP server ready (attempt $i)\"\n    exit 0\n  fi\n  sleep 1\ndone\necho \"::error::agent-skills MCP server did not start within 60 seconds\"\ncat /tmp/gh-aw/agent-skills-mcp.log || true\nexit 1\n"
 
       - name: Configure Git credentials
         env:
@@ -378,12 +378,12 @@ jobs:
           mkdir -p ${RUNNER_TEMP}/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_d81b3a31bca4bc41_EOF'
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_8ef290718f5783b0_EOF'
           {"create_pull_request":{"github-token":"${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}","max":1,"max_patch_size":1024,"protected_files":["package.json","bun.lockb","bunfig.toml","deno.json","deno.jsonc","deno.lock","global.json","NuGet.Config","Directory.Packages.props","mix.exs","mix.lock","go.mod","go.sum","stack.yaml","stack.yaml.lock","pom.xml","build.gradle","build.gradle.kts","settings.gradle","settings.gradle.kts","gradle.properties","package-lock.json","yarn.lock","pnpm-lock.yaml","npm-shrinkwrap.json","requirements.txt","Pipfile","Pipfile.lock","pyproject.toml","setup.py","setup.cfg","Gemfile","Gemfile.lock","uv.lock","CODEOWNERS"],"protected_files_policy":"allowed","protected_path_prefixes":[".github/",".agents/"]},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_d81b3a31bca4bc41_EOF
+          GH_AW_SAFE_OUTPUTS_CONFIG_8ef290718f5783b0_EOF
       - name: Write Safe Outputs Tools
         run: |
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_c7cd6e3c4baee659_EOF'
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_26a279390898fe87_EOF'
           {
             "description_suffixes": {
               "create_pull_request": " CONSTRAINTS: Maximum 1 pull request(s) can be created."
@@ -391,8 +391,8 @@ jobs:
             "repo_params": {},
             "dynamic_tools": []
           }
-          GH_AW_SAFE_OUTPUTS_TOOLS_META_c7cd6e3c4baee659_EOF
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_ec3d20ca5efd8f7e_EOF'
+          GH_AW_SAFE_OUTPUTS_TOOLS_META_26a279390898fe87_EOF
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_557eddbb1d77ee75_EOF'
           {
             "create_pull_request": {
               "defaultMax": 1,
@@ -488,7 +488,7 @@ jobs:
               }
             }
           }
-          GH_AW_SAFE_OUTPUTS_VALIDATION_ec3d20ca5efd8f7e_EOF
+          GH_AW_SAFE_OUTPUTS_VALIDATION_557eddbb1d77ee75_EOF
           node ${RUNNER_TEMP}/gh-aw/actions/generate_safe_outputs_tools.cjs
       - name: Generate Safe Outputs MCP Server Config
         id: safe-outputs-config
@@ -558,12 +558,12 @@ jobs:
           export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e MCP_GATEWAY_PAYLOAD_DIR -e MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD -e DEBUG -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_GUARD_MIN_INTEGRITY -e GITHUB_MCP_GUARD_REPOS -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_RUN_NUMBER -e GITHUB_RUN_ATTEMPT -e GITHUB_JOB -e GITHUB_ACTION -e GITHUB_EVENT_NAME -e GITHUB_EVENT_PATH -e GITHUB_ACTOR -e GITHUB_ACTOR_ID -e GITHUB_TRIGGERING_ACTOR -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF -e GITHUB_WORKFLOW_SHA -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_REF_TYPE -e GITHUB_HEAD_REF -e GITHUB_BASE_REF -e GH_AW_SAFE_OUTPUTS_PORT -e GH_AW_SAFE_OUTPUTS_API_KEY -v /tmp/gh-aw/mcp-payloads:/tmp/gh-aw/mcp-payloads:rw -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:v0.2.12'
           
           mkdir -p /home/runner/.copilot
-          cat << GH_AW_MCP_CONFIG_457cc0e02f037e2e_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
+          cat << GH_AW_MCP_CONFIG_293948f3a5763206_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
           {
             "mcpServers": {
               "agent-skills": {
                 "type": "http",
-                "url": "http://host.docker.internal:3002/sse",
+                "url": "http://host.docker.internal:3002/mcp",
                 "tools": [
                   "find_agent_skill",
                   "load_agent_skill",
@@ -615,7 +615,7 @@ jobs:
               "payloadDir": "${MCP_GATEWAY_PAYLOAD_DIR}"
             }
           }
-          GH_AW_MCP_CONFIG_457cc0e02f037e2e_EOF
+          GH_AW_MCP_CONFIG_293948f3a5763206_EOF
       - name: Download activation artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
