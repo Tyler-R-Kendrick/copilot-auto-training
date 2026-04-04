@@ -644,6 +644,9 @@ class TestInstructionCustomization:
         assert 'skill contracts live in `skills/*/SKILL.md`, authored evals live in adjacent `evals/evals.json`, and executable code belongs under `skills/*/scripts/`.' in text
         assert '`trainer-optimize` is a single-shot optimizer.' in text
         assert '[instructions/prompt-optimization.instructions.md](instructions/prompt-optimization.instructions.md)' in text
+        assert '[instructions/agentic-workflow-editing.instructions.md](instructions/agentic-workflow-editing.instructions.md)' in text
+        assert '`agentic-workflow-validation` hook' in text
+        assert '`gh aw compile <workflow-name>`' in text
         assert '`trainer-optimize` requires explicit `train.jsonl` and `val.jsonl` inputs' in text
 
     def test_prompt_file_instruction_exists_with_scalar_applyto(self):
@@ -652,6 +655,15 @@ class TestInstructionCustomization:
 
         assert 'applyTo: "**/{*.prompt.md,*.prompty,*.instructions.md,SKILL.md,AGENTS.md,*.agent.md}"' in text
         assert 'Use the `trainer-optimize` skill for single-shot optimization, `trainer-election` only for external leader selection' in text
+
+    def test_agentic_workflow_instruction_exists_with_scalar_applyto(self):
+        instructions_path = REPO_ROOT / ".github" / "instructions" / "agentic-workflow-editing.instructions.md"
+        text = _read(instructions_path)
+
+        assert 'applyTo: ".github/workflows/*.md"' in text
+        assert 'run `gh aw compile <workflow-name>` before finishing' in text
+        assert '`agentic-workflow-validation` hook' in text
+        assert 'Do not rely on the stop hook as the primary mechanism' in text
 
     def test_evals_dataset_instruction_exists(self):
         instructions_path = REPO_ROOT / ".github" / "instructions" / "evals-dataset.instructions.md"
