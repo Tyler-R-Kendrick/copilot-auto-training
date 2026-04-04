@@ -102,7 +102,7 @@ Select exactly one prompt-like source file in this repository, run the repositor
    - strip `.prompty` entirely
    - otherwise strip only the final extension
    - examples:
-     - `skills/trainer-research/SKILL.md` -> `skills/trainer-research/.trainer-workspace/SKILL/`
+     - `skills/researcher-research/SKILL.md` -> `skills/researcher-research/.trainer-workspace/SKILL/`
      - `docs/support.prompt.md` -> `docs/.trainer-workspace/support.prompt/`
 2. The associated workspace root is `<target-dir>/.trainer-workspace/<prompt-name>/`.
 3. Treat the workspace as existing when that directory already exists.

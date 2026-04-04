@@ -29,7 +29,8 @@ def test_build_research_brief_includes_public_dataset_queries(tmp_path):
         scoring_rule="exact_match",
     )
 
-    assert brief["skill"] == "research"
+    assert brief["agent"] == "researcher"
+    assert brief["skill"] == "researcher-research"
     assert any("official" in query.lower() or "primary source" in query.lower() for query in brief["research_queries"])
     assert any("source shortlist" in step.lower() for step in brief["workflow"])
     assert any("without requiring this skill to call any other skill" in step.lower() for step in brief["workflow"])

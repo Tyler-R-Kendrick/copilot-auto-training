@@ -4,7 +4,7 @@ Research public datasets, benchmarks, documentation, and source material for off
 
 ## Canonical files
 
-- [SKILL.md](SKILL.md): canonical skill contract and invocation guidance.
+- [SKILL.md](SKILL.md): canonical researcher-owned skill contract and invocation guidance.
 - [evals/evals.json](evals/evals.json): official authored evaluation manifest for the skill.
 - [references/](references/): background material, source notes, and supporting guidance.
 - [assets/](assets/): templates, examples, or supporting artifacts. See [assets/README.md](assets/README.md).
