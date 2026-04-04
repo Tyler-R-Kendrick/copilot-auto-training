@@ -33,8 +33,28 @@ steps:
       fi
       echo "::error::Missing GitHub token for MCP startup. Set GH_AW_GITHUB_MCP_SERVER_TOKEN or GH_AW_GITHUB_TOKEN, or enable GITHUB_TOKEN."
       exit 1
-  - name: Validate agent-skills MCP bootstrap
-    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c "import agent_skills_mcp"
+  - name: Start agent-skills MCP server
+    run: |
+      set -euo pipefail
+      mkdir -p /tmp/gh-aw
+      export MCP_TRANSPORT=sse
+      export FASTMCP_PORT=3002
+      export FASTMCP_HOST=0.0.0.0
+      export AGENT_SKILLS_RUN_CWD="${GITHUB_WORKSPACE}"
+      export AGENT_SKILLS_REPO_ROOT="${GITHUB_WORKSPACE}"
+      nohup uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp agent-skills-mcp \
+        > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &
+      echo "Waiting for agent-skills MCP server to start on port 3002..."
+      for i in $(seq 1 60); do
+        if timeout 1 bash -c "echo >/dev/tcp/localhost/3002" 2>/dev/null; then
+          echo "agent-skills MCP server ready (attempt $i)"
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "::error::agent-skills MCP server did not start within 60 seconds"
+      cat /tmp/gh-aw/agent-skills-mcp.log || true
+      exit 1
 
 tools:
   github:
