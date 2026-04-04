@@ -1,0 +1,24 @@
+{
+  "target_layout": {
+    "evals_path": ".github/instructions/evals/evals.json",
+    "workspace_dir": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions"
+  },
+  "task_boundary": "Evaluate whether an agent following the agentic-workflow-editing instructions correctly handles compile-lockfile sync requirements when editing .github/workflows/*.md files",
+  "scoring_rule": "llm_judge - outputs are descriptions of correct agent behavior, not exact-match strings",
+  "approved_sources": [
+    {
+      "source": "Repository trainer workflow and gh aw compile behavior",
+      "authority": "Project internal documentation",
+      "fit": "Direct primary source for workflow editing rules",
+      "notes": "The instructions themselves define the rules; test cases exercise compliance scenarios"
+    }
+  ],
+  "rejected_candidates": [
+    {
+      "source": "Public GitHub Actions documentation",
+      "reason": "Covers Actions YAML compilation, not gh-aw agentic workflow compilation"
+    }
+  ],
+  "mapping_notes": "Scenarios are derived from the 4 instruction rules: (1) compile after edit + include lockfile, (2) do not rely solely on hook, (3) hook as enforcement backstop, (4) fix source on compile failure. Each row tests a distinct rule or combination.",
+  "unresolved_gaps": "None - instruction rules are self-contained"
+}
