@@ -1,0 +1,27 @@
+{
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/prompt.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline — 4 bullets, ambiguous 'stop hook' naming, 'meaningful changes' language, no concrete example, no verify step"
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/prompt.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Optimized candidate: adds concrete compile example, unconditional recompile rule, git diff HEAD verify step, named hook, explicit pre-PR checkpoint, 5 bullets total"
+    },
+    "adversary": {
+      "prompt": "iterations/iteration-1/candidates/adversary/prompt.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "Overrating attack (~0.70 mean vs student ~0.97). Student candidate defenses block both exploits."
+    }
+  },
+  "winner": "student",
+  "winner_rationale": "Student candidate addresses all 5 engineer-prompt gaps. Adversary exploits were blocked by the teacher-directed git diff HEAD fix and the unconditional 'every edit' recompile language. No additional teacher/student iteration needed."
+}
