@@ -503,10 +503,10 @@ def run_agent_skill(name: str, script_path: str = "", argv: list[str] | None = N
     }
 
 
-def build_mcp() -> Any:
+def build_mcp(**fastmcp_settings: Any) -> Any:
     from mcp.server.fastmcp import FastMCP
 
-    mcp = FastMCP("agent-skills")
+    mcp = FastMCP("agent-skills", **fastmcp_settings)
 
     @mcp.tool(name="find_agent_skill")
     def find_agent_skill_tool(query: str, cwd: str = "") -> list[dict[str, Any]]:

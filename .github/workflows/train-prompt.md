@@ -38,11 +38,13 @@ steps:
       set -euo pipefail
       mkdir -p /tmp/gh-aw
       export MCP_TRANSPORT=sse
-      export FASTMCP_PORT=3002
-      export FASTMCP_HOST=0.0.0.0
+      export MCP_PORT=3002
+      export MCP_HOST=0.0.0.0
       export AGENT_SKILLS_RUN_CWD="${GITHUB_WORKSPACE}"
       export AGENT_SKILLS_REPO_ROOT="${GITHUB_WORKSPACE}"
-      nohup uvx --from git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp agent-skills-mcp \
+      # Use the local repo checkout to avoid slow git-clone startup
+      cd "${GITHUB_WORKSPACE}"
+      nohup uv run --with ./tools/agent-skills-mcp python ./tools/agent-skills-mcp/server.py \
         > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &
       echo "Waiting for agent-skills MCP server to start on port 3002..."
       for i in $(seq 1 60); do
