@@ -21,44 +21,8 @@ permissions:
 engine: copilot
 
 steps:
-  - name: Validate GitHub token for MCP startup
-    env:
-      GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
-      GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: |
-      set -euo pipefail
-      if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
-        exit 0
-      fi
-      echo "::error::Missing GitHub token for MCP startup. Set GH_AW_GITHUB_MCP_SERVER_TOKEN or GH_AW_GITHUB_TOKEN, or enable GITHUB_TOKEN."
-      exit 1
-  - name: Start agent-skills MCP server
-    run: |
-      set -euo pipefail
-      mkdir -p /tmp/gh-aw
-      # Override XDG_RUNTIME_DIR so post-tool hooks can write PID files
-      echo "XDG_RUNTIME_DIR=/tmp" >> "$GITHUB_ENV"
-      export MCP_TRANSPORT=streamable-http
-      export MCP_PORT=3002
-      export MCP_HOST=0.0.0.0
-      export AGENT_SKILLS_RUN_CWD="${GITHUB_WORKSPACE}"
-      export AGENT_SKILLS_REPO_ROOT="${GITHUB_WORKSPACE}"
-      # Use the local repo checkout to avoid slow git-clone startup
-      cd "${GITHUB_WORKSPACE}"
-      nohup uv run --with ./tools/agent-skills-mcp python ./tools/agent-skills-mcp/server.py \
-        > /tmp/gh-aw/agent-skills-mcp.log 2>&1 &
-      echo "Waiting for agent-skills MCP server to start on port 3002..."
-      for i in $(seq 1 60); do
-        if timeout 1 bash -c "echo >/dev/tcp/localhost/3002" 2>/dev/null; then
-          echo "agent-skills MCP server ready (attempt $i)"
-          exit 0
-        fi
-        sleep 1
-      done
-      echo "::error::agent-skills MCP server did not start within 60 seconds"
-      cat /tmp/gh-aw/agent-skills-mcp.log || true
-      exit 1
+  - name: Validate agent-skills MCP bootstrap
+    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c "import agent_skills_mcp"
 
 tools:
   github:

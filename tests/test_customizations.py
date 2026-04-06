@@ -1773,23 +1773,19 @@ class TestTrainPromptWorkflow:
     def test_source_does_not_define_runtime_self_heal_steps_for_train_prompt(self):
         steps = self._source_steps()
         assert [step.get("name") for step in steps] == [
-            "Validate GitHub token for MCP startup",
             "Validate agent-skills MCP bootstrap",
         ], (
-            "train-prompt.md should define only preflight steps that fail early for missing MCP tokens "
-            "or agent-skills bootstrap/install errors."
+            "train-prompt.md should define only the compiler-safe agent-skills bootstrap preflight "
+            "and avoid runtime self-heal startup steps in frontmatter."
         )
 
-    def test_source_preflights_github_token_for_mcp_startup(self):
+    def test_source_avoids_secret_bearing_frontmatter_steps(self):
         steps = self._source_steps()
-        token_step = next(step for step in steps if step.get("name") == "Validate GitHub token for MCP startup")
-        assert token_step["env"] == {
-            "GH_AW_GITHUB_MCP_SERVER_TOKEN": "${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}",
-            "GH_AW_GITHUB_TOKEN": "${{ secrets.GH_AW_GITHUB_TOKEN }}",
-            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-        }
-        assert "Missing GitHub token for MCP startup" in token_step["run"]
-        assert 'if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then' in token_step["run"]
+        assert all(step.get("name") != "Validate GitHub token for MCP startup" for step in steps)
+        assert all("secrets." not in json.dumps(step, sort_keys=True) for step in steps), (
+            "train-prompt.md frontmatter steps should stay free of secret expressions so strict-mode "
+            "workflow compilation continues to pass."
+        )
 
     def test_source_preflights_agent_skills_bootstrap_install(self):
         steps = self._source_steps()
@@ -1804,16 +1800,12 @@ class TestTrainPromptWorkflow:
 
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
         runtime = self._source_agent_skills_runtime()
-        assert runtime.get("command") == "/bin/sh", (
-            "agent-skills-runtime.md should use a shell entrypoint that exists in python:alpine "
-            "instead of invoking uvx directly."
-        )
-        assert runtime.get("args") == [
-            "-lc",
-            AGENT_SKILLS_UVX_BOOTSTRAP,
-        ], (
-            "agent-skills-runtime.md should bootstrap uv inside python:alpine before launching the "
-            "agent-skills MCP server so the container does not fail with a missing uvx executable."
+        assert runtime == {
+            "url": "http://host.docker.internal:3002/mcp",
+            "allowed": ["find_agent_skill", "load_agent_skill", "run_agent_skill"],
+        }, (
+            "agent-skills-runtime.md should describe the supported host-bridged HTTP MCP endpoint "
+            "that gh-aw can compile today."
         )
 
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
@@ -1877,10 +1869,15 @@ class TestTrainPromptWorkflow:
 
     def test_lock_preflights_mcp_token_and_agent_skills_bootstrap(self):
         text = self._lock_text()
-        assert "name: Validate GitHub token for MCP startup" in text
         assert "name: Validate agent-skills MCP bootstrap" in text
-        assert "Missing GitHub token for MCP startup" in text
-        assert "uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c \"import agent_skills_mcp\"" in text
+        agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
+        bootstrap_step = next(
+            (step for step in agent_steps if step.get("name") == "Validate agent-skills MCP bootstrap"),
+            None,
+        )
+        assert bootstrap_step is not None
+        assert bootstrap_step["run"] == AGENT_SKILLS_PREFLIGHT
+        assert "Validate GitHub token for MCP startup" not in text
 
     def test_source_steps_helper_rejects_missing_steps_key(self):
         with pytest.raises(AssertionError, match="Expected workflow frontmatter to define steps"):
@@ -1896,62 +1893,19 @@ class TestTrainPromptWorkflow:
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
         text = self._lock_text()
-        assert '"container": "python:alpine"' in text
-        assert '"entrypoint": "/bin/sh"' in text, (
-            "train-prompt.lock.yml should start the agent-skills MCP container with /bin/sh so "
-            "the entrypoint exists in python:alpine."
-        )
-        expected_bootstrap = f'"{AGENT_SKILLS_UVX_BOOTSTRAP}"'
-        assert expected_bootstrap in text, (
-            "train-prompt.lock.yml should bootstrap uv inside the python:alpine agent-skills "
-            "container before invoking uvx so the MCP gateway can start reliably."
-        )
+        assert '"url": "http://host.docker.internal:3002/mcp"' in text
+        assert '"find_agent_skill"' in text
+        assert '"load_agent_skill"' in text
+        assert '"run_agent_skill"' in text
+        assert '"container": "python:alpine"' not in text
 
-    def test_lock_uploads_trainer_workspace_checkpoint_artifacts(self):
+    def test_lock_preserves_generic_agent_artifact_bundle_for_trainer_outputs(self):
         text = self._lock_text()
-        assert "Collect trainer workspace checkpoints" in text, (
-            "train-prompt.lock.yml should collect changed .trainer-workspace checkpoints after the agent run."
-        )
-        expected_artifacts = (
-            "trainer-workspace-state",
-            "trainer-stage-research",
-            "trainer-stage-synthesize",
-            "trainer-stage-optimize",
-            "trainer-stage-election",
-            "trainer-stage-validation",
-        )
-        for artifact_name in expected_artifacts:
-            assert f"name: {artifact_name}" in text, (
-                "train-prompt.lock.yml should upload GitHub artifacts for each trainer stage "
-                f"checkpoint, missing {artifact_name!r}."
-            )
-        for staged_path in (
-            "/tmp/gh-aw/trainer-workspace/*/research/",
-            "/tmp/gh-aw/trainer-workspace/*/synthesize/",
-            "/tmp/gh-aw/trainer-workspace/*/optimize/",
-            "/tmp/gh-aw/trainer-workspace/*/election/",
-            "/tmp/gh-aw/trainer-workspace/*/validation/",
-        ):
-            assert staged_path in text, (
-                "train-prompt.lock.yml should upload the exported trainer workspace stage "
-                f"directory {staged_path!r}."
-            )
-        assert "Download trainer workspace state artifact" in text, (
-            "train-prompt.lock.yml should make the workspace checkpoint metadata available "
-            "to downstream jobs from its dedicated GitHub artifact."
-        )
-        assert "Download trainer stage checkpoint artifacts" in text, (
-            "train-prompt.lock.yml should download dedicated trainer stage checkpoint artifacts "
-            "for downstream jobs instead of relying on the generic agent bundle."
-        )
-        assert "pattern: trainer-stage-*" in text, (
-            "train-prompt.lock.yml should download all trainer stage checkpoint artifacts with "
-            "a dedicated artifact pattern."
-        )
-        assert "merge-multiple: false" in text, (
-            "train-prompt.lock.yml should preserve per-artifact directories when downloading "
-            "trainer stage checkpoints for later inspection."
-        )
+        assert "name: Upload agent artifacts" in text
+        assert "name: Download agent output artifact" in text
+        assert "/tmp/gh-aw/agent/" in text
+        assert "/tmp/gh-aw/agent_output.json" in text
+        assert "Collect trainer workspace checkpoints" not in text
 
     def test_lock_writeback_steps_prefer_copilot_token_before_gh_aw_token(self):
         text = self._lock_text()
@@ -1982,10 +1936,10 @@ class TestTrainPromptWorkflow:
             None,
         )
         assert process_safe_outputs is not None, "Expected Process Safe Outputs step in train-prompt.lock.yml"
-        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
-            "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
-            "Process Safe Outputs github-script step so create_pull_request does not fall "
-            "back to a token that cannot open pull requests."
+        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+            "train-prompt.lock.yml should let the github-script wrapper use the standard workflow "
+            "token fallback while the create_pull_request handler config itself preserves the "
+            "COPILOT-first token preference."
         )
 
 
