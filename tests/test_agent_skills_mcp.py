@@ -681,7 +681,7 @@ def test_out_of_repo_symlinked_skill_is_ignored(tmp_path, monkeypatch, agent_ski
 def test_find_agent_skill_scores_best_match_first(tmp_path, monkeypatch, agent_skills_module):
     skills_root = tmp_path / "skills"
     _write_skill(skills_root, "trainer-optimize", description="Improve a markdown prompt file")
-    _write_skill(skills_root, "trainer-research", description="Research public datasets")
+    _write_skill(skills_root, "researcher-research", description="Research public datasets")
     monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(tmp_path))
 
     matches = agent_skills_module.find_agent_skill("optimize a markdown prompt", cwd="/repo/prompts")
@@ -902,7 +902,7 @@ def test_read_skill_resource_exposes_directory_and_nested_files(tmp_path, monkey
 def test_repo_skills_are_not_mutated_with_runner_wrappers():
     assert not (REPO_ROOT / "skills" / "trainer-optimize" / "run.py").exists()
     assert not (REPO_ROOT / "skills" / "trainer-election" / "run.py").exists()
-    assert not (REPO_ROOT / "skills" / "trainer-research" / "run.py").exists()
+    assert not (REPO_ROOT / "skills" / "researcher-research" / "run.py").exists()
     assert not (REPO_ROOT / "skills" / "trainer-synthesize" / "run.py").exists()
 
 

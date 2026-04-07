@@ -140,13 +140,15 @@ class TestAgentCustomizations:
         assert 'todo' in text
         assert 'agent' in text
         assert 'agent-skills/*' in text
-        assert 'agents: ["teacher", "student", "judge", "adversary"]' in text
+        assert 'agents: ["researcher", "teacher", "student", "judge", "adversary"]' in text
         assert 'name: "trainer"' in text
         assert 'Treat this agent as the canonical orchestration contract for trainer-led optimization work.' in text
-        assert 'Manage all `trainer-*` skill usage yourself' in text
-        assert 'Use the `agent-skills` MCP server as the execution path for the `trainer-research`, `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
+        assert 'Manage the `researcher` handoff plus all remaining `trainer-*` skill usage yourself' in text
+        assert 'Use the `researcher` agent as the execution path for repository research work, and use the `agent-skills` MCP server as the execution path for the `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
         assert 'handoffs:' in text
+        assert '- label: "Request Research Support"' in text
         assert '- label: "Request Teacher Guidance"' in text
+        assert 'agent: "researcher"' in text
         assert 'agent: "teacher"' in text
         assert '- label: "Request Student Revision"' in text
         assert '- label: "Score Candidates"' in text
@@ -154,6 +156,30 @@ class TestAgentCustomizations:
         assert '## Workspace Contract' in text
         assert '## MCP Execution Contract' in text
         assert '## Teacher Collaboration Contract' in text
+
+    def test_researcher_agent_contract_structure(self):
+        agent_path = REPO_ROOT / ".github" / "agents" / "researcher.agent.md"
+        text = _read(agent_path)
+        frontmatter_end = text.index('---', 4)
+        frontmatter = text[:frontmatter_end]
+
+        assert 'name: "researcher"' in text
+        assert 'description: "Use when researching public datasets, benchmarks, documentation, and source material before eval synthesis or prompt optimization.' in text
+        assert 'tools:' in frontmatter
+        assert 'read' in frontmatter
+        assert 'edit' in frontmatter
+        assert 'search' in frontmatter
+        assert 'execute' in frontmatter
+        assert 'agent-skills/*' in frontmatter
+        assert 'agents:' not in frontmatter
+        assert 'handoffs:' not in frontmatter
+        assert 'Use the `agent-skills` MCP server as the execution path for the `researcher-research` skill' in text
+        assert 'For public-source discovery tasks, first discover and load `researcher-research`' in text
+        assert 'Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.' in text
+        assert 'Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.' in text
+        assert 'Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`' in text
+        assert 'DO NOT involve any other agents.' in text
+        assert 'ONLY gather grounded source material, produce research artifacts, and record unresolved evidence gaps.' in text
 
     def test_teacher_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "teacher.agent.md"
@@ -176,8 +202,8 @@ class TestAgentCustomizations:
         assert 'execute' not in frontmatter
         assert 'todo' not in frontmatter
         assert 'agent-skills/*' not in frontmatter
-        assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`.' in text
-        assert 'Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing.' in text
+        assert 'The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `researcher`, `student`, `judge`, or `adversary`.' in text
+        assert 'Do not call the `researcher` agent, do not orchestrate the loop, and do not take over candidate editing.' in text
         assert 'Treat any supplied workspace steering as read-only evidence.' in text
         assert 'Forecast likely student mistakes yourself before you ask the `student` for anything.' in text
         assert '`optimize-report.json`' in text
@@ -305,6 +331,15 @@ class TestAgentCustomizations:
         with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
             agent_skills_module.run_agent_skill("engineer-code")
 
+    def test_researcher_skill_mirror_stays_aligned_with_canonical_contract(self):
+        mirrored_root = REPO_ROOT / ".agents" / "skills" / "researcher-research"
+        canonical_path = REPO_ROOT / "skills" / "researcher-research" / "SKILL.md"
+        mirrored_path = mirrored_root / "SKILL.md"
+
+        assert mirrored_root.is_symlink()
+        assert mirrored_path.resolve() == canonical_path.resolve()
+        assert _read(canonical_path) == _read(mirrored_path)
+
     def test_trainer_election_mirror_skill_stays_aligned_with_canonical_contract(self):
         mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-election"
         canonical_path = REPO_ROOT / "skills" / "trainer-election" / "SKILL.md"
@@ -329,12 +364,13 @@ class TestAgentCustomizations:
         agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
         text = _read(agent_path)
 
+        researcher_idx = text.index('Use the `researcher` handoff')
         find_idx = text.index('Call `find_agent_skill`')
         load_idx = text.index('Call `load_agent_skill`')
         run_idx = text.index('Call `run_agent_skill`')
-        research_idx = text.index('`trainer-research` -> `trainer-synthesize` -> `trainer-optimize`')
+        research_idx = text.index('`researcher` -> `trainer-synthesize` -> `trainer-optimize`')
 
-        assert find_idx < load_idx < run_idx < research_idx
+        assert researcher_idx < find_idx < load_idx < run_idx < research_idx
 
     def test_trainer_agent_declares_frontmatter_handoffs_for_teacher_student_judge_and_adversary(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -343,6 +379,8 @@ class TestAgentCustomizations:
         frontmatter = text[:frontmatter_end]
 
         handoffs_idx = frontmatter.index('handoffs:')
+        researcher_idx = frontmatter.index('- label: "Request Research Support"')
+        researcher_agent_idx = frontmatter.index('agent: "researcher"', researcher_idx)
         teacher_idx = frontmatter.index('- label: "Request Teacher Guidance"')
         teacher_agent_idx = frontmatter.index('agent: "teacher"', teacher_idx)
         student_idx = frontmatter.index('- label: "Request Student Revision"')
@@ -354,6 +392,8 @@ class TestAgentCustomizations:
 
         assert (
             handoffs_idx
+            < researcher_idx
+            < researcher_agent_idx
             < teacher_idx
             < teacher_agent_idx
             < student_idx
@@ -410,8 +450,8 @@ class TestAgentCustomizations:
     def test_teacher_agent_stays_evidence_only_and_defers_orchestration(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "teacher.agent.md")
 
-        assert "The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `student`, `judge`, or `adversary`." in text
-        assert "Do not run `trainer-*` skills, do not orchestrate the loop, and do not take over candidate editing." in text
+        assert "The `trainer` agent owns trainer-skill usage, workspace coordination, iteration planning, and any handoffs to `researcher`, `student`, `judge`, or `adversary`." in text
+        assert "Do not call the `researcher` agent, do not orchestrate the loop, and do not take over candidate editing." in text
         assert "Treat any supplied workspace steering as read-only evidence." in text
         assert "DO NOT edit files, mutate workspace artifacts, or claim that you ran validation yourself." in text
         assert "forecast how the `student` would likely misunderstand" in text
@@ -419,7 +459,7 @@ class TestAgentCustomizations:
     def test_trainer_agent_missing_data_flow_runs_research_before_optimize(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
-        research_idx = text.index('run the `trainer-research` skill through MCP')
+        research_idx = text.index('hand off to the `researcher` agent')
         synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
         optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
 
@@ -661,7 +701,7 @@ class TestInstructionCustomization:
 
         assert 'applyTo: "**/{*.prompt.md,*.prompty,*.instructions.md,SKILL.md,AGENTS.md,*.agent.md}"' in text
         assert 'trainer-election` only to compare multiple optimize outputs' in text
-        assert 'trainer-research` first' in text
+        assert '`researcher` first' in text
 
     def test_agentic_workflow_instruction_exists_with_scalar_applyto(self):
         instructions_path = REPO_ROOT / ".github" / "instructions" / "agentic-workflow-editing.instructions.md"
@@ -1734,23 +1774,19 @@ class TestTrainPromptWorkflow:
     def test_source_does_not_define_runtime_self_heal_steps_for_train_prompt(self):
         steps = self._source_steps()
         assert [step.get("name") for step in steps] == [
-            "Validate GitHub token for MCP startup",
             "Validate agent-skills MCP bootstrap",
         ], (
-            "train-prompt.md should define only preflight steps that fail early for missing MCP tokens "
-            "or agent-skills bootstrap/install errors."
+            "train-prompt.md should define only the compiler-safe agent-skills bootstrap preflight "
+            "and avoid runtime self-heal startup steps in frontmatter."
         )
 
-    def test_source_preflights_github_token_for_mcp_startup(self):
+    def test_source_avoids_secret_bearing_frontmatter_steps(self):
         steps = self._source_steps()
-        token_step = next(step for step in steps if step.get("name") == "Validate GitHub token for MCP startup")
-        assert token_step["env"] == {
-            "GH_AW_GITHUB_MCP_SERVER_TOKEN": "${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}",
-            "GH_AW_GITHUB_TOKEN": "${{ secrets.GH_AW_GITHUB_TOKEN }}",
-            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-        }
-        assert "Missing GitHub token for MCP startup" in token_step["run"]
-        assert 'if [ -n "${GH_AW_GITHUB_MCP_SERVER_TOKEN:-}" ] || [ -n "${GH_AW_GITHUB_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then' in token_step["run"]
+        assert all(step.get("name") != "Validate GitHub token for MCP startup" for step in steps)
+        assert all("secrets." not in json.dumps(step, sort_keys=True) for step in steps), (
+            "train-prompt.md frontmatter steps should stay free of secret expressions so strict-mode "
+            "workflow compilation continues to pass."
+        )
 
     def test_source_preflights_agent_skills_bootstrap_install(self):
         steps = self._source_steps()
@@ -1765,16 +1801,12 @@ class TestTrainPromptWorkflow:
 
     def test_source_agent_skills_runtime_bootstraps_uv_in_python_container(self):
         runtime = self._source_agent_skills_runtime()
-        assert runtime.get("command") == "/bin/sh", (
-            "agent-skills-runtime.md should use a shell entrypoint that exists in python:alpine "
-            "instead of invoking uvx directly."
-        )
-        assert runtime.get("args") == [
-            "-lc",
-            AGENT_SKILLS_UVX_BOOTSTRAP,
-        ], (
-            "agent-skills-runtime.md should bootstrap uv inside python:alpine before launching the "
-            "agent-skills MCP server so the container does not fail with a missing uvx executable."
+        assert runtime == {
+            "url": "http://host.docker.internal:3002/mcp",
+            "allowed": ["find_agent_skill", "load_agent_skill", "run_agent_skill"],
+        }, (
+            "agent-skills-runtime.md should describe the supported host-bridged HTTP MCP endpoint "
+            "that gh-aw can compile today."
         )
 
     def test_lock_config_create_pull_request_has_no_allowed_files_restriction(self):
@@ -1838,10 +1870,15 @@ class TestTrainPromptWorkflow:
 
     def test_lock_preflights_mcp_token_and_agent_skills_bootstrap(self):
         text = self._lock_text()
-        assert "name: Validate GitHub token for MCP startup" in text
         assert "name: Validate agent-skills MCP bootstrap" in text
-        assert "Missing GitHub token for MCP startup" in text
-        assert "uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c \"import agent_skills_mcp\"" in text
+        agent_steps = self._lock_yaml()["jobs"]["agent"]["steps"]
+        bootstrap_step = next(
+            (step for step in agent_steps if step.get("name") == "Validate agent-skills MCP bootstrap"),
+            None,
+        )
+        assert bootstrap_step is not None
+        assert bootstrap_step["run"] == AGENT_SKILLS_PREFLIGHT
+        assert "Validate GitHub token for MCP startup" not in text
 
     def test_source_steps_helper_rejects_missing_steps_key(self):
         with pytest.raises(AssertionError, match="Expected workflow frontmatter to define steps"):
@@ -1857,62 +1894,19 @@ class TestTrainPromptWorkflow:
 
     def test_lock_agent_skills_gateway_bootstraps_uv_in_python_container(self):
         text = self._lock_text()
-        assert '"container": "python:alpine"' in text
-        assert '"entrypoint": "/bin/sh"' in text, (
-            "train-prompt.lock.yml should start the agent-skills MCP container with /bin/sh so "
-            "the entrypoint exists in python:alpine."
-        )
-        expected_bootstrap = f'"{AGENT_SKILLS_UVX_BOOTSTRAP}"'
-        assert expected_bootstrap in text, (
-            "train-prompt.lock.yml should bootstrap uv inside the python:alpine agent-skills "
-            "container before invoking uvx so the MCP gateway can start reliably."
-        )
+        assert '"url": "http://host.docker.internal:3002/mcp"' in text
+        assert '"find_agent_skill"' in text
+        assert '"load_agent_skill"' in text
+        assert '"run_agent_skill"' in text
+        assert '"container": "python:alpine"' not in text
 
-    def test_lock_uploads_trainer_workspace_checkpoint_artifacts(self):
+    def test_lock_preserves_generic_agent_artifact_bundle_for_trainer_outputs(self):
         text = self._lock_text()
-        assert "Collect trainer workspace checkpoints" in text, (
-            "train-prompt.lock.yml should collect changed .trainer-workspace checkpoints after the agent run."
-        )
-        expected_artifacts = (
-            "trainer-workspace-state",
-            "trainer-stage-research",
-            "trainer-stage-synthesize",
-            "trainer-stage-optimize",
-            "trainer-stage-election",
-            "trainer-stage-validation",
-        )
-        for artifact_name in expected_artifacts:
-            assert f"name: {artifact_name}" in text, (
-                "train-prompt.lock.yml should upload GitHub artifacts for each trainer stage "
-                f"checkpoint, missing {artifact_name!r}."
-            )
-        for staged_path in (
-            "/tmp/gh-aw/trainer-workspace/*/research/",
-            "/tmp/gh-aw/trainer-workspace/*/synthesize/",
-            "/tmp/gh-aw/trainer-workspace/*/optimize/",
-            "/tmp/gh-aw/trainer-workspace/*/election/",
-            "/tmp/gh-aw/trainer-workspace/*/validation/",
-        ):
-            assert staged_path in text, (
-                "train-prompt.lock.yml should upload the exported trainer workspace stage "
-                f"directory {staged_path!r}."
-            )
-        assert "Download trainer workspace state artifact" in text, (
-            "train-prompt.lock.yml should make the workspace checkpoint metadata available "
-            "to downstream jobs from its dedicated GitHub artifact."
-        )
-        assert "Download trainer stage checkpoint artifacts" in text, (
-            "train-prompt.lock.yml should download dedicated trainer stage checkpoint artifacts "
-            "for downstream jobs instead of relying on the generic agent bundle."
-        )
-        assert "pattern: trainer-stage-*" in text, (
-            "train-prompt.lock.yml should download all trainer stage checkpoint artifacts with "
-            "a dedicated artifact pattern."
-        )
-        assert "merge-multiple: false" in text, (
-            "train-prompt.lock.yml should preserve per-artifact directories when downloading "
-            "trainer stage checkpoints for later inspection."
-        )
+        assert "name: Upload agent artifacts" in text
+        assert "name: Download agent output artifact" in text
+        assert "/tmp/gh-aw/agent/" in text
+        assert "/tmp/gh-aw/agent_output.json" in text
+        assert "Collect trainer workspace checkpoints" not in text
 
     def test_lock_writeback_steps_prefer_copilot_token_before_gh_aw_token(self):
         text = self._lock_text()
@@ -1943,10 +1937,10 @@ class TestTrainPromptWorkflow:
             None,
         )
         assert process_safe_outputs is not None, "Expected Process Safe Outputs step in train-prompt.lock.yml"
-        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
-            "train-prompt.lock.yml should pass the COPILOT_GITHUB_TOKEN fallback into the "
-            "Process Safe Outputs github-script step so create_pull_request does not fall "
-            "back to a token that cannot open pull requests."
+        assert process_safe_outputs["with"]["github-token"] == "${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}", (
+            "train-prompt.lock.yml should let the github-script wrapper use the standard workflow "
+            "token fallback while the create_pull_request handler config itself preserves the "
+            "COPILOT-first token preference."
         )
 
 

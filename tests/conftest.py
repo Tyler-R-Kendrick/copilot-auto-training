@@ -149,7 +149,7 @@ _election_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "tra
 if str(_election_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_election_scripts_dir))
 
-_research_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "trainer-research" / "scripts"
+_research_scripts_dir = Path(__file__).resolve().parent.parent / "skills" / "researcher-research" / "scripts"
 if str(_research_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_research_scripts_dir))
 

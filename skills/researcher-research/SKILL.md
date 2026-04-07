@@ -1,5 +1,5 @@
 ---
-name: trainer-research
+name: researcher-research
 description: Research public datasets, benchmarks, documentation, and source material for official skill eval cases. Use this skill whenever a prompt or skill needs grounded public examples, authoritative dataset references, or a primary-source brief before synthesis or optimization.
 license: MIT
 compatibility: Requires Python 3.11+. Produces standalone research briefs, ranked source shortlists, and eval-authoring notes for this repository.
@@ -11,7 +11,7 @@ metadata:
 
 # Research
 
-Use this skill to research source material and produce a standalone research dossier before generating official skill eval cases.
+Use this researcher-owned skill to research source material and produce a standalone research dossier before generating official skill eval cases.
 
 Work primary-source-first. Resolve the task boundary and missing constraints before searching. End with approved sources and mapping notes, not guessed eval rows.
 
@@ -133,4 +133,4 @@ If none are missing, say so explicitly and continue.
 
 ## Naming rationale
 
-`research` is explicit, standard, and narrow enough to separate source discovery from later synthesis and conversion.
+`researcher-research` keeps ownership explicit while preserving a narrow scope that separates source discovery from later synthesis and conversion.

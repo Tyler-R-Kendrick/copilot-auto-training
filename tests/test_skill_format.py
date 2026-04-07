@@ -67,9 +67,9 @@ class TestSkillFileExists:
             "judge-outcome",
             "judge-rubric",
             "learn",
+            "researcher-research",
             "trainer-election",
             "trainer-optimize",
-            "trainer-research",
             "trainer-synthesize",
         } <= names
 
@@ -197,7 +197,7 @@ class TestSkillOptionalFiles:
         assert (SKILLS_DIR / "trainer-election" / "scripts" / "run_election.py").is_file()
 
     def test_research_runtime_exists(self):
-        assert (SKILLS_DIR / "trainer-research" / "scripts" / "run_research.py").is_file()
+        assert (SKILLS_DIR / "researcher-research" / "scripts" / "run_research.py").is_file()
 
     def test_synthesize_runtime_exists(self):
         assert (SKILLS_DIR / "trainer-synthesize" / "scripts" / "run_synthesize.py").is_file()

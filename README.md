@@ -35,6 +35,7 @@ The repository ships a coordinated set of custom agents for prompt and skill opt
 | Agent | Role |
 | --- | --- |
 | `trainer` | Canonical orchestrator for trainer-skill execution, workspace coordination, and optimization-loop handoffs. |
+| `researcher` | Owns public-source discovery, source triage, and research brief generation before synthesis or optimization. |
 | `teacher` | Reviews optimization artifacts or user-supplied context and recommends what should improve next. |
 | `student` | Drafts and revises candidates from teacher guidance, with optional engineer-agent coaching when specialized advice is needed. |
 | `judge` | Scores outputs, candidates, and traces with rubric-driven evaluation. |
@@ -75,11 +76,16 @@ The skills in this repo can be added by running:
 | [`judge-outcome`](skills/judge-outcome/README.md) | Compare final outputs when end-state quality is the primary evidence. |
 | [`judge-trajectory`](skills/judge-trajectory/README.md) | Evaluate traces, tool usage, and side effects when process quality matters. |
 
+#### Researcher Skills
+
+| Skill | Purpose |
+| --- | --- |
+| [`researcher-research`](skills/researcher-research/README.md) | Research grounded source material, datasets, and benchmarks before synthesis. |
+
 #### Trainer Skills
 
 | Skill | Purpose |
 | --- | --- |
-| [`trainer-research`](skills/trainer-research/README.md) | Research grounded source material, datasets, and benchmarks before synthesis. |
 | [`trainer-synthesize`](skills/trainer-synthesize/README.md) | Build official eval manifests plus explicit `train.jsonl` and `val.jsonl` datasets. |
 | [`trainer-optimize`](skills/trainer-optimize/README.md) | Run single-shot Agent Lightning optimization against explicit datasets. |
 | [`trainer-election`](skills/trainer-election/README.md) | Elect the strongest candidate from existing scored workspace artifacts. |
@@ -110,7 +116,7 @@ prompt file"]:::setup --> workspace["Initialize local
     workspace --> review["Engineer review
 goals, risks, plan"]:::setup
     review --> research["Research
-trainer-research"]:::stage
+researcher agent"]:::stage
     research --> synthesize["Synthesize
 datasets and evals"]:::stage
     synthesize --> optimize["Optimize
@@ -167,7 +173,7 @@ The imported workflow will:
 
 - select exactly one prompt-like file
 - create or update that file's local `.trainer-workspace/<prompt-name>/`
-- use packaged `trainer-research`, `trainer-synthesize`, `trainer-optimize`, and `trainer-election` skills from this repository through a bundled MCP server runtime
+- use the `researcher` agent for grounded source discovery plus packaged `researcher-research`, `trainer-synthesize`, `trainer-optimize`, and `trainer-election` assets from this repository through the bundled runtime
 - open a pull request only when the optimization produced a meaningful diff and `python -m pytest -q` passed
 
 The workflow source lives in [`.github/workflows/train-prompt.md`](.github/workflows/train-prompt.md). Frontmatter changes require recompiling it with `gh aw compile train-prompt`.

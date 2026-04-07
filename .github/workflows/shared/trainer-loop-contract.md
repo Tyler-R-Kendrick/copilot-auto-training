@@ -48,11 +48,11 @@ Use the repository trainer loop for the selected target without relying on repo-
 
 ## Skill Execution Contract
 
-1. The `trainer` agent uses the `agent-skills` MCP server as the execution path for the `trainer-*` skills.
-2. Before each stage, call `find_agent_skill` to locate the exact skill.
+1. The `trainer` agent uses the `researcher` agent for research-stage work and the `agent-skills` MCP server as the execution path for the remaining `trainer-*` skills.
+2. Before each non-research stage, call `find_agent_skill` to locate the exact skill.
 3. Call `load_agent_skill` before first use of a stage and again if the stage context changes materially.
 4. Call `run_agent_skill` to execute the chosen stage.
-5. When required support data is missing, the default stage order is `trainer-research` -> `trainer-synthesize` -> `trainer-optimize`.
+5. When required support data is missing, the default stage order is `researcher` -> `trainer-synthesize` -> `trainer-optimize`.
 6. Require at least one `trainer-optimize` pass for the selected target.
 7. If multiple optimize outputs require comparison, run `trainer-election` as a separate step rather than assuming optimize performs leader selection.
 8. Treat `research/`, `synthesize/`, `optimize/`, `election/`, `candidates/`, `steering/`, and `validation/` under the active iteration as the canonical stage checkpoint directories that later jobs may inspect after artifact download.
@@ -60,11 +60,12 @@ Use the repository trainer loop for the selected target without relying on repo-
 ## Collaboration Contract
 
 1. The `trainer` agent owns trainer-skill execution, workspace coordination, and the sequencing of any teacher/student/adversary loop work.
-2. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next, and must forecast likely student mistakes itself before using any student handoff.
-3. The `student` agent applies targeted revisions when the trainer requests implementation help, then returns the reasoning trajectory, plan, and justification behind the chosen response.
-4. The `adversary` agent stress-tests pending changes before finalization by generating several distinct exploit or judge-gaming artifacts intended to trick the judge, rather than only reporting a single failure mode.
-5. The adversary should model the judge's likely response to each exploit candidate, recursively reflect on that forecast, and persist per-turn exploit artifacts such as `candidate.md`, `description.md`, `predicted-judge-response.md`, and `reflection.md` alongside the staged candidate until it converges on the strongest exploit attempt or exhausts the search.
-6. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop, but within a teacher turn the teacher should finalize steering first and use any student handoff only at the end to elicit a concrete response or solution. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
+2. The `researcher` agent owns public-source discovery, source triage, and blocker reporting when grounded source material is missing.
+3. The `teacher` agent only reviews supplied optimization artifacts or user-provided context to recommend what should improve next, and must forecast likely student mistakes itself before using any student handoff.
+4. The `student` agent applies targeted revisions when the trainer requests implementation help, then returns the reasoning trajectory, plan, and justification behind the chosen response.
+5. The `adversary` agent stress-tests pending changes before finalization by generating several distinct exploit or judge-gaming artifacts intended to trick the judge, rather than only reporting a single failure mode.
+6. The adversary should model the judge's likely response to each exploit candidate, recursively reflect on that forecast, and persist per-turn exploit artifacts such as `candidate.md`, `description.md`, `predicted-judge-response.md`, and `reflection.md` alongside the staged candidate until it converges on the strongest exploit attempt or exhausts the search.
+7. The `teacher` and `student` agents may hand off to each other in a bounded multi-turn loop, but within a teacher turn the teacher should finalize steering first and use any student handoff only at the end to elicit a concrete response or solution. End that loop when the teacher predicts the student will improve no further, the student predicts teacher approval, or another explicit exit criterion applies.
 
 ## Judge Steering Contract
 
@@ -85,7 +86,7 @@ Use the repository trainer loop for the selected target without relying on repo-
 ## Dataset And Judge Mode Rules
 
 1. Reuse existing train, validation, and authored eval assets when they already fit the selected target.
-2. If any required train, validation, or authored eval assets are missing, run research first and synthesize the missing assets before optimize.
+2. If any required train, validation, or authored eval assets are missing, call the `researcher` agent first and synthesize the missing assets before optimize.
 3. Use `judge_mode=llm_judge` for rows that expose `reference` plus `criteria`, or explicitly set `scoring: llm_judge`.
 4. Use `judge_mode=custom` for rows that expose `expected_json`, or use row-level scoring such as `normalized_match`, `json_schema`, or `custom_python`.
 5. Keep `judge_mode=deterministic` only for exact-match `expected` tasks that do not require a richer scorer.

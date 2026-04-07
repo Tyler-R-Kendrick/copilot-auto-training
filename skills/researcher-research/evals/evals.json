@@ -1,9 +1,9 @@
 {
-  "skill_name": "trainer-research",
+  "skill_name": "researcher-research",
   "evals": [
     {
       "id": 1,
-      "prompt": "I have a prompt file at skills/trainer-research/evals/files/support_intent_prompt.md for triaging support tickets into billing, bug, access, or cancellation. Research grounded public datasets or benchmarks I can use to author evals for it. I need a primary-source shortlist, license notes, rejected weak sources, and mapping guidance into eval rows.",
+      "prompt": "I have a prompt file at skills/researcher-research/evals/files/support_intent_prompt.md for triaging support tickets into billing, bug, access, or cancellation. Research grounded public datasets or benchmarks I can use to author evals for it. I need a primary-source shortlist, license notes, rejected weak sources, and mapping guidance into eval rows.",
       "expected_output": "The result should derive the eval target layout from the prompt file, propose a primary-source-first query plan, rank approved sources with provenance and licensing notes, reject weak candidates explicitly, and map approved source fields into eval-authoring notes.",
       "files": [
         "evals/files/support_intent_prompt.md"
@@ -17,7 +17,7 @@
     },
     {
       "id": 2,
-      "prompt": "Please research benchmark-quality public sources for the prompt at skills/trainer-research/evals/files/bug_entity_prompt.md. I care about official annotation guides, span labels that can become JSON fields, and explicit reasons to reject secondary summaries. Keep the output ready for downstream eval authoring.",
+      "prompt": "Please research benchmark-quality public sources for the prompt at skills/researcher-research/evals/files/bug_entity_prompt.md. I care about official annotation guides, span labels that can become JSON fields, and explicit reasons to reject secondary summaries. Keep the output ready for downstream eval authoring.",
       "expected_output": "The result should focus on primary sources for extraction-style tasks, discuss annotation quality and task fit, reject weak secondary material, and explain how approved labels or fields would map into structured eval cases.",
       "files": [
         "evals/files/bug_entity_prompt.md"
@@ -31,7 +31,7 @@
     },
     {
       "id": 3,
-      "prompt": "For the prompt file at skills/trainer-research/evals/files/grounded_qa_prompt.md, find primary-source datasets or benchmarks for citation-grounded answering. The evals will be used internally, so call out licensing, provenance, and contamination risks. If no source looks clean enough, say so instead of forcing a recommendation.",
+      "prompt": "For the prompt file at skills/researcher-research/evals/files/grounded_qa_prompt.md, find primary-source datasets or benchmarks for citation-grounded answering. The evals will be used internally, so call out licensing, provenance, and contamination risks. If no source looks clean enough, say so instead of forcing a recommendation.",
       "expected_output": "The result should emphasize primary-source evidence, surface licensing and contamination concerns, include stop-or-proceed reasoning, and provide clean mapping notes for later synthesis.",
       "files": [
         "evals/files/grounded_qa_prompt.md"
