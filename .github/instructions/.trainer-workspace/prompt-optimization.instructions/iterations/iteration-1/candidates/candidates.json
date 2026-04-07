@@ -1,0 +1,27 @@
+{
+  "iteration": "iteration-1",
+  "candidates": {
+    "original": {
+      "prompt": "candidates/original/candidate.md",
+      "description": "candidates/original/description.md",
+      "source": "baseline"
+    },
+    "student": {
+      "prompt": "candidates/student/candidate.md",
+      "description": "candidates/student/description.md",
+      "source": "manual_followup_agent",
+      "selected": true,
+      "selection_notes": "Covers all identified gaps (skill routing order, election scope, judge_mode selection, explicit validation command) with minimal structural change. Follows flat-bullet convention used by all other instruction files in the repo."
+    },
+    "adversary": {
+      "prompt": "candidates/adversary/candidate.md",
+      "description": "candidates/adversary/description.md",
+      "predicted_judge_response": "candidates/adversary/predicted-judge-response.md",
+      "reflection": "candidates/adversary/reflection.md",
+      "source": "adversary_exploit",
+      "exploit_type": "structural_verbosity",
+      "exploit_blocked": true,
+      "block_reason": "Adds H2 section headers that violate the flat-bullet convention of repo instruction files. The student candidate achieves the same coverage without structural change."
+    }
+  }
+}

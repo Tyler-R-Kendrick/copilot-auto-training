@@ -1,0 +1,86 @@
+{
+  "skill_name": "prompt-optimization.instructions",
+  "evals": [
+    {
+      "prompt": "I need to optimize my SKILL.md prompt file but there are no train.jsonl or val.jsonl datasets yet for it. Which skill should I use first?",
+      "expected_output": "The response should say to run trainer-research first to identify suitable public sources and grounded examples, then trainer-synthesize to convert those into train.jsonl and val.jsonl datasets, and only then run trainer-optimize. It should not suggest jumping directly to trainer-optimize without datasets.",
+      "assertions": [
+        "Response identifies trainer-research as the first step when datasets are missing.",
+        "Response does not recommend calling trainer-optimize directly without datasets.",
+        "Response describes the research → synthesize → optimize order or equivalent."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must follow the research-first rule from prompt-optimization guidance: when datasets are missing, trainer-research runs before trainer-synthesize, which runs before trainer-optimize."
+    },
+    {
+      "prompt": "I have a dataset row that looks like: {\"input\": \"Evaluate this summary.\", \"reference\": \"The original article text.\", \"criteria\": \"The summary should cover the main point and be under 50 words.\"}. Which judge_mode should I pass to trainer-optimize for this row?",
+      "expected_output": "The response should choose judge_mode=llm_judge because the row exposes both a reference and a criteria field, which signals that the evaluation requires a language model judge rather than a deterministic exact-match check.",
+      "assertions": [
+        "Response selects judge_mode=llm_judge.",
+        "Response cites the presence of reference and criteria fields as the reason."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify llm_judge as the correct mode and explain why the row shape (reference + criteria) requires it."
+    },
+    {
+      "prompt": "I am editing a prompt template for a classification task. I want to include the correct answer inline in the system prompt so the model sees what a good response looks like. The field is named `expected`. Is this okay?",
+      "expected_output": "The response should say no. Fields like expected, expected_json, reference, criteria, and scoring are evaluator-only and must not appear in the prompt-visible render path. Including them in the prompt template leaks ground-truth labels into the model's input, which invalidates evaluation.",
+      "assertions": [
+        "Response says evaluator-only fields must not appear in the prompt template or prompt-visible input.",
+        "Response names at least one evaluator-only field: expected, expected_json, reference, criteria, or scoring."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly refuse the inclusion and explain the evaluator-field isolation rule from the instruction file."
+    },
+    {
+      "prompt": "I am editing a prompt file that uses a {user_query} placeholder. I think {query} reads more naturally. Can I rename it?",
+      "expected_output": "The response should say no, or only if the task explicitly authorizes changing the prompt interface. Prompt placeholders must be preserved because renaming them silently breaks the contract for every caller or dataset row that passes a user_query field.",
+      "assertions": [
+        "Response says to preserve placeholders unless the task explicitly authorizes a prompt interface change.",
+        "Response explains that renaming breaks the interface or the caller contract."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the placeholder-preservation rule: do not rename placeholders unless the interface change is explicitly requested."
+    },
+    {
+      "prompt": "I just updated the instructions in a SKILL.md file to fix an ambiguous bullet point. What should I do before committing the change?",
+      "expected_output": "The response should say to re-run the relevant validation command, which is python -m pytest -q from the repository root, to confirm no regressions were introduced by the edit.",
+      "assertions": [
+        "Response says to run a validation or test command after editing a prompt-like file.",
+        "Response identifies pytest, python -m pytest, or equivalent test execution as the validation step."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the post-edit validation rule: re-run the relevant validation command (pytest) after any meaningful edit to a prompt-like file."
+    },
+    {
+      "prompt": "I put my training data in .github/instructions/datasets/ and named the files train.jsonl and val.jsonl. Can trainer-optimize discover them automatically if I do not pass explicit paths?",
+      "expected_output": "The response should say no. trainer-optimize requires explicit train.jsonl and val.jsonl paths to be passed as arguments. Do not rely on hidden runtime conventions or auto-discovery, because the optimizer will not infer dataset locations on its own.",
+      "assertions": [
+        "Response says to pass explicit dataset paths to trainer-optimize.",
+        "Response says the optimizer does not auto-discover datasets or equivalent wording."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the explicit-dataset-path rule: always pass train.jsonl and val.jsonl explicitly; do not rely on hidden runtime conventions."
+    },
+    {
+      "prompt": "I ran trainer-optimize once on my prompt and got a single optimized result. Should I now run trainer-election to pick the best output?",
+      "expected_output": "The response should say no. trainer-election is only for comparing multiple externally generated optimize outputs when the workflow explicitly needs separate leader selection across several runs. After a single trainer-optimize pass, election is not needed.",
+      "assertions": [
+        "Response says trainer-election is for comparing multiple optimize outputs, not a single run.",
+        "Response does not recommend running trainer-election after a single optimize pass."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the election-scope rule: use trainer-election only when the workflow explicitly compares multiple optimize outputs."
+    },
+    {
+      "prompt": "I have a dataset row with an expected_json field containing the ground-truth structured output. Which judge_mode should I use?",
+      "expected_output": "The response should choose judge_mode=custom because the row exposes an expected_json field, which signals that a custom scorer such as JSON schema validation or normalized match is needed, not a generic llm_judge or deterministic string match.",
+      "assertions": [
+        "Response selects judge_mode=custom.",
+        "Response cites expected_json as the signal requiring a custom scorer."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify custom as the correct judge_mode for rows with expected_json, and explain why that field shape requires a richer scorer."
+    }
+  ]
+}

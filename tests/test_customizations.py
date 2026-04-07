@@ -700,7 +700,8 @@ class TestInstructionCustomization:
         text = _read(instructions_path)
 
         assert 'applyTo: "**/{*.prompt.md,*.prompty,*.instructions.md,SKILL.md,AGENTS.md,*.agent.md}"' in text
-        assert 'Use the `researcher` agent for public-source discovery' in text
+        assert 'trainer-election` only to compare multiple optimize outputs' in text
+        assert '`researcher` first' in text
 
     def test_agentic_workflow_instruction_exists_with_scalar_applyto(self):
         instructions_path = REPO_ROOT / ".github" / "instructions" / "agentic-workflow-editing.instructions.md"
