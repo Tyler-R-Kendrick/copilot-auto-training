@@ -76,7 +76,8 @@ def build_research_brief(
         "Deliver a standalone research brief that another workflow can use without requiring this skill to call any other skill.",
     ]
     return {
-        "skill": "research",
+        "agent": "researcher",
+        "skill": "researcher-research",
         "prompt_file": prompt_file,
         "task_description": task_description,
         "scoring_rule": scoring_rule,

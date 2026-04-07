@@ -3,7 +3,7 @@
 Use this skill to build explicit APO datasets from:
 
 - user-provided CSV or example rows
-- research notes or source shortlists from the `trainer-research` skill
+- research notes or source shortlists from the `researcher` agent
 - synthesized examples that cover missing edge cases
 
 Keep the authored eval manifest and APO datasets separate:
