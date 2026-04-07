@@ -22,7 +22,7 @@ engine: copilot
 
 steps:
   - name: Validate agent-skills MCP bootstrap
-    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp python -c "import agent_skills_mcp"
+    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
 
 tools:
   github:
