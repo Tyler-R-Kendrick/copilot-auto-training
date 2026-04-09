@@ -158,8 +158,8 @@ def validate_surface_alignment(
             "surface-repo-root-mismatch",
             f"Agent path '{agent_path}' is not under repo root '{repo_root}'; validating against repo-wide surfaces only.",
         )
-    known_tools = set(_as_string_list(surface.get("tools")))
-    if not known_tools:
+    known_tools = set(_as_string_list(surface["tools"])) if "tools" in surface else set()
+    if "tools" not in surface:
         known_tools = {
             tool
             for agent in surface.get("agents", [])

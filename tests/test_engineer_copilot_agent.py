@@ -163,9 +163,9 @@ def test_validate_agent_flags_unknown_handoff_and_tool(demo_repo: Path):
 
 
 def test_validate_agent_warns_when_repo_root_does_not_contain_agent(demo_repo: Path, tmp_path: Path):
-    external_root = tmp_path.parent / f"{tmp_path.name}-outside"
-    external_root.mkdir()
-    external_agent = external_root / "external.agent.md"
+    outside_repo_root = tmp_path.parent / f"{tmp_path.name}-outside"
+    outside_repo_root.mkdir()
+    external_agent = outside_repo_root / "external.agent.md"
     external_agent.write_text(
         textwrap.dedent(
             """\
