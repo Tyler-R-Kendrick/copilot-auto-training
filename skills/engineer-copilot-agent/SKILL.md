@@ -1,7 +1,7 @@
 ---
 name: engineer-copilot-agent
-description: Improve GitHub Copilot custom agents by validating agent contracts, tightening tool and MCP skill routing, and optimizing bounded handoffs to real workspace agents. Use this whenever the user wants to create, debug, or refine a custom agent, fix tool-calling or skill-usage guidance, reduce prompt bloat, or tune subagent handoffs for Copilot workflows.
-argument-hint: Describe the target custom agent, whether the concern is triggering, tool or skill routing, handoffs, structure, evals, or all, and any observed failures such as stale tool names, bad handoffs, or bloated instructions.
+description: Improve GitHub Copilot custom agents by validating agent contracts, tightening tool and MCP skill routing, and minimizing prompt bloat while keeping handoffs bounded to real workspace agents. Use this whenever the user wants to create, debug, or refine a custom agent.
+argument-hint: Describe the target custom agent, whether the concern is triggering, routing, handoffs, structure, evals, or all, and any observed failures such as stale tool names, bad handoffs, or bloated instructions.
 license: MIT
 compatibility: Python 3.11+. Works in repositories that store GitHub Copilot custom agents as `.agent.md` files alongside reusable skills.
 metadata:
@@ -11,78 +11,108 @@ metadata:
 
 # Engineer Copilot Agent
 
-Use this skill to improve GitHub Copilot custom agents by treating frontmatter, tool and skill routing, handoff design, and context minimization as separate but composable concerns.
+Use this skill to create or improve GitHub Copilot custom agents. Treat triggering, routing, handoffs, and prompt size as separate concerns. Keep the top-level agent contract lean.
 
 Read `references/copilot-agent-standard.md` for the baseline contract and `references/context-minimization-loop.md` before editing.
 
 ## When to use this skill
 
-- The user wants to create a new Copilot custom agent.
-- The user wants to improve an existing `.agent.md` file.
-- The user reports stale tool names, stale agent names, or invented MCP routing.
-- The user wants tighter tool-calling guidance or better bounded skill usage.
-- The user wants clearer subagent handoffs and ownership boundaries.
-- The user wants to trim a bloated custom-agent prompt with progressive disclosure.
-- The user wants evals or training data for a custom-agent contract.
+Use it when the user wants to:
+
+- create a new Copilot custom agent
+- improve an existing `.agent.md` file
+- remove stale tool, skill, or agent names
+- tighten tool-calling or MCP skill routing
+- clarify subagent handoffs and ownership
+- trim a bloated agent prompt
+- add eval coverage for routing regressions
 
 Do not use this skill for prompt-only or skill-only work unless the target artifact is a Copilot custom agent contract or the user explicitly wants to design one.
 
 ## Required inputs
 
-- The path to an existing `.agent.md` file, or a description of the custom agent to create.
-- The repository root when runtime surface discovery matters.
-- The improvement focus: frontmatter, routing, handoffs, structure, evals, or all.
-- Any observed failure modes: under-triggering, over-triggering, stale tools, bad handoffs, bloated context, or weak ownership boundaries.
+- Target `.agent.md` path, or a description of the agent to create
+- Repo root when runtime surface discovery matters
+- Improvement focus: triggering, routing, handoffs, structure, evals, or all
+- Known failure modes such as under-triggering, over-triggering, stale names, bad handoffs, or prompt bloat
 
 ## Core workflow
 
 Follow this order:
 
-1. Run `python scripts/discover_runtime_surface.py --repo-root <repo-root> --json` to list repo-owned agents, skills, and observed tool surfaces.
-2. Compare that discovery output against the current session's live tool and agent inventory. Treat the live session as the source of truth when names drift.
-3. Run `python scripts/validate_agent.py <agent-path> --repo-root <repo-root> --json` to catch contract mismatches, stale names, and missing fields.
-4. Run `python scripts/analyze_agent_body.py <agent-path> --repo-root <repo-root> --json` to find oversized sections, deterministic instructions, and routing guidance that should move deeper.
-5. Fix validation errors first, then routing mismatches, then body clarity and context size.
-6. Read `references/frontmatter-optimization.md` when triggering or discoverability is the concern.
-7. Read `references/tool-skill-usage-optimization.md` when tool calls, MCP skill routing, or tool-usage evals are the concern.
-8. Read `references/handoff-optimization.md` when subagent sequencing or ownership boundaries are the concern.
-9. Extract deterministic checks and inventory summarization to scripts instead of repeating them in prose.
-10. Re-run discovery, validation, and analysis after each meaningful revision.
+1. Run `python scripts/discover_runtime_surface.py --repo-root <repo-root> --json`.
+2. Reconcile discovered repo surfaces against the live session inventory. If they differ, trust the live session.
+3. Run `python scripts/validate_agent.py <agent-path> --repo-root <repo-root> --json`.
+4. Run `python scripts/analyze_agent_body.py <agent-path> --repo-root <repo-root> --json`.
+5. Fix validation errors before rewriting for style.
+6. Fix stale or invented routing next.
+7. Trim prompt body last by moving standards to `references/` and mechanical checks to `scripts/`.
+8. Re-run discovery, validation, and analysis after each meaningful revision.
 
 ## Four concern separation
 
 ### Frontmatter
 
-The frontmatter controls whether Copilot discovers the custom agent. Optimize the name, description, tool declarations, and exposed handoff surfaces without mixing in execution detail.
+Optimize discoverability and fit:
 
-### Tool and skill routing
+- keep `name`, `description`, and hints specific
+- expose only real tools and handoff surfaces
+- avoid body-level execution detail in frontmatter
 
-The body should name only tools, MCP helpers, and skills that actually exist in the current workspace or live session. Prefer discovery and validation before editing so the contract does not fossilize stale names.
+### Routing
 
-### Handoffs and ownership
+Name only tools, skills, helpers, and agents that actually exist in the workspace or live session.
 
-The body should make it obvious which tasks the agent owns directly, which tasks should hand off, and when a handoff would be wasteful or unsafe. Keep boundaries crisp so multiple agents do not compete for the same responsibility.
+- Discover before naming helpers.
+- When names drift, live inventory overrides stale repo text.
+- Do not invent MCP routing, helper names, or handoff targets.
 
-### Context minimization
+### Handoffs
 
-The `.agent.md` body should stay lean. Put standards, optimization heuristics, eval guidance, and large examples in `references/`. Put fixed analyses in `scripts/`.
+Make ownership explicit:
+
+- state what the agent should do directly
+- state what should be handed off
+- avoid overlapping ownership across agents
+- avoid handoffs that are wasteful, circular, or unsupported
+
+### Minimization
+
+Keep the `.agent.md` file as a routing layer.
+
+- put standards and examples in `references/`
+- put deterministic checks and repeated summaries in `scripts/`
+- remove prose that only duplicates deeper assets
 
 ## Recursive minimization loop
 
-1. Draft the routing layer in the `.agent.md` file first.
-2. Move standards, examples, and optimization heuristics into reference docs.
-3. Move mechanical checks, inventory discovery, and repeated summaries into scripts.
-4. Re-read the `.agent.md` file and delete anything that merely duplicates deeper assets.
-5. Re-read each reference file and move any repeated checklist or parser logic into scripts or smaller references.
-6. Stop only when each layer contains information that cannot be stored more cheaply at a deeper layer.
+Use a recursive pass until the prompt is only as large as needed:
+
+1. Draft or repair the routing layer.
+2. Move standards, examples, and extended guidance into focused references.
+3. Move mechanical checks and inventory logic into scripts.
+4. Delete duplicated prose from the agent body.
+5. Re-read the remaining prompt and trim again.
+
+Stop when each remaining section is necessary for triggering, routing, handoffs, or bounded execution.
+
+## Evals guidance
+
+When the user asks for evals, prefer coverage that catches:
+
+- invented tools, skills, or handoff targets
+- stale helper names
+- missing discovery before concrete helper naming
+- missing discovery-to-load-to-run ordering for MCP skill usage
+- prompt bloat that should have been pushed into references or scripts
 
 ## Output contract
 
-When improving a custom agent, structure the response as:
+When improving a custom agent, return:
 
-1. `Runtime surface summary`: what agents, skills, and tool surfaces are actually available
-2. `Validation results`: output from the validator
-3. `Analysis results`: output from the analyzer
-4. `Improvement plan`: prioritized list of changes
-5. `Changes made`: specific edits with rationale
-6. `Re-validation`: confirmation of the final contract plus any remaining risks
+1. Runtime surface summary
+2. Validation results
+3. Analysis results
+4. Improvement plan
+5. Changes made
+6. Re-validation status and remaining risks
