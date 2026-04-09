@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Sequence
@@ -58,7 +57,7 @@ class Section:
 
 @dataclass
 class Recommendation:
-    category: str  # "extract-reference" | "extract-script" | "reduce-body" | "add-heading"
+    category: str  # "extract-reference" | "extract-script" | "reduce-body" | "structure"
     severity: str  # "high" | "medium" | "low"
     description: str
     location: str  # e.g., "lines 45-90" or "section: ## Examples"
@@ -90,13 +89,21 @@ class AnalysisResult:
 
 def parse_frontmatter(text: str) -> tuple[dict, str]:
     """Return (frontmatter_dict, body) from SKILL.md content."""
-    if not text.startswith("---"):
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
         raise ValueError("SKILL.md must start with --- frontmatter delimiter")
-    closing = text.find("---", 3)
-    if closing == -1:
+
+    closing_index = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            closing_index = i
+            break
+
+    if closing_index is None:
         raise ValueError("SKILL.md must have a closing --- frontmatter delimiter")
-    raw_yaml = text[3:closing].strip()
-    body = text[closing + 3:].strip()
+
+    raw_yaml = "".join(lines[1:closing_index]).strip()
+    body = "".join(lines[closing_index + 1:]).strip()
     try:
         fm = yaml.safe_load(raw_yaml)
     except yaml.YAMLError as exc:

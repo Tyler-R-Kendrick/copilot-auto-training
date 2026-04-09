@@ -18,8 +18,9 @@ SKILL_DIR = REPO_ROOT / "skills" / "engineer-skill"
 
 def _load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
+    mod = sys.modules.setdefault(name, mod)
     spec.loader.exec_module(mod)
     return mod
 
