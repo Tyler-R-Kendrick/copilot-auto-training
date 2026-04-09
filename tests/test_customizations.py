@@ -17,15 +17,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
-AGENT_SKILLS_UVX_BOOTSTRAP = (
-    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
-    "&& exec uvx --from "
-    "git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
-    "agent-skills-mcp"
-)
 AGENT_SKILLS_PREFLIGHT = (
     "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
-    "&& uv run --with git+https://github.com/Tyler-R-Kendrick/copilot-auto-training#subdirectory=tools/agent-skills-mcp "
+    '&& uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
     'python -c "import agent_skills_mcp"'
 )
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
