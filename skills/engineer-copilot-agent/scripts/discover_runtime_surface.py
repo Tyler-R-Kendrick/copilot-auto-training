@@ -113,13 +113,13 @@ def discover_skills(repo_root: Path) -> tuple[list[dict[str, str]], list[str]]:
 
 def discover_surface(repo_root: Path | str) -> dict[str, Any]:
     repo_root = Path(repo_root).resolve()
-    notes = [
-        "Compare this repo snapshot with the current session tool and agent inventory before editing.",
-    ]
     agents, agent_notes = discover_agents(repo_root)
     skills, skill_notes = discover_skills(repo_root)
-    notes.extend(agent_notes)
-    notes.extend(skill_notes)
+    notes = [
+        "Compare this repo snapshot with the current session tool and agent inventory before editing.",
+        *agent_notes,
+        *skill_notes,
+    ]
     tool_union = sorted({tool for agent in agents for tool in agent.tools})
     handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
     child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
