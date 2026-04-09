@@ -192,6 +192,7 @@ def validate_cross_references(
 def validate_description_quality(desc: str, result: ValidationResult) -> None:
     """Heuristic checks for description effectiveness."""
     if not isinstance(desc, str):
+        # Structural validation in validate_frontmatter reports non-string descriptions.
         return
     desc = desc.strip()
     if not desc:
@@ -206,7 +207,8 @@ def validate_description_quality(desc: str, result: ValidationResult) -> None:
         )
 
     # Check for action-oriented start
-    first_word = desc.split()[0].lower() if desc else ""
+    words = desc.split()
+    first_word = words[0].lower() if words else ""
     starts_with_action = first_word in ACTION_VERBS
     starts_with_article = first_word in ("a", "an", "the", "this")
     if starts_with_article and not starts_with_action:

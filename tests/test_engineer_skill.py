@@ -378,6 +378,8 @@ class TestParseSections:
         sections = parse_sections(body)
         assert len(sections) == 1
         assert sections[0].heading == "(preamble)"
+        extracted = body.splitlines()[sections[0].start_line - 1:sections[0].end_line]
+        assert "\n".join(extracted) == body
 
 
 # === Deterministic line detection tests =======================================

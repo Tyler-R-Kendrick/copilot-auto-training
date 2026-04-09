@@ -115,7 +115,8 @@ def parse_sections(body: str) -> list[Section]:
 
     for i, line in enumerate(lines, 1):
         if line.startswith("#"):
-            if current_heading and i > current_start:
+            current_section_non_empty = i > current_start
+            if current_heading != "(preamble)" or current_section_non_empty:
                 sections.append(Section(
                     heading=current_heading,
                     start_line=current_start,
