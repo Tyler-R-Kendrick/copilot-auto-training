@@ -138,11 +138,21 @@ def validate_body(body: str, result: ValidationResult) -> None:
         result.warning("routing-missing-find-step", "Body references load_agent_skill without first describing discovery.")
 
 
-def validate_surface_alignment(fm: dict[str, Any], result: ValidationResult, surface: dict[str, Any] | None) -> None:
+def validate_surface_alignment(
+    agent_path: Path,
+    fm: dict[str, Any],
+    result: ValidationResult,
+    surface: dict[str, Any] | None,
+) -> None:
     if not surface:
         return
     known_agents = {agent["name"] for agent in surface.get("agents", [])}
-    known_tools = set(surface.get("tools", []))
+    known_tools = {
+        tool
+        for agent in surface.get("agents", [])
+        if agent.get("path") != str(agent_path.relative_to(Path(surface["repo_root"])))
+        for tool in agent.get("tools", [])
+    }
     for agent_name in _as_string_list(fm.get("agents")):
         if known_agents and agent_name not in known_agents:
             result.error("unknown-child-agent", f"Declared child agent '{agent_name}' is not present in the discovered repo surface")
@@ -175,7 +185,7 @@ def validate_agent(agent_path: Path | str, repo_root: Path | str | None = None) 
 
     validate_frontmatter(agent_path, fm, result)
     validate_body(body, result)
-    validate_surface_alignment(fm, result, surface)
+    validate_surface_alignment(agent_path, fm, result, surface)
     return result
 
 
