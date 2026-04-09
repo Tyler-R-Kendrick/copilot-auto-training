@@ -5,6 +5,7 @@
 !create-workflow
 !engineer-code
 !engineer-prompt
+!engineer-skill
 !judge-outcome
 !judge-rubric
 !judge-trajectory

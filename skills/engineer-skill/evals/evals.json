@@ -1,0 +1,60 @@
+{
+  "skill_name": "engineer-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have an agent skill in skills/my-classifier/ that triggers on completely unrelated prompts about data visualization. The description is 'A tool for classifying support tickets into categories.' Can you fix the triggering so it only activates for classification tasks?",
+      "expected_output": "The response should run validation, identify the passive description as a triggering problem, rewrite the description with explicit trigger phrases and negative boundaries, and re-validate the result.",
+      "assertions": [
+        "The response runs or references the validate_skill.py script on the skill directory",
+        "The response identifies the description as lacking trigger guidance or using passive language",
+        "The response produces a rewritten description that includes explicit 'Use this whenever' or equivalent trigger phrases",
+        "The response includes negative boundaries indicating when the skill should not trigger"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "My SKILL.md for a code review skill is 800 lines long and agents seem to ignore half the instructions. Can you help me restructure it so the important parts actually get followed?",
+      "expected_output": "The response should analyze the body, identify oversized sections and deterministic content suitable for extraction, produce a restructuring plan that moves domain knowledge to reference files and mechanical steps to scripts.",
+      "assertions": [
+        "The response runs or references the analyze_skill_body.py script to identify oversized sections",
+        "The response recommends extracting sections over 50 lines to reference files",
+        "The response identifies deterministic or sequential instructions that should become scripts",
+        "The response keeps the restructured SKILL.md body under 500 lines"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want to create a new agent skill that helps users write database migration scripts. It should validate SQL syntax, check for backwards compatibility, and generate rollback scripts. Where do I start?",
+      "expected_output": "The response should scaffold the skill directory structure, write a SKILL.md with proper frontmatter and a lean body, identify the SQL validation and rollback generation as candidates for scripts rather than prose instructions, and create the reference files.",
+      "assertions": [
+        "The response creates or describes a skill directory with SKILL.md, scripts/, references/, assets/, and evals/ subdirectories",
+        "The response produces frontmatter with a kebab-case name, description under 1024 characters, and explicit trigger phrases",
+        "The response identifies SQL validation and rollback generation as deterministic work suitable for scripts",
+        "The response separates the frontmatter concern from the body content concern in its approach"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I have a skill that works great when explicitly invoked but never triggers automatically. The name is 'api-docs-generator' and the description just says 'Generates API documentation.' How do I fix this?",
+      "expected_output": "The response should diagnose the under-triggering as a description problem, explain that agents need explicit trigger phrases and coverage of realistic user intents, and produce an improved description that is slightly pushy about when to activate.",
+      "assertions": [
+        "The response diagnoses the problem as a description/frontmatter issue rather than a body content issue",
+        "The response explains that agents use the description field to decide whether to consult a skill",
+        "The response produces a rewritten description that is longer and includes multiple trigger scenarios",
+        "The response references the frontmatter optimization guidance"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Can you validate my skill at skills/data-pipeline/ and tell me if it follows the agentskills.io spec? I just want a quick check before I ship it.",
+      "expected_output": "The response should run the validation script and report results clearly, distinguishing between spec errors that must be fixed and quality warnings that are recommendations.",
+      "assertions": [
+        "The response runs or references the validate_skill.py script with the provided skill path",
+        "The response distinguishes between errors and warnings in the validation output",
+        "The response explains what each validation issue means and how to fix it",
+        "The response confirms or denies spec compliance based on the validation results"
+      ]
+    }
+  ]
+}
