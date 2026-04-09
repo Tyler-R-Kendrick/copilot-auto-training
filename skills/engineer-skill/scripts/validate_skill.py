@@ -81,7 +81,10 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
         raise ValueError("SKILL.md must have a closing --- frontmatter delimiter")
     raw_yaml = text[3:closing].strip()
     body = text[closing + 3:].strip()
-    fm = yaml.safe_load(raw_yaml)
+    try:
+        fm = yaml.safe_load(raw_yaml)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML in frontmatter: {exc}") from exc
     if not isinstance(fm, dict):
         raise ValueError("Frontmatter must be a YAML mapping")
     return fm, body
@@ -188,6 +191,8 @@ def validate_cross_references(
 
 def validate_description_quality(desc: str, result: ValidationResult) -> None:
     """Heuristic checks for description effectiveness."""
+    if not isinstance(desc, str):
+        return
     desc = desc.strip()
     if not desc:
         return

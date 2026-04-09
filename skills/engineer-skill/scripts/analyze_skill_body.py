@@ -97,7 +97,10 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
         raise ValueError("SKILL.md must have a closing --- frontmatter delimiter")
     raw_yaml = text[3:closing].strip()
     body = text[closing + 3:].strip()
-    fm = yaml.safe_load(raw_yaml)
+    try:
+        fm = yaml.safe_load(raw_yaml)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML in frontmatter: {exc}") from exc
     if not isinstance(fm, dict):
         raise ValueError("Frontmatter must be a YAML mapping")
     return fm, body
@@ -112,7 +115,7 @@ def parse_sections(body: str) -> list[Section]:
 
     for i, line in enumerate(lines, 1):
         if line.startswith("#"):
-            if current_heading or i > 1:
+            if current_heading and i > current_start:
                 sections.append(Section(
                     heading=current_heading,
                     start_line=current_start,

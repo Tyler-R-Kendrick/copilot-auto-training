@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import io
+import runpy
 import sys
 import textwrap
 from pathlib import Path
+from contextlib import redirect_stdout
 
 import pytest
 
@@ -36,11 +39,13 @@ validate_skill = _validate_mod.validate_skill
 ALLOWED_FRONTMATTER_KEYS = _validate_mod.ALLOWED_FRONTMATTER_KEYS
 NAME_MAX_LEN = _validate_mod.NAME_MAX_LEN
 DESCRIPTION_MAX_LEN = _validate_mod.DESCRIPTION_MAX_LEN
+validate_main = _validate_mod.main
 
 parse_sections = _analyze_mod.parse_sections
 find_deterministic_lines = _analyze_mod.find_deterministic_lines
 find_reference_candidates = _analyze_mod.find_reference_candidates
 analyze_skill = _analyze_mod.analyze_skill
+analyze_main = _analyze_mod.main
 
 
 # === Frontmatter parsing tests ================================================
@@ -71,6 +76,20 @@ class TestParseFrontmatter:
     def test_non_dict_frontmatter(self):
         with pytest.raises(ValueError, match="YAML mapping"):
             parse_frontmatter("---\n- item1\n- item2\n---\n# Body")
+
+
+class TestAnalyzeParseFrontmatter:
+    def test_missing_opening_delimiter(self):
+        with pytest.raises(ValueError, match="must start with ---"):
+            _analyze_mod.parse_frontmatter("name: test\n---\n# Body")
+
+    def test_missing_closing_delimiter(self):
+        with pytest.raises(ValueError, match="must have a closing"):
+            _analyze_mod.parse_frontmatter("---\nname: test\n# Body")
+
+    def test_non_dict_frontmatter(self):
+        with pytest.raises(ValueError, match="YAML mapping"):
+            _analyze_mod.parse_frontmatter("---\n- item1\n- item2\n---\n# Body")
 
 
 # === Frontmatter validation tests =============================================
@@ -193,12 +212,26 @@ class TestValidateFrontmatter:
         assert not result.valid
         assert any(i.code == "frontmatter-compatibility-too-long" for i in result.issues)
 
+    def test_compatibility_wrong_type(self):
+        fm = {"name": "test", "description": "Valid.", "compatibility": 123}
+        result = ValidationResult(skill_path="/tmp/test")
+        validate_frontmatter(fm, result)
+        assert not result.valid
+        assert any(i.code == "frontmatter-compatibility-type" for i in result.issues)
+
     def test_empty_name_string(self):
         fm = {"name": "  ", "description": "Valid."}
         result = ValidationResult(skill_path="/tmp/test")
         validate_frontmatter(fm, result)
         assert not result.valid
         assert any(i.code == "frontmatter-name-empty" for i in result.issues)
+
+    def test_empty_description_string(self):
+        fm = {"name": "test", "description": "   "}
+        result = ValidationResult(skill_path="/tmp/test")
+        validate_frontmatter(fm, result)
+        assert not result.valid
+        assert any(i.code == "frontmatter-description-empty" for i in result.issues)
 
 
 # === Name matches dir tests ===================================================
@@ -253,6 +286,12 @@ class TestValidateBody:
         warnings = [i for i in result.issues if i.code == "body-no-lists"]
         assert len(warnings) == 1
 
+    def test_long_body(self):
+        body = "# Title\n" + "\n".join(f"- Item {i}" for i in range(600))
+        result = ValidationResult(skill_path="/tmp/test")
+        validate_body(body, result)
+        assert any(i.code == "body-too-long" for i in result.issues)
+
 
 # === Cross-reference tests ====================================================
 
@@ -302,10 +341,21 @@ class TestDescriptionQuality:
         warnings = [i for i in result.issues if i.code == "description-passive-start"]
         assert len(warnings) == 1
 
+    def test_empty_description_is_ignored(self):
+        result = ValidationResult(skill_path="/tmp/test")
+        validate_description_quality("", result)
+        assert result.issues == []
+
 
 # === Section parsing tests ====================================================
 
 class TestParseSections:
+    def test_leading_heading_does_not_create_empty_preamble(self):
+        body = "# Title\n\nContent here."
+        sections = parse_sections(body)
+        assert len(sections) == 1
+        assert sections[0].heading == "# Title"
+
     def test_single_section(self):
         body = "# Title\n\nContent here."
         sections = parse_sections(body)
@@ -322,6 +372,12 @@ class TestParseSections:
     def test_empty_body(self):
         sections = parse_sections("")
         assert len(sections) == 0
+
+    def test_preamble_without_heading_is_preserved(self):
+        body = "Intro line\nAnother line"
+        sections = parse_sections(body)
+        assert len(sections) == 1
+        assert sections[0].heading == "(preamble)"
 
 
 # === Deterministic line detection tests =======================================
@@ -429,6 +485,67 @@ class TestValidateSkillIntegration:
         result = validate_skill(skill_dir)
         assert not result.valid
 
+    def test_invalid_yaml_returns_parse_error(self, tmp_path):
+        skill_dir = tmp_path / "yaml-skill"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: [unterminated\n---\n# Body\n- Item\n")
+        result = validate_skill(skill_dir)
+        assert not result.valid
+        assert any(i.code == "frontmatter-parse-error" for i in result.issues)
+
+    def test_non_string_description_does_not_crash(self, tmp_path):
+        skill_dir = tmp_path / "typed-skill"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: typed-skill\ndescription: 123\n---\n# Body\n- Item\n- Item 2\n- Item 3\n- Item 4\n- Item 5\n")
+        result = validate_skill(skill_dir)
+        assert not result.valid
+        assert any(i.code == "frontmatter-description-empty" for i in result.issues)
+
+    def test_other_skills_triggers_cross_reference_check(self, tmp_path):
+        skill_dir = tmp_path / "cross-skill"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: cross-skill
+            description: Improve skills. Use this whenever skill work is needed.
+            ---
+            # Cross Skill
+
+            - Use other-skill for comparison
+            - Keep going
+            - Keep going
+            - Keep going
+            - Keep going
+        """))
+        result = validate_skill(skill_dir, ["other-skill"])
+        assert any(i.code == "cross-skill-reference" for i in result.issues)
+
+    def test_missing_subdirectories_emit_warnings(self, tmp_path):
+        skill_dir = tmp_path / "minimal-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: minimal-skill
+            description: Improve skills. Use this whenever skill work is needed.
+            ---
+            # Minimal Skill
+
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        result = validate_skill(skill_dir)
+        warnings = [i for i in result.issues if i.code == "structure-missing-dir"]
+        assert len(warnings) == 3
+
 
 class TestAnalyzeSkillIntegration:
     def test_analyze_clean_skill(self, tmp_path):
@@ -476,3 +593,220 @@ class TestAnalyzeSkillIntegration:
         result = analyze_skill(skill_dir)
         assert len(result.recommendations) >= 1
         assert result.recommendations[0].category == "structure"
+
+    def test_analyze_invalid_yaml_returns_structure_recommendation(self, tmp_path):
+        skill_dir = tmp_path / "broken-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: [broken\n---\n# Body\n- Item\n")
+        result = analyze_skill(skill_dir)
+        assert any("Frontmatter error:" in rec.description for rec in result.recommendations)
+
+    def test_analyze_detects_long_body_and_large_section_and_reference_candidates(self, tmp_path):
+        skill_dir = tmp_path / "large-skill"
+        skill_dir.mkdir()
+        long_section = "\n".join(f"Line {i}" for i in range(60))
+        filler = "\n".join(f"- Item {i}" for i in range(460))
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: large-skill\ndescription: Analyze skills.\n---\n"
+            f"## Large Section\n{long_section}\n"
+            "For more information, see the specification.\n"
+            f"{filler}\n"
+        )
+        result = analyze_skill(skill_dir)
+        categories = [rec.category for rec in result.recommendations]
+        assert "reduce-body" in categories
+        assert "extract-reference" in categories
+        assert result.reference_candidates
+
+
+class TestSerializationAndCli:
+    def test_validation_result_to_dict(self):
+        result = ValidationResult(skill_path="/tmp/test")
+        result.warning("warn-code", "warn message")
+        payload = result.to_dict()
+        assert payload["skill_path"] == "/tmp/test"
+        assert payload["valid"] is True
+        assert payload["issues"][0]["code"] == "warn-code"
+
+    def test_analysis_result_to_dict(self, tmp_path):
+        skill_dir = tmp_path / "clean-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: clean-skill
+            description: Analyze skills.
+            ---
+            # Clean Skill
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        payload = analyze_skill(skill_dir).to_dict()
+        assert payload["skill_path"] == str(skill_dir.resolve())
+        assert isinstance(payload["sections"], list)
+
+    def test_validate_main_json_output(self, tmp_path):
+        skill_dir = tmp_path / "cli-skill"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: cli-skill
+            description: Improve skills. Use this whenever skill work is needed.
+            ---
+            # CLI Skill
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = validate_main([str(skill_dir), "--json"])
+        payload = json.loads(buffer.getvalue())
+        assert exit_code == 0
+        assert payload["valid"] is True
+
+    def test_validate_main_text_output_failure(self, tmp_path):
+        skill_dir = tmp_path / "cli-bad"
+        skill_dir.mkdir()
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = validate_main([str(skill_dir)])
+        output = buffer.getvalue()
+        assert exit_code == 1
+        assert "Skill has errors" in output
+
+    def test_validate_main_text_output_success(self, tmp_path):
+        skill_dir = tmp_path / "cli-good"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: cli-good
+            description: Improve skills. Use this whenever skill work is needed.
+            ---
+            # CLI Skill
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = validate_main([str(skill_dir)])
+        output = buffer.getvalue()
+        assert exit_code == 0
+        assert "Skill is valid" in output
+
+    def test_analyze_main_json_output(self, tmp_path):
+        skill_dir = tmp_path / "analyze-cli"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: analyze-cli
+            description: Analyze skills.
+            ---
+            # Analyze
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = analyze_main([str(skill_dir), "--json"])
+        payload = json.loads(buffer.getvalue())
+        assert exit_code == 0
+        assert payload["skill_path"] == str(skill_dir.resolve())
+
+    def test_analyze_main_text_output_with_recommendations(self, tmp_path):
+        skill_dir = tmp_path / "analyze-text"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: analyze-text\ndescription: Analyze skills.\n---\n"
+            "Check that the result is valid.\n"
+        )
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = analyze_main([str(skill_dir)])
+        output = buffer.getvalue()
+        assert exit_code == 0
+        assert "Recommendations:" in output
+        assert "Deterministic lines" in output
+
+    def test_analyze_main_text_output_without_recommendations(self, tmp_path):
+        skill_dir = tmp_path / "analyze-clean"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: analyze-clean
+            description: Analyze skills.
+            ---
+            # Analyze
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = analyze_main([str(skill_dir), "--json"])
+        assert exit_code == 0
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            exit_code = analyze_main([str(skill_dir)])
+        output = buffer.getvalue()
+        assert exit_code == 0
+        assert "No recommendations — skill looks good!" in output
+
+    def test_validate_script_dunder_main(self, monkeypatch, tmp_path):
+        skill_dir = tmp_path / "script-main"
+        skill_dir.mkdir()
+        for subdir in ("scripts", "references", "assets"):
+            (skill_dir / subdir).mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: script-main
+            description: Improve skills. Use this whenever skill work is needed.
+            ---
+            # Script Main
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        monkeypatch.setattr(sys, "argv", ["validate_skill.py", str(skill_dir)])
+        with pytest.raises(SystemExit) as exc:
+            runpy.run_path(str(SKILL_DIR / "scripts" / "validate_skill.py"), run_name="__main__")
+        assert exc.value.code == 0
+
+    def test_analyze_script_dunder_main(self, monkeypatch, tmp_path):
+        skill_dir = tmp_path / "script-analyze"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(textwrap.dedent("""\
+            ---
+            name: script-analyze
+            description: Analyze skills.
+            ---
+            # Script Analyze
+            - One
+            - Two
+            - Three
+            - Four
+            - Five
+        """))
+        monkeypatch.setattr(sys, "argv", ["analyze_skill_body.py", str(skill_dir), "--json"])
+        with pytest.raises(SystemExit) as exc:
+            runpy.run_path(str(SKILL_DIR / "scripts" / "analyze_skill_body.py"), run_name="__main__")
+        assert exc.value.code == 0
