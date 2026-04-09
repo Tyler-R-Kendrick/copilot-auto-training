@@ -67,6 +67,7 @@ The skills in this repo can be added by running:
 | --- | --- |
 | [`engineer-prompt`](skills/engineer-prompt/README.md) | Improve prompts and context plans with the smallest effective prompt-engineering technique. |
 | [`engineer-code`](skills/engineer-code/README.md) | Apply Microsoft Trace to train Python prompts, helpers, and agent components. |
+| [`engineer-copilot-agent`](skills/engineer-copilot-agent/README.md) | Improve GitHub Copilot custom-agent contracts, tool routing, and handoff design with bounded repo-aware guidance. |
 
 #### Judge Skills
 

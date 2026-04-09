@@ -1,0 +1,55 @@
+{
+  "skill_name": "engineer-copilot-agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want a new GitHub Copilot custom agent for this repo that owns prompt-engineering investigations, routes any real optimization work through the repo's packaged skills instead of inventing tools, and only hands off when a named workspace specialist should take over. Build the first draft and keep the top-level agent prompt lean.",
+      "expected_output": "The response creates or plans a bounded custom-agent contract that validates the live tool and agent inventory, routes prompt-engineering work through real repo skills or agents, and keeps standards and deterministic checks out of the main `.agent.md` body.",
+      "assertions": [
+        "The response verifies or explicitly plans to verify the current repo and session inventory before hardcoding tools, agents, or skills.",
+        "The response distinguishes frontmatter, tool or skill routing, handoffs, and context minimization as separate concerns.",
+        "The response keeps the main custom-agent body lean by moving standards or deterministic work into references or scripts."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our Copilot custom agent keeps telling people to call tools that do not exist anymore and mentions an old handoff target. I need you to audit the contract, update it to the real workspace surface, and add eval coverage so this does not regress.",
+      "expected_output": "The response validates the contract against discovered repo surfaces, corrects stale tool or agent references, and adds eval ideas or artifacts that catch invented routing guidance in the future.",
+      "assertions": [
+        "The response uses deterministic discovery or validation before changing the contract.",
+        "The response corrects stale tool or handoff guidance rather than preserving it as documentation.",
+        "The response proposes eval coverage that would fail if the agent invents tools, skills, or handoff targets."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I already have a custom agent draft, but it is huge. It tries to inline standards, handoff rules, tool-calling guidance, and eval criteria all in one file. I want you to recursively trim it until the top-level prompt only orchestrates references and deterministic helpers.",
+      "expected_output": "The response applies a recursive minimization loop that extracts standards and eval guidance into reference docs, moves mechanical checks into scripts, and explains the stop condition for further trimming.",
+      "assertions": [
+        "The response describes more than one minimization pass instead of a single cleanup pass.",
+        "The response moves deterministic or mechanical guidance into scripts.",
+        "The response states a clear stop condition where the top-level prompt is mostly routing and ownership guidance."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Design a custom agent for this workspace that can orchestrate subagent handoffs safely. It should know when to keep the work, when to hand off, and how to keep those handoff names synchronized with whatever agents the repo actually exposes.",
+      "expected_output": "The response designs bounded handoff rules, uses runtime discovery before naming agents, and keeps ownership boundaries explicit so the orchestrator and helpers do not compete.",
+      "assertions": [
+        "The response explicitly checks or plans to check the discovered agent roster before hardcoding handoff targets.",
+        "The response explains when not to hand off.",
+        "The response keeps ownership boundaries explicit between the orchestrator and helper agents."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I need to improve a Copilot custom agent that should route research tasks, judging tasks, and training tasks through the real capabilities that this repository already ships. Make the routing robust even if the exact tool helper names drift over time.",
+      "expected_output": "The response aligns routing with the repository's real agents and skills, preserves a discovery-first approach so helper-name drift is survivable, and avoids claiming unsupported tool names as hard facts.",
+      "assertions": [
+        "The response uses repo-real capabilities instead of inventing new ones.",
+        "The response treats helper-name discovery as a live check rather than a static assumption.",
+        "The response keeps capability routing bounded to the task-specific owner instead of sending all work through one surface."
+      ]
+    }
+  ]
+}

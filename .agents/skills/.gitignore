@@ -4,6 +4,7 @@
 !.gitignore
 !create-workflow
 !engineer-code
+!engineer-copilot-agent
 !engineer-prompt
 !engineer-skill
 !judge-outcome
