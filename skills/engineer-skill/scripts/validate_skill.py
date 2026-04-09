@@ -33,6 +33,11 @@ COMPATIBILITY_MAX_LEN = 500
 KEBAB_CASE_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 BODY_MAX_LINES = 500
 BODY_MIN_LINES = 5
+TRIGGER_PHRASES = ("use this", "use when", "invoke when", "trigger when")
+ACTION_VERBS = frozenset({
+    "improve", "create", "analyze", "generate", "build", "fix",
+    "optimize", "validate", "extract", "convert", "transform",
+})
 
 
 # --- Result types -------------------------------------------------------------
@@ -188,8 +193,7 @@ def validate_description_quality(desc: str, result: ValidationResult) -> None:
         return
 
     # Check for trigger phrases
-    trigger_phrases = ["use this", "use when", "invoke when", "trigger when"]
-    has_trigger = any(phrase in desc.lower() for phrase in trigger_phrases)
+    has_trigger = any(phrase in desc.lower() for phrase in TRIGGER_PHRASES)
     if not has_trigger:
         result.warning(
             "description-no-trigger-phrase",
@@ -197,9 +201,8 @@ def validate_description_quality(desc: str, result: ValidationResult) -> None:
         )
 
     # Check for action-oriented start
-    action_starts = ["improve", "create", "analyze", "generate", "build", "fix", "optimize", "validate", "extract", "convert", "transform"]
     first_word = desc.split()[0].lower() if desc else ""
-    starts_with_action = first_word in action_starts
+    starts_with_action = first_word in ACTION_VERBS
     starts_with_article = first_word in ("a", "an", "the", "this")
     if starts_with_article and not starts_with_action:
         result.warning(

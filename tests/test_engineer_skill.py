@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import textwrap
 from pathlib import Path
 
@@ -13,10 +14,9 @@ SKILL_DIR = REPO_ROOT / "skills" / "engineer-skill"
 
 
 def _load_module(name: str, path: Path):
-    import sys as _sys
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
-    _sys.modules[name] = mod
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -114,6 +114,27 @@ class TestValidateFrontmatter:
     def test_name_not_kebab_case(self):
         fm = {"name": "MySkill", "description": "Valid."}
         result = ValidationResult(skill_path="/tmp/MySkill")
+        validate_frontmatter(fm, result)
+        assert not result.valid
+        assert any(i.code == "frontmatter-name-format" for i in result.issues)
+
+    def test_name_with_underscores(self):
+        fm = {"name": "my_skill", "description": "Valid."}
+        result = ValidationResult(skill_path="/tmp/my_skill")
+        validate_frontmatter(fm, result)
+        assert not result.valid
+        assert any(i.code == "frontmatter-name-format" for i in result.issues)
+
+    def test_name_with_spaces(self):
+        fm = {"name": "my skill", "description": "Valid."}
+        result = ValidationResult(skill_path="/tmp/my skill")
+        validate_frontmatter(fm, result)
+        assert not result.valid
+        assert any(i.code == "frontmatter-name-format" for i in result.issues)
+
+    def test_name_with_special_chars(self):
+        fm = {"name": "my.skill!", "description": "Valid."}
+        result = ValidationResult(skill_path="/tmp/my.skill!")
         validate_frontmatter(fm, result)
         assert not result.valid
         assert any(i.code == "frontmatter-name-format" for i in result.issues)
