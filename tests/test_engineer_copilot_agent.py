@@ -187,9 +187,8 @@ def test_validate_agent_allows_tool_unique_to_current_agent(demo_repo: Path):
     assert all(issue.code != "unknown-tool-surface" for issue in result.issues)
 
 
-def test_validate_agent_warns_when_repo_root_does_not_contain_agent(demo_repo: Path, tmp_path: Path):
-    outside_repo_root = tmp_path.parent / f"{tmp_path.name}-outside"
-    outside_repo_root.mkdir()
+def test_validate_agent_warns_when_repo_root_does_not_contain_agent(demo_repo: Path, tmp_path_factory: pytest.TempPathFactory):
+    outside_repo_root = tmp_path_factory.mktemp("outside-repo-root")
     external_agent = outside_repo_root / "external.agent.md"
     external_agent.write_text(
         textwrap.dedent(

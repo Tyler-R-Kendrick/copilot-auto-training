@@ -152,7 +152,7 @@ def validate_surface_alignment(
     known_agents = {agent["name"] for agent in surface.get("agents", [])}
     repo_root = Path(surface["repo_root"])
     try:
-        agent_path.relative_to(repo_root)
+        _ = agent_path.relative_to(repo_root)
     except ValueError:
         result.warning(
             "surface-repo-root-mismatch",
@@ -164,8 +164,7 @@ def validate_surface_alignment(
         known_tools = {
             tool
             for agent in surface.get("agents", [])
-            for tool in agent.get("tools", [])
-            if isinstance(tool, str)
+            for tool in _as_string_list(agent.get("tools"))
         }
     for agent_name in _as_string_list(fm.get("agents")):
         if known_agents and agent_name not in known_agents:
