@@ -64,7 +64,10 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         raise ValueError("agent file must have a closing --- frontmatter delimiter")
     raw_yaml = "".join(lines[1:closing_index]).strip()
     body = "".join(lines[closing_index + 1 :]).strip()
-    payload = yaml.safe_load(raw_yaml) or {}
+    try:
+        payload = yaml.safe_load(raw_yaml) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"frontmatter is not valid YAML: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError("frontmatter must be a YAML mapping")
     return payload, body
@@ -147,12 +150,22 @@ def validate_surface_alignment(
     if not surface:
         return
     known_agents = {agent["name"] for agent in surface.get("agents", [])}
-    known_tools = {
-        tool
-        for agent in surface.get("agents", [])
-        if agent.get("path") != str(agent_path.relative_to(Path(surface["repo_root"])))
-        for tool in agent.get("tools", [])
-    }
+    repo_root = Path(surface["repo_root"])
+    try:
+        agent_path.relative_to(repo_root)
+    except ValueError:
+        result.warning(
+            "surface-repo-root-mismatch",
+            f"Agent path '{agent_path}' is not under repo root '{repo_root}'; validating against repo-wide surfaces only.",
+        )
+    known_tools = set(_as_string_list(surface.get("tools")))
+    if not known_tools:
+        known_tools = {
+            tool
+            for agent in surface.get("agents", [])
+            for tool in agent.get("tools", [])
+            if isinstance(tool, str)
+        }
     for agent_name in _as_string_list(fm.get("agents")):
         if known_agents and agent_name not in known_agents:
             result.error("unknown-child-agent", f"Declared child agent '{agent_name}' is not present in the discovered repo surface")

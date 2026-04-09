@@ -86,7 +86,10 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         raise ValueError("agent file must have a closing --- frontmatter delimiter")
     raw_yaml = "".join(lines[1:closing_index]).strip()
     body = "".join(lines[closing_index + 1 :]).strip()
-    payload = yaml.safe_load(raw_yaml) or {}
+    try:
+        payload = yaml.safe_load(raw_yaml) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"frontmatter is not valid YAML: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError("frontmatter must be a YAML mapping")
     return payload, body
@@ -152,8 +155,29 @@ def find_stale_surface_mentions(body: str, surface: dict[str, Any] | None) -> li
 def analyze_agent(agent_path: Path | str, repo_root: Path | str | None = None) -> AnalysisResult:
     agent_path = Path(agent_path).resolve()
     result = AnalysisResult(agent_path=str(agent_path))
-    text = agent_path.read_text(encoding="utf-8")
-    _, body = parse_frontmatter(text)
+    if not agent_path.is_file():
+        result.recommendations.append(
+            Recommendation(
+                category="structure",
+                severity="high",
+                description="Agent file not found.",
+                location=str(agent_path),
+            )
+        )
+        return result
+    try:
+        text = agent_path.read_text(encoding="utf-8")
+        _, body = parse_frontmatter(text)
+    except (OSError, ValueError) as exc:
+        result.recommendations.append(
+            Recommendation(
+                category="structure",
+                severity="high",
+                description=f"Frontmatter error: {exc}",
+                location=str(agent_path),
+            )
+        )
+        return result
     result.body_lines = len(body.splitlines())
     result.sections = parse_sections(body)
 

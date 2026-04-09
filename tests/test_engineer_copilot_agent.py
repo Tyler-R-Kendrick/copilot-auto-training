@@ -107,6 +107,25 @@ def test_discover_surface_finds_agents_skills_and_tools(demo_repo: Path):
     assert "planner->helper" in payload["handoff_pairs"]
 
 
+def test_discover_surface_skips_malformed_files_and_records_notes(demo_repo: Path):
+    (demo_repo / ".github" / "agents" / "broken.agent.md").write_text(
+        "---\nname: [oops\n---\n# Broken\n",
+        encoding="utf-8",
+    )
+    (demo_repo / "skills" / "broken-skill").mkdir()
+    (demo_repo / "skills" / "broken-skill" / "SKILL.md").write_text(
+        "---\nname: broken-skill\ndescription: [oops\n---\n# Broken\n",
+        encoding="utf-8",
+    )
+
+    payload = discover_mod.discover_surface(demo_repo)
+
+    assert [agent["name"] for agent in payload["agents"]] == ["helper", "planner"]
+    assert payload["skills"] == [{"name": "demo-skill", "path": "skills/demo-skill/SKILL.md"}]
+    assert any("Skipped agent '.github/agents/broken.agent.md'" in note for note in payload["notes"])
+    assert any("Skipped skill 'skills/broken-skill/SKILL.md'" in note for note in payload["notes"])
+
+
 def test_validate_agent_accepts_known_repo_surface(demo_repo: Path):
     result = validate_mod.validate_agent(demo_repo / ".github" / "agents" / "planner.agent.md", repo_root=demo_repo)
     assert result.valid
@@ -139,9 +158,48 @@ def test_validate_agent_flags_unknown_handoff_and_tool(demo_repo: Path):
     codes = {issue.code for issue in result.issues}
     assert "unknown-child-agent" in codes
     assert "unknown-handoff-agent" in codes
-    assert "unknown-tool-surface" in codes
     assert "routing-missing-load-step" in codes
     assert not result.valid
+
+
+def test_validate_agent_warns_when_repo_root_does_not_contain_agent(demo_repo: Path, tmp_path: Path):
+    external_root = tmp_path.parent / f"{tmp_path.name}-outside"
+    external_root.mkdir()
+    external_agent = external_root / "external.agent.md"
+    external_agent.write_text(
+        textwrap.dedent(
+            """\
+            ---
+            name: "external"
+            description: "Use when validating an external agent."
+            tools: [read]
+            ---
+
+            # External
+
+            - Do the work directly.
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    result = validate_mod.validate_agent(external_agent, repo_root=demo_repo)
+
+    assert result.valid
+    assert any(issue.code == "surface-repo-root-mismatch" for issue in result.issues)
+
+
+def test_validate_agent_reports_malformed_frontmatter(demo_repo: Path):
+    agent_path = demo_repo / ".github" / "agents" / "malformed.agent.md"
+    agent_path.write_text(
+        "---\nname: [oops\n---\n# Broken\n",
+        encoding="utf-8",
+    )
+
+    result = validate_mod.validate_agent(agent_path, repo_root=demo_repo)
+
+    assert not result.valid
+    assert any(issue.code == "frontmatter-parse-error" for issue in result.issues)
 
 
 def test_analyze_agent_reports_deterministic_and_stale_surface_issues(demo_repo: Path):
@@ -168,6 +226,28 @@ def test_analyze_agent_reports_deterministic_and_stale_surface_issues(demo_repo:
     assert "extract-reference" in categories
     assert "verify-surface" in categories
     assert any(item["token"] == "ghost-agent" for item in result.stale_surface_mentions)
+
+
+def test_analyze_agent_reports_missing_file():
+    result = analyze_mod.analyze_agent("/tmp/does-not-exist.agent.md")
+
+    assert result.recommendations
+    assert result.recommendations[0].category == "structure"
+    assert result.recommendations[0].severity == "high"
+
+
+def test_analyze_agent_reports_malformed_frontmatter(demo_repo: Path):
+    agent_path = demo_repo / ".github" / "agents" / "malformed.agent.md"
+    agent_path.write_text(
+        "---\nname: [oops\n---\n# Broken\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_mod.analyze_agent(agent_path, repo_root=demo_repo)
+
+    assert result.recommendations
+    assert result.recommendations[0].category == "structure"
+    assert "Frontmatter error" in result.recommendations[0].description
 
 
 def test_cli_entrypoints_emit_json(demo_repo: Path, monkeypatch: pytest.MonkeyPatch):

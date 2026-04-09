@@ -36,7 +36,10 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
 
     raw_yaml = "".join(lines[1:closing_index]).strip()
     body = "".join(lines[closing_index + 1 :]).strip()
-    payload = yaml.safe_load(raw_yaml) or {}
+    try:
+        payload = yaml.safe_load(raw_yaml) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"invalid YAML frontmatter: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError("frontmatter must be a YAML mapping")
     return payload, body
@@ -52,14 +55,19 @@ def _as_string_list(value: Any) -> list[str]:
     return []
 
 
-def discover_agents(repo_root: Path) -> list[AgentSurface]:
+def discover_agents(repo_root: Path, notes: list[str] | None = None) -> list[AgentSurface]:
     agent_root = repo_root / ".github" / "agents"
     if not agent_root.is_dir():
         return []
 
     agents: list[AgentSurface] = []
     for path in sorted(agent_root.glob("*.agent.md")):
-        fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+        try:
+            fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            if notes is not None:
+                notes.append(f"Skipped agent '{path.relative_to(repo_root)}': {exc}")
+            continue
         handoffs = fm.get("handoffs") or []
         handoff_targets = [
             item.get("agent", "").strip()
@@ -78,7 +86,7 @@ def discover_agents(repo_root: Path) -> list[AgentSurface]:
     return agents
 
 
-def discover_skills(repo_root: Path) -> list[dict[str, str]]:
+def discover_skills(repo_root: Path, notes: list[str] | None = None) -> list[dict[str, str]]:
     skills_root = repo_root / "skills"
     if not skills_root.is_dir():
         return []
@@ -88,7 +96,12 @@ def discover_skills(repo_root: Path) -> list[dict[str, str]]:
         skill_md = skill_dir / "SKILL.md"
         if not skill_md.is_file():
             continue
-        fm, _ = parse_frontmatter(skill_md.read_text(encoding="utf-8"))
+        try:
+            fm, _ = parse_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            if notes is not None:
+                notes.append(f"Skipped skill '{skill_md.relative_to(repo_root)}': {exc}")
+            continue
         skills.append(
             {
                 "name": str(fm.get("name", skill_dir.name)),
@@ -100,14 +113,14 @@ def discover_skills(repo_root: Path) -> list[dict[str, str]]:
 
 def discover_surface(repo_root: Path | str) -> dict[str, Any]:
     repo_root = Path(repo_root).resolve()
-    agents = discover_agents(repo_root)
-    skills = discover_skills(repo_root)
-    tool_union = sorted({tool for agent in agents for tool in agent.tools})
-    handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
-    child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
     notes = [
         "Compare this repo snapshot with the current session tool and agent inventory before editing.",
     ]
+    agents = discover_agents(repo_root, notes)
+    skills = discover_skills(repo_root, notes)
+    tool_union = sorted({tool for agent in agents for tool in agent.tools})
+    handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
+    child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
     if "agent-skills/*" in tool_union:
         notes.append("This repo advertises an MCP skill surface; verify the live helper names before hardcoding skill calls.")
     if any(tool.startswith("agent") for tool in tool_union):
