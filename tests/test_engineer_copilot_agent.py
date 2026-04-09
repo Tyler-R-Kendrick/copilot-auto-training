@@ -228,8 +228,8 @@ def test_analyze_agent_reports_deterministic_and_stale_surface_issues(demo_repo:
     assert any(item["token"] == "ghost-agent" for item in result.stale_surface_mentions)
 
 
-def test_analyze_agent_reports_missing_file():
-    result = analyze_mod.analyze_agent("/tmp/does-not-exist.agent.md")
+def test_analyze_agent_reports_missing_file(tmp_path: Path):
+    result = analyze_mod.analyze_agent(tmp_path / "does-not-exist.agent.md")
 
     assert result.recommendations
     assert result.recommendations[0].category == "structure"

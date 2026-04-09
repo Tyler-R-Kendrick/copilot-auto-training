@@ -55,18 +55,18 @@ def _as_string_list(value: Any) -> list[str]:
     return []
 
 
-def discover_agents(repo_root: Path, notes: list[str] | None = None) -> list[AgentSurface]:
+def discover_agents(repo_root: Path) -> tuple[list[AgentSurface], list[str]]:
     agent_root = repo_root / ".github" / "agents"
     if not agent_root.is_dir():
-        return []
+        return [], []
 
     agents: list[AgentSurface] = []
+    notes: list[str] = []
     for path in sorted(agent_root.glob("*.agent.md")):
         try:
             fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            if notes is not None:
-                notes.append(f"Skipped agent '{path.relative_to(repo_root)}': {exc}")
+            notes.append(f"Skipped agent '{path.relative_to(repo_root)}': {exc}")
             continue
         handoffs = fm.get("handoffs") or []
         handoff_targets = [
@@ -83,15 +83,16 @@ def discover_agents(repo_root: Path, notes: list[str] | None = None) -> list[Age
                 handoff_targets=handoff_targets,
             )
         )
-    return agents
+    return agents, notes
 
 
-def discover_skills(repo_root: Path, notes: list[str] | None = None) -> list[dict[str, str]]:
+def discover_skills(repo_root: Path) -> tuple[list[dict[str, str]], list[str]]:
     skills_root = repo_root / "skills"
     if not skills_root.is_dir():
-        return []
+        return [], []
 
     skills: list[dict[str, str]] = []
+    notes: list[str] = []
     for skill_dir in sorted(path for path in skills_root.iterdir() if path.is_dir()):
         skill_md = skill_dir / "SKILL.md"
         if not skill_md.is_file():
@@ -99,8 +100,7 @@ def discover_skills(repo_root: Path, notes: list[str] | None = None) -> list[dic
         try:
             fm, _ = parse_frontmatter(skill_md.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            if notes is not None:
-                notes.append(f"Skipped skill '{skill_md.relative_to(repo_root)}': {exc}")
+            notes.append(f"Skipped skill '{skill_md.relative_to(repo_root)}': {exc}")
             continue
         skills.append(
             {
@@ -108,7 +108,7 @@ def discover_skills(repo_root: Path, notes: list[str] | None = None) -> list[dic
                 "path": str(skill_md.relative_to(repo_root)),
             }
         )
-    return skills
+    return skills, notes
 
 
 def discover_surface(repo_root: Path | str) -> dict[str, Any]:
@@ -116,8 +116,10 @@ def discover_surface(repo_root: Path | str) -> dict[str, Any]:
     notes = [
         "Compare this repo snapshot with the current session tool and agent inventory before editing.",
     ]
-    agents = discover_agents(repo_root, notes)
-    skills = discover_skills(repo_root, notes)
+    agents, agent_notes = discover_agents(repo_root)
+    skills, skill_notes = discover_skills(repo_root)
+    notes.extend(agent_notes)
+    notes.extend(skill_notes)
     tool_union = sorted({tool for agent in agents for tool in agent.tools})
     handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
     child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
