@@ -162,6 +162,31 @@ def test_validate_agent_flags_unknown_handoff_and_tool(demo_repo: Path):
     assert not result.valid
 
 
+def test_validate_agent_allows_tool_unique_to_current_agent(demo_repo: Path):
+    agent_path = demo_repo / ".github" / "agents" / "unique.agent.md"
+    agent_path.write_text(
+        textwrap.dedent(
+            """\
+            ---
+            name: "unique"
+            description: "Use when validating a unique tool surface."
+            tools: [unique-tool]
+            ---
+
+            # Unique
+
+            - Handle the unique tool contract directly.
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    result = validate_mod.validate_agent(agent_path, repo_root=demo_repo)
+
+    assert result.valid
+    assert all(issue.code != "unknown-tool-surface" for issue in result.issues)
+
+
 def test_validate_agent_warns_when_repo_root_does_not_contain_agent(demo_repo: Path, tmp_path: Path):
     outside_repo_root = tmp_path.parent / f"{tmp_path.name}-outside"
     outside_repo_root.mkdir()

@@ -115,14 +115,14 @@ def discover_surface(repo_root: Path | str) -> dict[str, Any]:
     repo_root = Path(repo_root).resolve()
     agents, agent_notes = discover_agents(repo_root)
     skills, skill_notes = discover_skills(repo_root)
+    tool_union = sorted({tool for agent in agents for tool in agent.tools})
+    handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
+    child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
     notes = [
         "Compare this repo snapshot with the current session tool and agent inventory before editing.",
         *agent_notes,
         *skill_notes,
     ]
-    tool_union = sorted({tool for agent in agents for tool in agent.tools})
-    handoff_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.handoff_targets})
-    child_pairs = sorted({f"{agent.name}->{target}" for agent in agents for target in agent.child_agents})
     if "agent-skills/*" in tool_union:
         notes.append("This repo advertises an MCP skill surface; verify the live helper names before hardcoding skill calls.")
     if any(tool.startswith("agent") for tool in tool_union):
