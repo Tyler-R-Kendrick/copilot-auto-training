@@ -1,0 +1,14 @@
+{
+  "mode": "manual_followup",
+  "reason": "trainer-optimize MCP skill not available in current environment",
+  "target_file": "skills/trainer-train/SKILL.md",
+  "judge_mode": "llm_judge",
+  "train_dataset": "skills/trainer-train/datasets/train.jsonl",
+  "val_dataset": "skills/trainer-train/datasets/val.jsonl",
+  "eval_manifest": "skills/trainer-train/evals/evals.json",
+  "iteration": 2,
+  "model_prompt": "Apply four narrow coaching points from the teacher to the v0.2.0 candidate: (1) remove validation-not-passed from blocker-first section, (2) add judge-mode precedence rule plus inconsistency stop, (3) convert reference callout to Before-you-start section, (4) distinguish output contract items 2 and 6 by time horizon.",
+  "source_candidate": "iterations/iteration-1/candidates/student/SKILL.md",
+  "teacher_steering_turn": "iterations/iteration-1/steering/teacher/turn-1/STEERING.md",
+  "timestamp": "2026-04-10T19:16:30Z"
+}

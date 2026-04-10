@@ -1,0 +1,13 @@
+{
+  "mode": "manual_followup",
+  "reason": "trainer-optimize MCP skill not available in current environment",
+  "target_file": "skills/trainer-train/SKILL.md",
+  "judge_mode": "llm_judge",
+  "train_dataset": "skills/trainer-train/datasets/train.jsonl",
+  "val_dataset": "skills/trainer-train/datasets/val.jsonl",
+  "eval_manifest": "skills/trainer-train/evals/evals.json",
+  "iteration": 1,
+  "model_prompt": "You are an expert prompt optimizer. Given the current SKILL.md for trainer-train and the engineer review, produce an improved version that addresses the five identified failure modes: (1) over-abstraction about stage selection/reuse/resumption, (2) missing cues about when to read reference files, (3) insufficient judge-mode clarity for the three scoring shapes, (4) low-visibility blocker-first rule, (5) weak write-back safety. Stay indirect about concrete stage capability names. Tighten around: when to read references, how reuse/judge-mode/manual-followup alter sequencing, and why blocker-first is safer.",
+  "engineer_review_path": "skills/trainer-train/.trainer-workspace/SKILL/engineer-prompt/review.md",
+  "timestamp": "2026-04-10T19:10:45Z"
+}

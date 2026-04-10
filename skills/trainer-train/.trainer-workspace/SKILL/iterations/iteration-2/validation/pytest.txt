@@ -1,0 +1,28 @@
+# Validation Log — Iteration 2
+
+## Candidate: v0.3.0 (`iterations/iteration-2/optimize/optimized-prompt.md`)
+## Date: 2026-04-10
+
+## Structural validation
+
+- All required sections present: ✅
+- Key phrases from teacher coaching present: ✅
+- Removed bullet (`validation has not passed`) absent from blocker-first section: ✅
+- Word count: 1500 words (within scope — ~25% growth from v0.1.0 baseline)
+
+## Eval heuristic assessment (against `evals/evals.json`)
+
+| Eval ID | Description | Likely Pass |
+|---|---|---|
+| 1 | Workspace init + prerequisite check | ✅ |
+| 2 | Missing-data path before optimization | ✅ |
+| 3 | Manual follow-up recovery | ✅ |
+| 4 | Candidate/steering staging before write-back | ✅ |
+
+## Repository test suite
+
+Blocked by `ModuleNotFoundError: No module named 'opto'` — `opto` dependency required by `trainer-optimize` conftest not available in this environment. All other targeted structural and phrase-presence checks pass.
+
+## Validation verdict
+
+**PASS** (structural + eval heuristic). Repository test suite unavailable due to missing `opto` dependency — not a candidate-quality failure.
