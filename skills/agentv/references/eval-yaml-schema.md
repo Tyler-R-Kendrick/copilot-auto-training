@@ -158,7 +158,7 @@ Run a script to evaluate output programmatically:
 assert:
   - type: code-grader
     command: python ./graders/check_syntax.py
-    # Script receives answer via stdin and must exit 0 for pass, nonzero for fail
+    # Script receives the agent's answer (plain text) via stdin; exit 0 = pass, nonzero = fail
 
   - type: code-grader
     command: bun ./graders/validate.ts

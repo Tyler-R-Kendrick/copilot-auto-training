@@ -6,24 +6,27 @@ execution:
   target: default
 
 tests:
-  - id: i-already-ran-three-prompt-candidates
-    criteria: "The response treats trainer-election as a standalone selection pass over existing scored artifact..."
+  - id: i-already-ran-three-prompt-candidates-through-the-same
+    criteria: "The response treats trainer-election as a standalone selection pass over existing scored artifacts, prefers the latest iteration, and explains that incomplete eval coverage is penalized rather than ignored."
+    expected_output: "The response treats trainer-election as a standalone selection pass over existing scored artifacts, prefers the latest iteration, and explains that incomplete eval coverage is penalized rather than ignored."
     input: "I already ran three prompt candidates through the same eval workspace and each config folder has grading.json and timing.json artifacts. Pick the winner from the latest iteration without rerunning optimization, and explain how you handled a candidate that only covered part of the eval set."
     rubrics:
       - "The response uses existing grading or timing artifacts instead of rerunning optimization."
       - "The response mentions penalizing or discounting incomplete eval coverage."
       - "The response treats trainer-election as separate from trainer-optimize."
 
-  - id: this-workspace-only-has-benchmark-json
-    criteria: "The response says benchmark.json can be used as a fallback when raw run artifacts are missing and..."
+  - id: this-workspace-only-has-benchmark-json-because-the-raw
+    criteria: "The response says benchmark.json can be used as a fallback when raw run artifacts are missing and describes persisted winner and candidate metadata such as winner identity, prompt artifact fields when available, and per-candidate summaries."
+    expected_output: "The response says benchmark.json can be used as a fallback when raw run artifacts are missing and describes persisted winner and candidate metadata such as winner identity, prompt artifact fields when available, and per-candidate summaries."
     input: "This workspace only has benchmark.json because the raw run folders were archived. Can you still elect the strongest configuration and tell me what result fields I should persist so the caller can explain the decision later?"
     rubrics:
       - "The response mentions benchmark.json as a fallback when raw run artifacts are unavailable."
       - "The response describes winner or candidate metadata that should be persisted."
       - "The response does not claim the skill reruns missing evaluations."
 
-  - id: compare-with-skill-old-skill-and
-    criteria: "The response accepts the nested runs workspace layout, uses the nearby eval manifest when availab..."
+  - id: compare-with-skill-old-skill-and-without-skill-runs
+    criteria: "The response accepts the nested runs workspace layout, uses the nearby eval manifest when available, keeps baseline candidates in the comparison, and surfaces the winning prompt text or prompt file path when a prompt artifact can be found."
+    expected_output: "The response accepts the nested runs workspace layout, uses the nearby eval manifest when available, keeps baseline candidates in the comparison, and surfaces the winning prompt text or prompt file path when a prompt artifact can be found."
     input: "Compare with_skill, old_skill, and without_skill runs from an eval directory that lives under iteration-3/runs/. Use the authored eval manifest if it exists, keep the baseline candidates visible in the result, and return the winning prompt text if a prompt artifact is present."
     rubrics:
       - "The response supports iteration directories that store evals under runs/."
@@ -31,8 +34,9 @@ tests:
       - "The response keeps baseline configurations in the comparison."
       - "The response mentions returning prompt text or a prompt artifact path when available."
 
-  - id: i-am-pointing-you-straight-at
-    criteria: "The response treats a direct eval directory as a valid entry point, still discovers the nearby au..."
+  - id: i-am-pointing-you-straight-at-a-single-eval
+    criteria: "The response treats a direct eval directory as a valid entry point, still discovers the nearby authored eval manifest when available, and applies the same incomplete-coverage penalty before choosing a winner."
+    expected_output: "The response treats a direct eval directory as a valid entry point, still discovers the nearby authored eval manifest when available, and applies the same incomplete-coverage penalty before choosing a winner."
     input: "I am pointing you straight at a single eval folder instead of the workspace root. Elect the best candidate from that one eval directory, auto-discover the nearby evals/evals.json if it exists, and make sure partial coverage is still penalized."
     rubrics:
       - "The response accepts a direct eval directory as the workspace input."

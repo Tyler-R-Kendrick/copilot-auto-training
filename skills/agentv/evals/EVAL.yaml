@@ -8,6 +8,7 @@ execution:
 tests:
   - id: create-eval-yaml-from-evals-json
     criteria: Explains how to create EVAL.yaml from an existing evals.json and shows the agentv CLI command
+    expected_output: "The response should explain the EVAL.yaml format, show a concrete example mapping from the evals.json structure, and give the agentv CLI command to run the new file."
     input: "I have a skill at skills/my-classifier/ with an evals/evals.json file. I want to run the evals using the agentv CLI so I can integrate them into CI. How do I create an EVAL.yaml for this skill?"
     rubrics:
       - The response shows an EVAL.yaml file structure with name, tests, and assertions fields
@@ -17,6 +18,7 @@ tests:
 
   - id: debug-failing-llm-grader
     criteria: Provides actionable debugging steps for a failing llm-grader assertion
+    expected_output: "The response should help diagnose why the LLM grader gives low scores, suggest inspecting the JSONL results, and recommend improving the judge prompt or adjusting the threshold."
     input: "My agentv eval is failing on the test case 'detect-bugs' but passing on 'no-bugs-present'. The llm-grader assertion keeps giving low scores even though the output looks correct. How do I debug this?"
     rubrics:
       - The response suggests inspecting the JSONL output in .agentv/results/
@@ -26,6 +28,7 @@ tests:
 
   - id: ci-cd-integration
     criteria: Provides a working GitHub Actions integration for agentv with threshold gating
+    expected_output: "The response should provide a GitHub Actions workflow snippet using agentv eval with --threshold and -o results.xml flags, and explain the exit code behavior for CI gating."
     input: "I want to add AgentV eval runs to my GitHub Actions CI pipeline so that evals automatically fail the PR if the pass rate drops below 80%. What does the workflow look like?"
     rubrics:
       - The response includes a GitHub Actions workflow step that runs agentv eval
@@ -37,6 +40,7 @@ tests:
 
   - id: multi-target-comparison
     criteria: Explains how to benchmark two agent versions using agentv targets and compare
+    expected_output: "The response should explain configuring two targets in targets.yaml, running agentv eval twice with different targets, and then using agentv compare to see the diff."
     input: "I'm comparing two versions of my agent using agentv. How do I run the same eval suite against both versions and then see which one performs better?"
     rubrics:
       - The response explains setting up two targets in .agentv/targets.yaml
@@ -46,6 +50,7 @@ tests:
 
   - id: llm-judge-authoring
     criteria: Provides a well-structured judge prompt and correct EVAL.yaml configuration for an llm-grader
+    expected_output: "The response should provide a markdown judge prompt template with clear grading criteria, show how to reference it in the EVAL.yaml with type: llm-grader, and explain how the score threshold works."
     input: "I need to write an LLM judge for my eval that grades whether the agent's code review correctly identified a security vulnerability. What should the judge prompt look like?"
     rubrics:
       - The response provides a markdown judge prompt with grading criteria

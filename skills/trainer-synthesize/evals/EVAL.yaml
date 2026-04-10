@@ -6,32 +6,36 @@ execution:
   target: default
 
 tests:
-  - id: i-already-have-grounded-support-ticket
-    criteria: "The response derives the official eval and datasets layout from the prompt file, keeps authored e..."
+  - id: i-already-have-grounded-support-ticket-examples-and-a
+    criteria: "The response derives the official eval and datasets layout from the prompt file, keeps authored eval cases separate from train.jsonl and val.jsonl, and explains a defensible train or validation split for APO handoff."
+    expected_output: "The response derives the official eval and datasets layout from the prompt file, keeps authored eval cases separate from train.jsonl and val.jsonl, and explains a defensible train or validation split for APO handoff."
     input: "I already have grounded support-ticket examples and a prompt file at examples/first-run/prompts/classify_support.md. Synthesize the official eval manifest plus explicit datasets for APO: keep human-review cases in evals/evals.json, write train.jsonl and val.jsonl under the modern datasets layout, and explain how you split the rows so validation stays a real holdout."
     rubrics:
       - "The response keeps authored eval cases in evals/evals.json instead of folding them into train.jsonl or val.jsonl."
       - "The response mentions explicit train.jsonl and val.jsonl outputs under a datasets directory."
       - "The response explains the split between training and validation rows instead of treating them as interchangeable."
 
-  - id: take-these-grounded-billing-rows-and
-    criteria: "The response plans the placeholder mapping, derives the structured output from raw fields with an..."
+  - id: take-these-grounded-billing-rows-and-build-both-eval
+    criteria: "The response plans the placeholder mapping, derives the structured output from raw fields with an explicit computation recipe, and preserves evaluator-only fields such as expected_json or scoring outside the prompt-visible input path."
+    expected_output: "The response plans the placeholder mapping, derives the structured output from raw fields with an explicit computation recipe, and preserves evaluator-only fields such as expected_json or scoring outside the prompt-visible input path."
     input: "Take these grounded billing rows and build both eval cases and APO datasets for a prompt whose placeholders are {question} and {policy_excerpt}. The correct output is a JSON object with severity and resolution_path derived from the raw fields, so show the computation recipe and keep evaluator-only fields out of the prompt-visible input."
     rubrics:
       - "The response mentions preserving or mapping the {question} and {policy_excerpt} placeholders into dataset input."
       - "The response includes an explicit computation or verification step for derived outputs."
       - "The response keeps evaluator-only fields out of the prompt-visible input path."
 
-  - id: i-want-you-to-synthesize-evals
-    criteria: "The response stops to elicit the missing taxonomy, normalization rules, and scoring mode instead ..."
+  - id: i-want-you-to-synthesize-evals-and-datasets-from
+    criteria: "The response stops to elicit the missing taxonomy, normalization rules, and scoring mode instead of inventing hidden labels, thresholds, or dataset fields."
+    expected_output: "The response stops to elicit the missing taxonomy, normalization rules, and scoring mode instead of inventing hidden labels, thresholds, or dataset fields."
     input: "I want you to synthesize evals and datasets from a CSV, but the label taxonomy and the normalization rules are still fuzzy and I have not decided whether the scorer should use exact_match or JSON output. Do not guess. Tell me what is missing before you write anything."
     rubrics:
       - "The response asks for missing label taxonomy or tie-breaking rules."
       - "The response asks for normalization rules or scoring mode instead of guessing."
       - "The response does not claim it can safely invent the missing rules."
 
-  - id: build-the-first-draft-of-synthesize
-    criteria: "The response preserves at least one trustworthy row in each dataset split, flags weak or noisy sp..."
+  - id: build-the-first-draft-of-synthesize-outputs-for-a
+    criteria: "The response preserves at least one trustworthy row in each dataset split, flags weak or noisy split quality when the source set is small, and keeps malformed or boundary cases visible in the authored eval manifest for human review."
+    expected_output: "The response preserves at least one trustworthy row in each dataset split, flags weak or noisy split quality when the source set is small, and keeps malformed or boundary cases visible in the authored eval manifest for human review."
     input: "Build the first draft of synthesize outputs for a small prompt where I only have six trustworthy rows, including one malformed edge case and one near-miss negative. Keep at least one trustworthy row in both train.jsonl and val.jsonl, call out if the split is weak, and make sure the eval manifest still covers the malformed and boundary cases for human review."
     rubrics:
       - "The response mentions keeping at least one trustworthy row in both train.jsonl and val.jsonl."

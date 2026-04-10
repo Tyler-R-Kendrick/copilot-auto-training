@@ -116,7 +116,7 @@ tests:
 | `code-grader` | Custom logic in Python/TypeScript/shell |
 | `rubric` | Structured criteria with optional weights and score ranges |
 
-For programmatic checks, `code-grader` runs a script that receives the full test result as JSON on stdin and must exit 0 to pass:
+For programmatic checks, `code-grader` runs a script that receives the agent's answer (as plain text) on stdin and must exit 0 to pass:
 
 ```yaml
 assert:

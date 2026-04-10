@@ -6,8 +6,9 @@ execution:
   target: default
 
 tests:
-  - id: i-have-an-agent-skill-in
-    criteria: "The response should run validation, identify the passive description as a triggering problem, rew..."
+  - id: i-have-an-agent-skill-in-skills-my-classifier
+    criteria: "The response should run validation, identify the passive description as a triggering problem, rewrite the description with explicit trigger phrases and negative boundaries, and re-validate the result."
+    expected_output: "The response should run validation, identify the passive description as a triggering problem, rewrite the description with explicit trigger phrases and negative boundaries, and re-validate the result."
     input: "I have an agent skill in skills/my-classifier/ that triggers on completely unrelated prompts about data visualization. The description is 'A tool for classifying support tickets into categories.' Can you fix the triggering so it only activates for classification tasks?"
     rubrics:
       - "The response runs or references the validate_skill.py script on the skill directory"
@@ -15,8 +16,9 @@ tests:
       - "The response produces a rewritten description that includes explicit 'Use this whenever' or equivalent trigger phrases"
       - "The response includes negative boundaries indicating when the skill should not trigger"
 
-  - id: my-skill-md-for-a-code
-    criteria: "The response should analyze the body, identify oversized sections and deterministic content suita..."
+  - id: my-skill-md-for-a-code-review-skill-is
+    criteria: "The response should analyze the body, identify oversized sections and deterministic content suitable for extraction, produce a restructuring plan that moves domain knowledge to reference files and mechanical steps to scripts."
+    expected_output: "The response should analyze the body, identify oversized sections and deterministic content suitable for extraction, produce a restructuring plan that moves domain knowledge to reference files and mechanical steps to scripts."
     input: "My SKILL.md for a code review skill is 800 lines long and agents seem to ignore half the instructions. Can you help me restructure it so the important parts actually get followed?"
     rubrics:
       - "The response runs or references the analyze_skill_body.py script to identify oversized sections"
@@ -24,8 +26,9 @@ tests:
       - "The response identifies deterministic or sequential instructions that should become scripts"
       - "The response keeps the restructured SKILL.md body under 500 lines"
 
-  - id: i-want-to-create-a-new
-    criteria: "The response should scaffold the skill directory structure, write a SKILL.md with proper frontmat..."
+  - id: i-want-to-create-a-new-agent-skill-that
+    criteria: "The response should scaffold the skill directory structure, write a SKILL.md with proper frontmatter and a lean body, identify the SQL validation and rollback generation as candidates for scripts rather than prose instructions, and create the reference files."
+    expected_output: "The response should scaffold the skill directory structure, write a SKILL.md with proper frontmatter and a lean body, identify the SQL validation and rollback generation as candidates for scripts rather than prose instructions, and create the reference files."
     input: "I want to create a new agent skill that helps users write database migration scripts. It should validate SQL syntax, check for backwards compatibility, and generate rollback scripts. Where do I start?"
     rubrics:
       - "The response creates or describes a skill directory with SKILL.md, scripts/, references/, assets/, and evals/ subdirectories"
@@ -33,8 +36,9 @@ tests:
       - "The response identifies SQL validation and rollback generation as deterministic work suitable for scripts"
       - "The response separates the frontmatter concern from the body content concern in its approach"
 
-  - id: i-have-a-skill-that-works
-    criteria: "The response should diagnose the under-triggering as a description problem, explain that agents n..."
+  - id: i-have-a-skill-that-works-great-when-explicitly
+    criteria: "The response should diagnose the under-triggering as a description problem, explain that agents need explicit trigger phrases and coverage of realistic user intents, and produce an improved description that is slightly pushy about when to activate."
+    expected_output: "The response should diagnose the under-triggering as a description problem, explain that agents need explicit trigger phrases and coverage of realistic user intents, and produce an improved description that is slightly pushy about when to activate."
     input: "I have a skill that works great when explicitly invoked but never triggers automatically. The name is 'api-docs-generator' and the description just says 'Generates API documentation.' How do I fix this?"
     rubrics:
       - "The response diagnoses the problem as a description/frontmatter issue rather than a body content issue"
@@ -42,8 +46,9 @@ tests:
       - "The response produces a rewritten description that is longer and includes multiple trigger scenarios"
       - "The response references the frontmatter optimization guidance"
 
-  - id: can-you-validate-my-skill-at
-    criteria: "The response should run the validation script and report results clearly, distinguishing between ..."
+  - id: can-you-validate-my-skill-at-skills-data-pipeline
+    criteria: "The response should run the validation script and report results clearly, distinguishing between spec errors that must be fixed and quality warnings that are recommendations."
+    expected_output: "The response should run the validation script and report results clearly, distinguishing between spec errors that must be fixed and quality warnings that are recommendations."
     input: "Can you validate my skill at skills/data-pipeline/ and tell me if it follows the agentskills.io spec? I just want a quick check before I ship it."
     rubrics:
       - "The response runs or references the validate_skill.py script with the provided skill path"

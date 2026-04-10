@@ -6,24 +6,27 @@ execution:
   target: default
 
 tests:
-  - id: create-a-formal-rubric-for-judging
-    criteria: "The response produces a locked outcome-focused rubric with 3 to 7 explicit dimensions, observable..."
+  - id: create-a-formal-rubric-for-judging-two-policy-assistant
+    criteria: "The response produces a locked outcome-focused rubric with 3 to 7 explicit dimensions, observable evidence requirements, pass-partial-fail anchors, tie-breakers, and calibrated confidence guidance."
+    expected_output: "The response produces a locked outcome-focused rubric with 3 to 7 explicit dimensions, observable evidence requirements, pass-partial-fail anchors, tie-breakers, and calibrated confidence guidance."
     input: "Create a formal rubric for judging two policy-assistant final answers. The rubric must lock dimensions before scoring, include pass-partial-fail boundaries, name the allowed evidence for each dimension, and add tie-breakers plus confidence guidance for close calls."
     rubrics:
       - "The response defines a locked rubric before any scoring happens."
       - "The response includes explicit pass, partial, and fail boundaries."
       - "The response includes tie-breakers and confidence guidance for close calls."
 
-  - id: draft-a-hybrid-rubric-for-evaluating
-    criteria: "The response creates a hybrid rubric that distinguishes process and outcome evidence, names allow..."
+  - id: draft-a-hybrid-rubric-for-evaluating-agent-runs-where
+    criteria: "The response creates a hybrid rubric that distinguishes process and outcome evidence, names allowed artifacts, includes robustness checks, and treats unsupported chain-of-thought as low-trust evidence."
+    expected_output: "The response creates a hybrid rubric that distinguishes process and outcome evidence, names allowed artifacts, includes robustness checks, and treats unsupported chain-of-thought as low-trust evidence."
     input: "Draft a hybrid rubric for evaluating agent runs where both the trajectory and the final answer matter. Include evidence-ledger expectations, order-bias checks, and a rule that unsupported chain-of-thought is low-trust evidence."
     rubrics:
       - "The response distinguishes process-aware and outcome-focused evidence within the rubric."
       - "The response includes an order-bias or order-robustness check."
       - "The response treats unsupported chain-of-thought as low-trust evidence."
 
-  - id: formalize-a-grading-rubric-for-a
-    criteria: "The response creates a task-adaptive rubric with evidence anchoring, explicit blocker handling fo..."
+  - id: formalize-a-grading-rubric-for-a-benchmark-style-code
+    criteria: "The response creates a task-adaptive rubric with evidence anchoring, explicit blocker handling for missing constraints, and stable aggregation rules for comparing benchmark candidates."
+    expected_output: "The response creates a task-adaptive rubric with evidence anchoring, explicit blocker handling for missing constraints, and stable aggregation rules for comparing benchmark candidates."
     input: "Formalize a grading rubric for a benchmark-style code review evaluator. The rubric should be task-adaptive, evidence-anchored, and explicit about blockers when the domain constraints are underspecified."
     rubrics:
       - "The response keeps the rubric task-adaptive without changing criteria midstream."
