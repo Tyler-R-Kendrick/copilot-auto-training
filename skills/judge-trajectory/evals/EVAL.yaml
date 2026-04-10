@@ -1,0 +1,34 @@
+name: judge-trajectory
+version: "1.0"
+description: Evaluates the judge-trajectory skill
+
+execution:
+  target: default
+
+tests:
+  - id: compare-two-web-agent-trajectories-that-attempted-the-same
+    criteria: "The response uses a process-aware rubric, treats tool traces and intermediate evidence as first-class signals, and does not collapse the verdict to final wording alone."
+    expected_output: "The response uses a process-aware rubric, treats tool traces and intermediate evidence as first-class signals, and does not collapse the verdict to final wording alone."
+    input: "Compare two web-agent trajectories that attempted the same booking-support task. Use the tool traces, intermediate page evidence, and failure logs to decide which run is stronger, and do not let the better-written final answer outweigh a weaker process trace."
+    rubrics:
+      - "The response evaluates process evidence such as tool traces or intermediate artifacts."
+      - "The response separates process quality from final-answer polish."
+      - "The response identifies a concrete failure mode in the weaker trajectory."
+
+  - id: judge-two-code-fix-agent-runs-where-one-candidate
+    criteria: "The response makes runtime failures explicit, scores process reliability separately from the final patch quality, and explains how those failures changed the final comparison."
+    expected_output: "The response makes runtime failures explicit, scores process reliability separately from the final patch quality, and explains how those failures changed the final comparison."
+    input: "Judge two code-fix agent runs where one candidate produced a correct final patch but reached it through repeated broken tool calls and missing evidence gathering. Explain which trajectory is stronger and how runtime failures affected the verdict."
+    rubrics:
+      - "The response explicitly calls out runtime failures instead of hiding them inside a vague score."
+      - "The response uses process quality as part of the verdict rather than judging only the final patch."
+      - "The response preserves confidence or uncertainty if the stronger outcome came from a weaker process."
+
+  - id: evaluate-two-retrieval-and-tool-use-trajectories-for-a
+    criteria: "The response uses a locked trajectory rubric, performs an order-robust comparison, and treats unsupported chain-of-thought as low-trust evidence unless the traces corroborate it."
+    expected_output: "The response uses a locked trajectory rubric, performs an order-robust comparison, and treats unsupported chain-of-thought as low-trust evidence unless the traces corroborate it."
+    input: "Evaluate two retrieval-and-tool-use trajectories for a policy assistant. Use a locked process rubric, perform an order-robustness check, and be skeptical of any self-reported chain-of-thought that is not backed by trace evidence."
+    rubrics:
+      - "The response uses one stable rubric across both trajectories."
+      - "The response mentions or implies an order-robustness check."
+      - "The response treats unsupported chain-of-thought as low-trust evidence."

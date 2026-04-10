@@ -2,6 +2,7 @@
 # Ignore unmanaged local additions while keeping canonical links and in-place source dirs visible.
 *
 !.gitignore
+!agentv
 !create-workflow
 !engineer-code
 !engineer-copilot-agent
