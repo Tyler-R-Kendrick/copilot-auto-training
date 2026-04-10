@@ -20,10 +20,30 @@ AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_ski
 AGENT_SKILLS_PREFLIGHT = (
     "set -euo pipefail\n"
     "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv\n"
+    "MCP_LOG=/tmp/agent-skills-mcp.log\n"
     'MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
-    'python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >/tmp/agent-skills-mcp.log 2>&1 &\n'
+    'python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >"$MCP_LOG" 2>&1 &\n'
+    "MCP_PID=$!\n"
     'uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
-    'python -c "import agent_skills_mcp"'
+    'python -c "import agent_skills_mcp"\n'
+    "READY=0\n"
+    "for _ in $(seq 1 30); do\n"
+    "  if ! kill -0 \"$MCP_PID\" 2>/dev/null; then\n"
+    '    echo "agent-skills MCP server exited before becoming ready"\n'
+    '    cat "$MCP_LOG"\n'
+    "    exit 1\n"
+    "  fi\n"
+    '  if python -c "import socket,sys; s=socket.socket(); s.settimeout(1); sys.exit(0 if s.connect_ex((\'127.0.0.1\',3002))==0 else 1)"; then\n'
+    "    READY=1\n"
+    "    break\n"
+    "  fi\n"
+    "  sleep 1\n"
+    "done\n"
+    'if [ "$READY" -ne 1 ]; then\n'
+    '  echo "agent-skills MCP server did not become ready on port 3002 within 30 seconds"\n'
+    '  cat "$MCP_LOG"\n'
+    "  exit 1\n"
+    "fi"
 )
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
 PLUGIN_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-plugin-links.py"
