@@ -1,0 +1,34 @@
+name: researcher-research
+version: "1.0"
+description: Evaluates the researcher-research skill
+
+execution:
+  target: default
+
+tests:
+  - id: i-have-a-prompt-file-at
+    criteria: "The result should derive the eval target layout from the prompt file, propose a primary-source-fi..."
+    input: "I have a prompt file at skills/researcher-research/evals/files/support_intent_prompt.md for triaging support tickets into billing, bug, access, or cancellation. Research grounded public datasets or benchmarks I can use to author evals for it. I need a primary-source shortlist, license notes, rejected weak sources, and mapping guidance into eval rows."
+    rubrics:
+      - "The response derives the target eval path or files layout from the prompt file."
+      - "The response includes a primary-source-first query plan."
+      - "The response provides approved and rejected source candidates with reasons."
+      - "The response includes mapping notes from sources into eval rows, expected outputs, files, or assertions."
+
+  - id: please-research-benchmark-quality-public-sources
+    criteria: "The result should focus on primary sources for extraction-style tasks, discuss annotation quality..."
+    input: "Please research benchmark-quality public sources for the prompt at skills/researcher-research/evals/files/bug_entity_prompt.md. I care about official annotation guides, span labels that can become JSON fields, and explicit reasons to reject secondary summaries. Keep the output ready for downstream eval authoring."
+    rubrics:
+      - "The response discusses annotation quality, schema, or label definitions."
+      - "The response rejects weak secondary or derivative sources explicitly."
+      - "The response discusses how source fields could map into structured outputs or assertions."
+      - "The response stays at research and mapping rather than pretending final eval rows already exist."
+
+  - id: for-the-prompt-file-at-skills
+    criteria: "The result should emphasize primary-source evidence, surface licensing and contamination concerns..."
+    input: "For the prompt file at skills/researcher-research/evals/files/grounded_qa_prompt.md, find primary-source datasets or benchmarks for citation-grounded answering. The evals will be used internally, so call out licensing, provenance, and contamination risks. If no source looks clean enough, say so instead of forcing a recommendation."
+    rubrics:
+      - "The response calls out licensing, provenance, or contamination risk."
+      - "The response makes the approval bar or stop condition explicit."
+      - "The response includes a ranked shortlist with fit notes."
+      - "The response includes mapping notes or unresolved gaps for synthesis."

@@ -1,0 +1,30 @@
+name: trainer-optimize
+version: "1.0"
+description: Evaluates the trainer-optimize skill
+
+execution:
+  target: default
+
+tests:
+  - id: optimize-this-markdown-prompt-but-keep
+    criteria: "The response improves the prompt wording without dropping placeholders, changing the task shape, ..."
+    input: "Optimize this markdown prompt, but keep every placeholder and the overall workflow intact."
+    rubrics:
+      - "The response explicitly preserves placeholders."
+      - "The response keeps the workflow scope focused on prompt optimization."
+      - "The response does not introduce unrelated code changes."
+
+  - id: improve-this-skill-prompt-but-keep
+    criteria: "The response improves the prompt while keeping optimization single-shot, avoiding internal leader..."
+    input: "Improve this skill prompt, but keep the optimize run single-shot and non-destructive unless I explicitly ask to write files."
+    rubrics:
+      - "The response mentions single-shot optimization or equivalent wording."
+      - "The response avoids internal leader-election behavior."
+      - "The response keeps file writes explicit rather than implicit."
+
+  - id: tighten-this-prompt-so-it-avoids
+    criteria: "The response reduces verbosity and removes any language that optimizes for the evaluator instead ..."
+    input: "Tighten this prompt so it avoids verbose, repetitive output and reward-hacking behavior."
+    rubrics:
+      - "The response discourages verbose or redundant output."
+      - "The response avoids evaluator-gaming language."

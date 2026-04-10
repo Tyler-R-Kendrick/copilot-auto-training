@@ -1,0 +1,47 @@
+name: learn
+version: "1.0"
+description: Evaluates the learn skill
+
+execution:
+  target: default
+
+tests:
+  - id: you-kept-running-python-commands-outside
+    criteria: "The response identifies the correction from the active conversation, generalizes it into durable ..."
+    input: "You kept running Python commands outside the repository virtual environment, and I corrected you that this repo expects `.venv` plus `python -m pytest -q`. Capture that learning from the active conversation and update the relevant guidance so future work uses the right validation flow instead of repeating the mistake."
+    rubrics:
+      - "The response captures the user's correction from the active conversation instead of treating it as a generic tooling tip."
+      - "The response updates durable guidance such as instructions, docs, or tests rather than only promising to remember the correction."
+      - "The response prefers the smallest authoritative file or files that can prevent the mistake from recurring."
+
+  - id: i-had-to-remind-you-to
+    criteria: "The response extracts the correction, encodes it in the right instruction surface, and strengthen..."
+    input: "I had to remind you to acknowledge new requirements immediately and apply them right away. Use that correction as a learning, update the relevant instructions or tests, and make sure the next run is less likely to skip that behavior."
+    rubrics:
+      - "The response turns the correction into a reusable rule about handling new requirements."
+      - "The response updates the instruction surface that actually governs future behavior."
+      - "The response keeps the change proportional instead of scattering duplicate wording across unrelated files."
+
+  - id: we-discovered-that-a-recurring-mistake
+    criteria: "The response uses the conversation context to locate the most relevant documentation gap, updates..."
+    input: "We discovered that a recurring mistake comes from outdated docs and a missing eval. Use the conversation context to capture that learning, update the docs, and add an eval or test that would catch the same regression next time."
+    rubrics:
+      - "The response explicitly connects the learning to conversation context or user-issued corrections."
+      - "The response updates docs or instructions and adds a regression-oriented eval or test when appropriate."
+      - "The response explains why the chosen update targets are the right source of truth for the learning."
+
+  - id: you-keep-forgetting-a-durable-repo
+    criteria: "The response chooses agent memory when available for stable cross-task facts, falls back to `.age..."
+    input: "You keep forgetting a durable repo convention between tasks. If agent memory is available and appropriate, store the lesson there. If not, create or update `.agents/MEMORY.md`. Explain why that memory surface is better than changing a random instruction file for this case."
+    rubrics:
+      - "The response mentions agent memory or `.agents/MEMORY.md` explicitly."
+      - "The response distinguishes durable memory from broader instruction-file edits."
+      - "The response explains when the learning should stay in memory rather than become a new workflow contract."
+
+  - id: a-repeated-copilot-task-keeps-failing
+    criteria: "The response explicitly evaluates the persistent artifact choices, prefers creating or tightening..."
+    input: "A repeated Copilot task keeps failing because the instructions are faulty and incomplete. Use this learning to decide whether to update a file-based instruction, `AGENTS.md`, a custom agent under `.github/agents/`, an agent skill under `skills/`, or a hook under `.github/hooks/`. Make the call explicit and explain why."
+    rubrics:
+      - "The response explicitly evaluates more than one persistent artifact family, including `AGENTS.md`, custom agents, skills, or hooks."
+      - "The response states that a repeated task failure caused by faulty or incomplete instructions is a strong reason to create or improve an agent skill."
+      - "The response explains why the chosen surface is easier to validate or enforce than the alternatives."

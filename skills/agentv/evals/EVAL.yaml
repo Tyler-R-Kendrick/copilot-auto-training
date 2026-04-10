@@ -1,0 +1,56 @@
+name: agentv
+version: "1.0"
+description: Evaluates the agentv skill — covers EVAL.yaml authoring, CLI usage, LLM judge design, CI integration, and multi-target comparison.
+
+execution:
+  target: default
+
+tests:
+  - id: create-eval-yaml-from-evals-json
+    criteria: Explains how to create EVAL.yaml from an existing evals.json and shows the agentv CLI command
+    input: "I have a skill at skills/my-classifier/ with an evals/evals.json file. I want to run the evals using the agentv CLI so I can integrate them into CI. How do I create an EVAL.yaml for this skill?"
+    rubrics:
+      - The response shows an EVAL.yaml file structure with name, tests, and assertions fields
+      - The response maps evals.json 'prompt' fields to EVAL.yaml 'input' fields
+      - The response includes the agentv eval command to run the file
+      - The response mentions keeping both evals.json and EVAL.yaml
+
+  - id: debug-failing-llm-grader
+    criteria: Provides actionable debugging steps for a failing llm-grader assertion
+    input: "My agentv eval is failing on the test case 'detect-bugs' but passing on 'no-bugs-present'. The llm-grader assertion keeps giving low scores even though the output looks correct. How do I debug this?"
+    rubrics:
+      - The response suggests inspecting the JSONL output in .agentv/results/
+      - The response explains how to view or improve the llm-grader judge prompt
+      - The response mentions the threshold field and how to adjust it
+      - The response provides actionable next steps to debug the failing assertion
+
+  - id: ci-cd-integration
+    criteria: Provides a working GitHub Actions integration for agentv with threshold gating
+    input: "I want to add AgentV eval runs to my GitHub Actions CI pipeline so that evals automatically fail the PR if the pass rate drops below 80%. What does the workflow look like?"
+    rubrics:
+      - The response includes a GitHub Actions workflow step that runs agentv eval
+      - id: threshold-flag
+        outcome: The response uses --threshold 0.8 or equivalent to gate the pipeline
+        required: true
+      - The response explains that agentv returns a nonzero exit code on failure
+      - The response shows how to output JUnit XML for CI result reporting
+
+  - id: multi-target-comparison
+    criteria: Explains how to benchmark two agent versions using agentv targets and compare
+    input: "I'm comparing two versions of my agent using agentv. How do I run the same eval suite against both versions and then see which one performs better?"
+    rubrics:
+      - The response explains setting up two targets in .agentv/targets.yaml
+      - The response shows running agentv eval with --target for each version
+      - The response shows the agentv compare command to diff the two runs
+      - The response explains what the comparison output shows
+
+  - id: llm-judge-authoring
+    criteria: Provides a well-structured judge prompt and correct EVAL.yaml configuration for an llm-grader
+    input: "I need to write an LLM judge for my eval that grades whether the agent's code review correctly identified a security vulnerability. What should the judge prompt look like?"
+    rubrics:
+      - The response provides a markdown judge prompt with grading criteria
+      - id: yaml-config
+        outcome: The response shows the llm-grader assertion in EVAL.yaml referencing the prompt file
+        required: true
+      - The response explains the score range (0.0 to 1.0) and threshold field
+      - The response includes the answer or expected_output placeholder pattern

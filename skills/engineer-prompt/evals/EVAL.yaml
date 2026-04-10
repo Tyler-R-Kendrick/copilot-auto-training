@@ -1,0 +1,58 @@
+name: engineer-prompt
+version: "1.0"
+description: Evaluates the engineer-prompt skill
+
+execution:
+  target: default
+
+tests:
+  - id: the-prompt-in-skills-engineer-prompt
+    criteria: "The result should identify the task as prompt rewrite work, recommend a minimal technique set suc..."
+    input: "The prompt in skills/engineer-prompt/evals/files/pr_review_prompt.md is too vague. Rewrite it so the model behaves like a senior security reviewer, uses the provided diff as context, prioritizes exploitable risks, and returns exactly three bullets."
+    rubrics:
+      - "The response uses explicit Task shape and Primary recommendation labels or headed sections."
+      - "The response identifies a primary recommendation for the rewrite."
+      - "The response explains at least one limitation or bad fit."
+      - "The response includes a markdown prompt rewrite."
+      - "The rewritten prompt requires exactly three bullets or an equivalent explicit three-bullet output constraint."
+
+  - id: i-need-to-improve-the-prompt
+    criteria: "The result should choose a primary technique appropriate for structured extraction, explain the t..."
+    input: "I need to improve the prompt in skills/engineer-prompt/evals/files/email_extraction_prompt.md for extracting fields from messy support emails into JSON for an ingestion pipeline. Choose between few-shot prompting, prompt chaining, and structured output. Tell me which one should be primary, what the limitations are, and give me a markdown prompt."
+    rubrics:
+      - "The response uses explicit Task shape and Primary recommendation labels or headed sections."
+      - "The response names one primary recommendation."
+      - "The response discusses limitations or conditional use for at least one alternative technique."
+      - "The response includes a markdown prompt example."
+      - "The response recommends structured output or explains why another technique should still produce structured JSON reliably."
+
+  - id: i-am-designing-the-prompt-in
+    criteria: "The result should compare the requested retrieval and reasoning techniques, recommend a simpler f..."
+    input: "I am designing the prompt in skills/engineer-prompt/evals/files/policy_assistant_prompt.md for an internal assistant over policy documents and incident reports. Compare grounding, vector RAG, graph RAG, and ReAct, tell me when each is a bad fit, and draft a grounded first-version prompt."
+    rubrics:
+      - "The response uses explicit Task shape and Primary recommendation labels or headed sections."
+      - "The response compares more than one technique from the request."
+      - "The response identifies at least one bad fit or overkill option."
+      - "The response includes a primary recommendation for a first version."
+      - "The response includes a markdown prompt example."
+
+  - id: the-assistant-using-skills-engineer-prompt
+    criteria: "The result should say the primary problem is not prompt design alone, explain why retrieval fresh..."
+    input: "The assistant using skills/engineer-prompt/evals/files/stale_retrieval_prompt.md keeps hallucinating because the vector store is months out of date and the retrieved chunks do not include source IDs. Should I fix this with chain-of-thought or few-shot prompting? Give me the right diagnosis and the smallest prompt advice that still helps."
+    rubrics:
+      - "The response uses explicit Task shape and Primary recommendation labels or headed sections."
+      - "The response says prompt changes alone are not the main fix, or equivalent wording."
+      - "The response identifies retrieval freshness, source quality, or missing citations as the primary blocker."
+      - "The response avoids presenting an advanced prompting technique as the sole fix."
+      - "If the response includes prompt advice, it is presented as secondary rather than primary."
+
+  - id: the-prompt-in-skills-engineer-prompt
+    criteria: "The result should recommend keeping the live prompt compact, moving bulky schema or workflow arti..."
+    input: "The prompt in skills/engineer-prompt/evals/files/token_budget_prompt.md keeps ballooning because the team pasted a long JSON schema and a multi-step approval workflow directly into it. I need a rewrite strategy that stays token-efficient. Tell me whether the schema should move into a referenced JSON Schema file, whether Mermaid or BPMN is a better workflow artifact, how to use interspersed repetition without wasting tokens, and whether sketch-of-thought or mathematical notation is appropriate here. Then give me a markdown prompt."
+    rubrics:
+      - "The response uses explicit Task shape and Primary recommendation labels or headed sections."
+      - "The response recommends a referenced JSON Schema file or equivalent external schema artifact instead of keeping a large schema inline."
+      - "The response distinguishes when Mermaid versus BPMN is the better workflow formalization choice, or gives an equivalent conditional recommendation."
+      - "The response explains interspersed repetition as selective repetition of only the highest-risk constraint near the step where it matters."
+      - "The response treats sketch-of-thought or mathematical notation as conditional on task structure rather than as a default."
+      - "The response includes a markdown prompt example."

@@ -1,0 +1,47 @@
+name: engineer-copilot-agent
+version: "1.0"
+description: Evaluates the engineer-copilot-agent skill
+
+execution:
+  target: default
+
+tests:
+  - id: i-want-a-new-github-copilot
+    criteria: "The response creates or plans a bounded custom-agent contract that validates the live tool and ag..."
+    input: "I want a new GitHub Copilot custom agent for this repo that owns prompt-engineering investigations, routes any real optimization work through the repo's packaged skills instead of inventing tools, and only hands off when a named workspace specialist should take over. Build the first draft and keep the top-level agent prompt lean."
+    rubrics:
+      - "The response verifies or explicitly plans to verify the current repo and session inventory before hardcoding tools, agents, or skills."
+      - "The response distinguishes frontmatter, tool or skill routing, handoffs, and context minimization as separate concerns."
+      - "The response keeps the main custom-agent body lean by moving standards or deterministic work into references or scripts."
+
+  - id: our-copilot-custom-agent-keeps-telling
+    criteria: "The response validates the contract against discovered repo surfaces, corrects stale tool or agen..."
+    input: "Our Copilot custom agent keeps telling people to call tools that do not exist anymore and mentions an old handoff target. I need you to audit the contract, update it to the real workspace surface, and add eval coverage so this does not regress."
+    rubrics:
+      - "The response uses deterministic discovery or validation before changing the contract."
+      - "The response corrects stale tool or handoff guidance rather than preserving it as documentation."
+      - "The response proposes eval coverage that would fail if the agent invents tools, skills, or handoff targets."
+
+  - id: i-already-have-a-custom-agent
+    criteria: "The response applies a recursive minimization loop that extracts standards and eval guidance into..."
+    input: "I already have a custom agent draft, but it is huge. It tries to inline standards, handoff rules, tool-calling guidance, and eval criteria all in one file. I want you to recursively trim it until the top-level prompt only orchestrates references and deterministic helpers."
+    rubrics:
+      - "The response describes more than one minimization pass instead of a single cleanup pass."
+      - "The response moves deterministic or mechanical guidance into scripts."
+      - "The response states a clear stop condition where the top-level prompt is mostly routing and ownership guidance."
+
+  - id: design-a-custom-agent-for-this
+    criteria: "The response designs bounded handoff rules, uses runtime discovery before naming agents, and keep..."
+    input: "Design a custom agent for this workspace that can orchestrate subagent handoffs safely. It should know when to keep the work, when to hand off, and how to keep those handoff names synchronized with whatever agents the repo actually exposes."
+    rubrics:
+      - "The response explicitly checks or plans to check the discovered agent roster before hardcoding handoff targets."
+      - "The response explains when not to hand off."
+      - "The response keeps ownership boundaries explicit between the orchestrator and helper agents."
+
+  - id: i-need-to-improve-a-copilot
+    criteria: "The response aligns routing with the repository's real agents and skills, preserves a discovery-f..."
+    input: "I need to improve a Copilot custom agent that should route research tasks, judging tasks, and training tasks through the real capabilities that this repository already ships. Make the routing robust even if the exact tool helper names drift over time."
+    rubrics:
+      - "The response uses repo-real capabilities instead of inventing new ones."
+      - "The response treats helper-name discovery as a live check rather than a static assumption."
+      - "The response keeps capability routing bounded to the task-specific owner instead of sending all work through one surface."

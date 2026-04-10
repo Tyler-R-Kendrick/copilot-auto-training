@@ -1,0 +1,31 @@
+name: judge-outcome
+version: "1.0"
+description: Evaluates the judge-outcome skill
+
+execution:
+  target: default
+
+tests:
+  - id: compare-two-candidate-support-replies-using
+    criteria: "The response locks an outcome-focused rubric, compares the final replies against the same criteri..."
+    input: "Compare two candidate support replies using only the final responses, a reference answer, and explicit criteria. Pick the stronger outcome, explain the margin, and do not infer process quality that is not evidenced by the final outputs."
+    rubrics:
+      - "The response uses one shared rubric for both candidates."
+      - "The response bases the verdict on final-output evidence rather than invented trajectory details."
+      - "The response reports the winner and the margin or confidence level."
+
+  - id: judge-two-extracted-json-outputs-for
+    criteria: "The response evaluates the two final structured outputs against schema and correctness requiremen..."
+    input: "Judge two extracted JSON outputs for an order-triage task. Use the required schema, completeness, and correctness criteria to choose the stronger result, and call out any narrow-margin uncertainty instead of overclaiming certainty."
+    rubrics:
+      - "The response checks schema or formatting fidelity as part of the outcome rubric."
+      - "The response mentions confidence or uncertainty when the evidence is narrow or incomplete."
+      - "The response does not treat rhetorical polish as sufficient evidence of correctness."
+
+  - id: pick-the-better-final-answer-from
+    criteria: "The response uses a locked outcome rubric, performs an order-robust comparison, and preserves ben..."
+    input: "Pick the better final answer from two benchmark-style candidate responses to an open-ended policy question. Use a locked rubric, watch for order bias, and preserve any benchmark caveat that should lower confidence in the selection."
+    rubrics:
+      - "The response mentions or implies an order-robustness check."
+      - "The response preserves benchmark caveats or uncertainty in close calls."
+      - "The response explains the main failure mode of the rejected candidate."
