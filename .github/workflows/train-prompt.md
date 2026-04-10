@@ -22,7 +22,11 @@ engine: copilot
 
 steps:
   - name: Validate agent-skills MCP bootstrap
-    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
+    run: |-
+      set -euo pipefail
+      python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv
+      MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >/tmp/agent-skills-mcp.log 2>&1 &
+      uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
 
 tools:
   github:

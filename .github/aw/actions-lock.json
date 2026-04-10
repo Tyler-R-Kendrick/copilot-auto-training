@@ -4,16 +4,6 @@
       "repo": "actions/github-script",
       "version": "v8",
       "sha": "ed597411d8f924073f98dfc5c65a23a2325f34cd"
-    },
-    "github/gh-aw-actions/setup@v0.64.3": {
-      "repo": "github/gh-aw-actions/setup",
-      "version": "v0.64.3",
-      "sha": "84dc9c12e0d955a200911a3a07c3f5dd96a175d7"
-    },
-    "github/gh-aw-actions/setup@v0.66.1": {
-      "repo": "github/gh-aw-actions/setup",
-      "version": "v0.66.1",
-      "sha": "73ae9ce231580f337133352d321d42b6bf54b6a9"
     }
   }
 }

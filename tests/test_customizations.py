@@ -18,8 +18,11 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_skills_mcp.py"
 AGENT_SKILLS_PREFLIGHT = (
-    "set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv "
-    '&& uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
+    "set -euo pipefail\n"
+    "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv\n"
+    'MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
+    'python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >/tmp/agent-skills-mcp.log 2>&1 &\n'
+    'uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
     'python -c "import agent_skills_mcp"'
 )
 SKILL_LINKS_MODULE_PATH = REPO_ROOT / ".github" / "hooks" / "sync-skill-links.py"
@@ -1844,12 +1847,14 @@ class TestTrainPromptWorkflow:
             "identical protected_files_policy values."
         )
         # The compiler may resolve the agent-job config token as an env-var
-        # reference (${GH_AW_GITHUB_TOKEN}) while the safe_outputs handler
-        # keeps the full secrets expression.  Both ultimately resolve to the
-        # same COPILOT-first fallback chain at runtime, so accept either form.
+        # reference (${GH_AW_GITHUB_TOKEN} or ${COPILOT_GITHUB_TOKEN}) while
+        # the safe_outputs handler keeps the full secrets expression.  All forms
+        # ultimately resolve to the same COPILOT-first fallback chain at runtime,
+        # so accept any of them.
         copilot_fallback = "${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
         env_var_form = "${GH_AW_GITHUB_TOKEN}"
-        acceptable = {copilot_fallback, env_var_form}
+        copilot_env_var_form = "${COPILOT_GITHUB_TOKEN}"
+        acceptable = {copilot_fallback, env_var_form, copilot_env_var_form}
         assert first_pr.get("github-token") in acceptable, (
             f"First safe-outputs config github-token should be one of {acceptable}, "
             f"got {first_pr.get('github-token')!r}"
