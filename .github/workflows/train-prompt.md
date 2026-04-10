@@ -22,7 +22,31 @@ engine: copilot
 
 steps:
   - name: Validate agent-skills MCP bootstrap
-    run: set -euo pipefail; python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv && uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
+    run: |-
+      set -euo pipefail
+      python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv
+      MCP_LOG=/tmp/agent-skills-mcp.log
+      MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >"$MCP_LOG" 2>&1 &
+      MCP_PID=$!
+      uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
+      READY=0
+      for _ in $(seq 1 30); do
+        if ! kill -0 "$MCP_PID" 2>/dev/null; then
+          echo "agent-skills MCP server exited before becoming ready"
+          cat "$MCP_LOG"
+          exit 1
+        fi
+        if python -c "import socket,sys; s=socket.socket(); s.settimeout(1); sys.exit(0 if s.connect_ex(('127.0.0.1',3002))==0 else 1)"; then
+          READY=1
+          break
+        fi
+        sleep 1
+      done
+      if [ "$READY" -ne 1 ]; then
+        echo "agent-skills MCP server did not become ready on port 3002 within 30 seconds"
+        cat "$MCP_LOG"
+        exit 1
+      fi
 
 tools:
   github:
