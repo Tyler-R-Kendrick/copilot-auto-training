@@ -53,4 +53,4 @@ tests:
         outcome: The response shows the llm-grader assertion in EVAL.yaml referencing the prompt file
         required: true
       - The response explains the score range (0.0 to 1.0) and threshold field
-      - The response includes the answer or expected_output placeholder pattern
+      - "The response includes the {{answer}} or {{expected_output}} placeholder pattern for judge prompts"
