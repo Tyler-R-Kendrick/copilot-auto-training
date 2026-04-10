@@ -377,6 +377,25 @@ class TestAgentCustomizations:
         ):
             assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
 
+    def test_trainer_train_mirror_assets_stay_aligned_with_canonical_contract(self):
+        canonical_root = REPO_ROOT / "skills" / "trainer-train"
+        mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-train"
+
+        for relative_path in (
+            "SKILL.md",
+            "README.md",
+            "datasets/train.jsonl",
+            "datasets/val.jsonl",
+            "evals/evals.json",
+        ):
+            assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
+
+    def test_root_readme_lists_trainer_train_as_a_trainer_skill(self):
+        text = _read(REPO_ROOT / "README.md")
+
+        assert "| [`trainer-train`](skills/trainer-train/README.md) |" in text
+        assert "Own the end-to-end trainer loop contract" in text
+
     def test_trainer_agent_declares_mcp_tool_sequence_and_loop_order(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
         text = _read(agent_path)

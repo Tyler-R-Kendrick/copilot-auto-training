@@ -87,6 +87,7 @@ The skills in this repo can be added by running:
 
 | Skill | Purpose |
 | --- | --- |
+| [`trainer-train`](skills/trainer-train/README.md) | Own the end-to-end trainer loop contract for one selected target, including workspace setup, stage sequencing, steering, validation, and write-back decisions once concrete stage capabilities are known. |
 | [`trainer-synthesize`](skills/trainer-synthesize/README.md) | Build official eval manifests plus explicit `train.jsonl` and `val.jsonl` datasets. |
 | [`trainer-optimize`](skills/trainer-optimize/README.md) | Run single-shot Agent Lightning optimization against explicit datasets. |
 | [`trainer-election`](skills/trainer-election/README.md) | Elect the strongest candidate from existing scored workspace artifacts. |
