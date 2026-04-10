@@ -1,0 +1,17 @@
+{
+  "mode": "manual_followup",
+  "iteration": 2,
+  "target_file": "skills/agentv/SKILL.md",
+  "judge_mode": "llm_judge",
+  "train_dataset": "skills/agentv/datasets/train.jsonl",
+  "val_dataset": "skills/agentv/datasets/val.jsonl",
+  "blocker": "trainer-optimize MCP skill not available in current environment; manual_followup mode used",
+  "changes_applied": [
+    "Change 1: Added code-grader inline YAML snippet with command: field (verified against schema) after evaluator types table",
+    "Change 2: Added step 5 to debugging section covering non-deterministic/flaky llm-grader scores with concrete mitigations (temperature=0.0, wider threshold margin)",
+    "Change 3: Clarified agentv compare --last 2 comment to show runs are ordered by run directory timestamp"
+  ],
+  "teacher_assessment": "Narrow-scope iteration targeting real-world usability gaps not covered by test cases. No new sections added. Net addition: ~12 lines.",
+  "candidate_path": "skills/agentv/.trainer-workspace/SKILL/iterations/iteration-2/optimize/optimized-prompt.md",
+  "created_at": "2026-04-10T15:01:00Z"
+}

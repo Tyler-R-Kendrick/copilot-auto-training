@@ -116,15 +116,6 @@ tests:
 | `code-grader` | Custom logic in Python/TypeScript/shell |
 | `rubric` | Structured criteria with optional weights and score ranges |
 
-For programmatic checks, `code-grader` runs a script that receives the full test result as JSON on stdin and must exit 0 to pass:
-
-```yaml
-assert:
-  - type: code-grader
-    command: python ./graders/check_output.py
-    required: true
-```
-
 For subjective quality checks, `llm-grader` assertions reference a markdown file with the judge prompt:
 
 ```yaml
@@ -278,7 +269,7 @@ agentv eval evals/*.yaml --threshold 0.8
 # After two runs, compare results
 agentv compare .agentv/results/runs/run-1/index.jsonl .agentv/results/runs/run-2/index.jsonl
 
-# Compare latest two runs automatically (ordered by run directory timestamp)
+# Compare latest two runs automatically
 agentv compare --last 2
 ```
 
@@ -315,8 +306,6 @@ When a test case fails — especially with `llm-grader` giving unexpectedly low 
 4. **Distinguish per-assertion vs. suite threshold:**
    - `threshold` on an `llm-grader` assertion: minimum score for that single assertion to pass (default: 0.5)
    - `--threshold 0.8` CLI flag: minimum fraction of tests that must pass for the suite to exit 0
-
-5. **Handle non-deterministic scores** — LLM graders can return different scores across runs due to temperature. If a test flips between pass and fail on re-runs, lower the judge model's temperature to `0.0` in `.agentv/targets.yaml`, widen the threshold margin (e.g., use `0.6` instead of `0.7`), or adjust your judge prompt to produce more decisive scores.
 
 ```bash
 # Re-run a single file to iterate quickly

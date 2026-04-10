@@ -1,0 +1,27 @@
+{
+  "mode": "manual_followup",
+  "iteration": 1,
+  "target_file": "skills/agentv/SKILL.md",
+  "judge_mode": "llm_judge",
+  "train_dataset": "skills/agentv/datasets/train.jsonl",
+  "val_dataset": "skills/agentv/datasets/val.jsonl",
+  "blocker": "trainer-optimize MCP skill not available in current environment; manual_followup mode used",
+  "fixes_applied": [
+    "Fix 1 (CRITICAL): Broken code fence in CI section repaired — bash commands now inside fenced block",
+    "Fix 2 (HIGH): Added --target flag to Quickstart and new Multi-target comparison subsection",
+    "Fix 3 (HIGH): Added standalone 'Debugging failing evaluations' section covering JSONL inspection, judge prompt iteration, threshold distinction",
+    "Fix 4 (HIGH): Extended minimal EVAL.yaml example to include assert: with type: llm-grader",
+    "Fix 5 (MEDIUM): Added fenced markdown judge prompt example with {{answer}}, {{criteria}}, {{expected_output}} template variables",
+    "Fix 6 (MEDIUM): Fixed expected_output conversion mapping to show both tests[].expected_output and tests[].criteria with explanatory note",
+    "Fix 7 (LOW): Added 'comparing two agent versions' as When to use trigger; condensed opening paragraph"
+  ],
+  "test_coverage_assessment": {
+    "test_1_eval_yaml_from_evals_json": "IMPROVED — field mapping table now accurate including expected_output note; both files preservation maintained; CLI command present",
+    "test_2_debug_llm_grader": "IMPROVED — new Debugging section covers all 4 required assertion points: JSONL path, score/reasoning/pass fields, judge prompt iteration, threshold distinction",
+    "test_3_ci_pipeline": "FIXED — bash block with --threshold 0.8 and -o results.xml now properly fenced; exit code explanation added",
+    "test_4_multi_target_compare": "FIXED — --target flag now shown in Quickstart and in Multi-target comparison subsection with agentv compare command",
+    "test_5_llm_judge_authoring": "IMPROVED — concrete judge prompt markdown example added with all template variables; llm-grader YAML shown with threshold; score range (0.0-1.0) explained"
+  },
+  "candidate_path": "skills/agentv/.trainer-workspace/SKILL/iterations/iteration-1/optimize/optimized-prompt.md",
+  "created_at": "2026-04-10T14:49:00Z"
+}

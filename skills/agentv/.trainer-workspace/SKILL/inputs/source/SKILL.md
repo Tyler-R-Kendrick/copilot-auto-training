@@ -25,7 +25,6 @@ Read `references/targets.md` for target configuration options.
 - The user wants to run `agentv compare` to detect regressions across runs.
 - The user wants to integrate AgentV into a CI/CD pipeline.
 - The user wants to write LLM judges, rubrics, or code graders for evaluation.
-- The user wants to run the same eval against two different targets or models to compare performance.
 
 Do not use this skill for general prompt engineering unrelated to evaluations, or for creating and improving agent skill SKILL.md files and their structure.
 
@@ -41,16 +40,13 @@ agentv init
 # Run an eval
 agentv eval evals/my-skill.eval.yaml
 
-# Run with a specific target
-agentv eval evals/my-skill.eval.yaml --target claude
+# Compare runs
+agentv compare .agentv/results/runs/<timestamp>/index.jsonl
 
 # Output formats
 agentv eval evals/my.yaml -o report.html    # HTML dashboard
 agentv eval evals/my.yaml -o results.xml    # JUnit XML for CI
 agentv eval evals/my.yaml -o results.jsonl  # JSONL (default)
-
-# Compare two runs
-agentv compare .agentv/results/runs/<run-1>/index.jsonl .agentv/results/runs/<run-2>/index.jsonl
 ```
 
 ## Core workflow
@@ -73,10 +69,8 @@ When migrating an existing `evals/evals.json` file, map the fields as follows:
 | `skill_name` | `name` (top-level) |
 | `evals[].id` | `tests[].id` |
 | `evals[].prompt` | `tests[].input` |
-| `evals[].expected_output` | `tests[].expected_output` (preserved) and informs `tests[].criteria` |
-| `evals[].assertions[]` | `tests[].rubrics[]` (string) or `tests[].assert[]` (typed) |
-
-> **Note on `expected_output` mapping:** In `evals.json`, `expected_output` is a single string used as the reference answer. In EVAL.yaml, `tests[].expected_output` preserves this reference answer exactly, while `tests[].criteria` is a *separate* natural-language description of what counts as success. They serve different roles — do not replace one with the other.
+| `evals[].expected_output` | `tests[].criteria` |
+| `evals[].assertions[]` | `tests[].rubrics[]` or `tests[].assert[]` |
 
 String-only assertions in `evals.json` become `rubrics` (string format) or `llm-grader` assertions in EVAL.yaml. Preserve both `evals.json` and `EVAL.yaml` — the JSON is used by the internal evaluation framework; the YAML is used by AgentV.
 
@@ -88,11 +82,6 @@ description: Evaluates my-skill behavior
 
 execution:
   target: default
-
-assert:
-  - type: llm-grader
-    prompt: ./graders/quality.md
-    threshold: 0.7
 
 tests:
   - id: basic-task
@@ -116,15 +105,6 @@ tests:
 | `code-grader` | Custom logic in Python/TypeScript/shell |
 | `rubric` | Structured criteria with optional weights and score ranges |
 
-For programmatic checks, `code-grader` runs a script that receives the full test result as JSON on stdin and must exit 0 to pass:
-
-```yaml
-assert:
-  - type: code-grader
-    command: python ./graders/check_output.py
-    required: true
-```
-
 For subjective quality checks, `llm-grader` assertions reference a markdown file with the judge prompt:
 
 ```yaml
@@ -135,31 +115,10 @@ assert:
 ```
 
 **Writing judge prompts** — use these template variables inside the markdown file:
-
-| Variable | Description |
-|----------|-------------|
-| `{{answer}}` | The agent's actual response |
-| `{{expected_output}}` | The expected output from the test case |
-| `{{input}}` | The original prompt sent to the agent |
-| `{{criteria}}` | The test case `criteria` field |
-
-**Example judge prompt (`graders/correctness.md`):**
-
-```markdown
-You are evaluating whether an AI agent response meets the required criteria.
-
-## Task criteria
-{{criteria}}
-
-## Agent response
-{{answer}}
-
-## Expected output
-{{expected_output}}
-
-Score 0.0–1.0, where 1.0 = fully meets all criteria. Reply with JSON only:
-{"score": 0.9, "reasoning": "Brief explanation of the score"}
-```
+- `{{answer}}` — the agent's actual response
+- `{{expected_output}}` — the expected output from the test case
+- `{{input}}` — the original prompt sent to the agent
+- `{{criteria}}` — the test case `criteria` field
 
 **Threshold vs. `--threshold`:** The `threshold` field on an `llm-grader` assertion is per-assertion (minimum score to pass). The `--threshold` CLI flag sets a minimum overall suite pass rate for CI gating. These are independent.
 
@@ -234,22 +193,7 @@ claude:
 
 Read `references/targets.md` for all target types (OpenAI, Anthropic, local CLI, HTTP endpoints).
 
-### Multi-target comparison
-
-Run the same eval suite against two targets to compare performance:
-
-```bash
-# Run against each target
-agentv eval evals/my-skill.eval.yaml --target default
-agentv eval evals/my-skill.eval.yaml --target claude
-
-# Compare the two runs
-agentv compare .agentv/results/runs/*/index.jsonl
-```
-
-## CI/CD integration
-
-Set the API key as a repository secret and inject it into the environment:
+For CI, set the API key as a repository secret and inject it into the environment:
 
 ```yaml
 # GitHub Actions
@@ -259,7 +203,7 @@ Set the API key as a repository secret and inject it into the environment:
   run: agentv eval evals/*.yaml
 ```
 
-```bash
+
 # Run with exit code on failures (for CI gates)
 agentv eval evals/*.yaml --exit-on-failure
 
@@ -270,15 +214,13 @@ agentv eval evals/*.yaml -o results.xml
 agentv eval evals/*.yaml --threshold 0.8
 ```
 
-`agentv eval` exits with a non-zero exit code when `--exit-on-failure` is set and any test fails, or when the pass rate falls below the `--threshold` value. This makes it suitable as a CI gate step.
-
 ## Comparing runs
 
 ```bash
 # After two runs, compare results
 agentv compare .agentv/results/runs/run-1/index.jsonl .agentv/results/runs/run-2/index.jsonl
 
-# Compare latest two runs automatically (ordered by run directory timestamp)
+# Compare latest two runs automatically
 agentv compare --last 2
 ```
 
@@ -297,31 +239,6 @@ Pass rate             66.7%   100%    +33.3%
 ```
 
 Improvements (↑) and regressions (↓) are highlighted. Use this to verify a skill change improves eval quality without introducing regressions.
-
-## Debugging failing evaluations
-
-When a test case fails — especially with `llm-grader` giving unexpectedly low scores — follow these steps:
-
-1. **Inspect the JSONL results** at `.agentv/results/runs/<timestamp>/index.jsonl`. Each test result includes:
-   - `pass` — boolean pass/fail for the overall test
-   - `score` — numeric score from the LLM grader (0.0–1.0)
-   - `reasoning` — the judge's explanation for the score
-   - `assertions` — per-assertion breakdown showing which checks passed or failed
-
-2. **Improve the judge prompt** — if the reasoning reveals the judge is misinterpreting the criteria, edit the referenced markdown file (e.g., `./graders/correctness.md`) to add clearer instructions or examples, then re-run.
-
-3. **Adjust the threshold** — if scores are consistently in a borderline range (e.g., 0.65 when threshold is 0.7), decide whether to lower the `threshold` on the assertion or improve the prompt to score higher.
-
-4. **Distinguish per-assertion vs. suite threshold:**
-   - `threshold` on an `llm-grader` assertion: minimum score for that single assertion to pass (default: 0.5)
-   - `--threshold 0.8` CLI flag: minimum fraction of tests that must pass for the suite to exit 0
-
-5. **Handle non-deterministic scores** — LLM graders can return different scores across runs due to temperature. If a test flips between pass and fail on re-runs, lower the judge model's temperature to `0.0` in `.agentv/targets.yaml`, widen the threshold margin (e.g., use `0.6` instead of `0.7`), or adjust your judge prompt to produce more decisive scores.
-
-```bash
-# Re-run a single file to iterate quickly
-agentv eval evals/my-skill.eval.yaml -o debug.jsonl
-```
 
 ## Project structure
 
