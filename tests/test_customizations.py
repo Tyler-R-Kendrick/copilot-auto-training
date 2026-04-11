@@ -401,12 +401,28 @@ class TestAgentCustomizations:
         text = _read(agent_path)
 
         researcher_idx = text.index('Use the `researcher` handoff')
-        find_idx = text.index('Call `find_agent_skill`')
-        load_idx = text.index('Call `load_agent_skill`')
-        run_idx = text.index('Call `run_agent_skill`')
-        research_idx = text.index('`researcher` -> `trainer-train` -> `trainer-synthesize` -> `trainer-optimize`')
+        find_idx = text.index('Call `find_agent_skill` to discover the exact `trainer-train` skill before orchestration begins')
+        load_idx = text.index('Treat `trainer-train` as contract-only: call `load_agent_skill` to load `trainer-train` first')
+        run_idx = text.index('Call `run_agent_skill` only for discovered stage-specific `trainer-*` skills')
+        research_idx = text.index('the default stage order is `researcher` -> `trainer-synthesize` -> `trainer-optimize`')
 
         assert researcher_idx < find_idx < load_idx < run_idx < research_idx
+
+    def test_trainer_agent_contract_matches_discoverable_trainer_train_skill(self, monkeypatch):
+        agent_skills_module = _load_agent_skills_module()
+        monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
+
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
+        skill = agent_skills_module._find_skill_by_name("trainer-train")
+        payload = agent_skills_module.load_agent_skill("trainer-train")
+
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "trainer-train").resolve()
+        assert "Name: trainer-train" in payload
+        assert "Reserved for deterministic helpers if `trainer-train` later needs runnable utilities." in payload
+        assert 'Treat `trainer-train` as contract-only' in agent_text
+
+        with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
+            agent_skills_module.run_agent_skill("trainer-train")
 
     def test_trainer_agent_declares_frontmatter_handoffs_for_teacher_student_judge_and_adversary(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -497,7 +513,7 @@ class TestAgentCustomizations:
 
         research_idx = text.index('hand off to the `researcher` agent')
         train_idx = text.index('Use the `trainer-train` skill through MCP')
-        synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
+        synth_idx = text.index('After the required source material and asset requirements are satisfied, use the `trainer-synthesize` skill through MCP')
         optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
 
         assert train_idx < research_idx < synth_idx < optimize_idx
