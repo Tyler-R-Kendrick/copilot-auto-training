@@ -160,8 +160,8 @@ class TestAgentCustomizations:
         assert 'agents: ["researcher", "teacher", "student", "judge", "adversary"]' in text
         assert 'name: "trainer"' in text
         assert 'Treat this agent as the canonical orchestration contract for trainer-led optimization work.' in text
-        assert 'Manage the `researcher` handoff plus all remaining `trainer-*` skill usage yourself' in text
-        assert 'Use the `researcher` agent as the execution path for repository research work, and use the `agent-skills` MCP server as the execution path for the `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
+        assert 'Manage the `researcher` handoff plus the `trainer-train` orchestration skill and the remaining stage-specific `trainer-*` skill usage yourself' in text
+        assert 'Use the `researcher` agent as the execution path for repository research work, and use the `agent-skills` MCP server as the execution path for the `trainer-train`, `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
         assert 'handoffs:' in text
         assert '- label: "Request Research Support"' in text
         assert '- label: "Request Teacher Guidance"' in text
@@ -377,17 +377,52 @@ class TestAgentCustomizations:
         ):
             assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
 
+    def test_trainer_train_mirror_assets_stay_aligned_with_canonical_contract(self):
+        canonical_root = REPO_ROOT / "skills" / "trainer-train"
+        mirrored_root = REPO_ROOT / ".agents" / "skills" / "trainer-train"
+
+        for relative_path in (
+            "SKILL.md",
+            "README.md",
+            "datasets/train.jsonl",
+            "datasets/val.jsonl",
+            "evals/evals.json",
+        ):
+            assert _read(canonical_root / relative_path) == _read(mirrored_root / relative_path)
+
+    def test_root_readme_lists_trainer_train_as_a_trainer_skill(self):
+        text = _read(REPO_ROOT / "README.md")
+
+        assert "| [`trainer-train`](skills/trainer-train/README.md) |" in text
+        assert "Own the end-to-end trainer loop contract" in text
+
     def test_trainer_agent_declares_mcp_tool_sequence_and_loop_order(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "trainer.agent.md"
         text = _read(agent_path)
 
         researcher_idx = text.index('Use the `researcher` handoff')
-        find_idx = text.index('Call `find_agent_skill`')
-        load_idx = text.index('Call `load_agent_skill`')
-        run_idx = text.index('Call `run_agent_skill`')
-        research_idx = text.index('`researcher` -> `trainer-synthesize` -> `trainer-optimize`')
+        find_idx = text.index('Call `find_agent_skill` to discover the exact `trainer-train` skill before orchestration begins')
+        load_idx = text.index('Treat `trainer-train` as contract-only: call `load_agent_skill` to load `trainer-train` first')
+        run_idx = text.index('Call `run_agent_skill` only for discovered stage-specific `trainer-*` skills')
+        research_idx = text.index('the default stage order is `researcher` -> `trainer-synthesize` -> `trainer-optimize`')
 
         assert researcher_idx < find_idx < load_idx < run_idx < research_idx
+
+    def test_trainer_agent_contract_matches_discoverable_trainer_train_skill(self, monkeypatch):
+        agent_skills_module = _load_agent_skills_module()
+        monkeypatch.setenv("AGENT_SKILLS_REPO_ROOT", str(REPO_ROOT))
+
+        agent_text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
+        skill = agent_skills_module._find_skill_by_name("trainer-train")
+        payload = agent_skills_module.load_agent_skill("trainer-train")
+
+        assert Path(skill.dir).resolve() == (REPO_ROOT / "skills" / "trainer-train").resolve()
+        assert "Name: trainer-train" in payload
+        assert "Reserved for deterministic helpers if `trainer-train` later needs runnable utilities." in payload
+        assert 'Treat `trainer-train` as contract-only' in agent_text
+
+        with pytest.raises(agent_skills_module.SkillError, match="has no runnable Python scripts"):
+            agent_skills_module.run_agent_skill("trainer-train")
 
     def test_trainer_agent_declares_frontmatter_handoffs_for_teacher_student_judge_and_adversary(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
@@ -477,10 +512,11 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         research_idx = text.index('hand off to the `researcher` agent')
-        synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
+        train_idx = text.index('Use the `trainer-train` skill through MCP')
+        synth_idx = text.index('After the required source material and asset requirements are satisfied, use the `trainer-synthesize` skill through MCP')
         optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
 
-        assert research_idx < synth_idx < optimize_idx
+        assert train_idx < research_idx < synth_idx < optimize_idx
 
     def test_trainer_agent_selects_llm_judge_for_reference_criteria_datasets(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")

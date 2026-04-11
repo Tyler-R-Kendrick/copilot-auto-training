@@ -1,0 +1,45 @@
+{
+  "skill_name": "trainer-train",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the trainer loop for `skills/example-skill/SKILL.md`. The target has no local workspace yet. I need the orchestrator to initialize it correctly and explain the prerequisite review checkpoint before any training begins.",
+      "expected_output": "The response should derive the local `.trainer-workspace/<prompt-name>/` path, create the required workspace directories, require the engineering review checkpoint before optimization starts, and initialize `workflow-status.json` with checkpoint-friendly state and artifact pointers.",
+      "assertions": [
+        "Response uses a local `.trainer-workspace/<prompt-name>/` path instead of a repo-root workspace",
+        "Response mentions `engineer-prompt/review.md` as the prerequisite review checkpoint",
+        "Response mentions `workflow-status.json` and checkpoint-oriented required artifacts"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I selected one target file for training, but it does not have a trustworthy train split, validation split, or authored eval manifest yet. Tell me how the trainer loop should behave before the first optimization pass.",
+      "expected_output": "The response should pause optimization, gather grounded source material first, create missing datasets and evals through the missing-data path, keep train and validation separate, and only then resume optimization.",
+      "assertions": [
+        "Response gathers missing inputs before optimization instead of guessing",
+        "Response keeps authored evals separate from train and validation datasets",
+        "Response explains reuse-before-regeneration behavior for existing assets"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The optimization stage came back with `mode=manual_followup` and a model-facing prompt instead of a finished candidate. What should the trainer loop do next?",
+      "expected_output": "The response should treat manual follow-up as a supported branch, save the report under the active iteration, answer the returned model prompt, persist `optimized-prompt.md`, and continue with steering and validation rather than stopping early.",
+      "assertions": [
+        "Response treats `manual_followup` or manual-followup as supported loop behavior",
+        "Response mentions saving the report under the active iteration",
+        "Response mentions persisting `optimized-prompt.md` and continuing the loop"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "A trainer iteration produced candidate content, steering notes, and validation logs. Before anything is written back to the source file, how should those artifacts be organized and summarized?",
+      "expected_output": "The response should stage candidate bundles, publish per-turn steering plus summaries, keep iteration-scoped artifacts under `steering/`, `candidates/`, and `validation/`, and delay write-back until the decision summary and validation justify it.",
+      "assertions": [
+        "Response stages candidate bundles before write-back",
+        "Response mentions `steering` and per-turn or per-agent summaries",
+        "Response delays write-back until validation and the decision summary support it"
+      ]
+    }
+  ]
+}

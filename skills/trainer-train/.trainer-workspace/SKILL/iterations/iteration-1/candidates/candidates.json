@@ -1,0 +1,21 @@
+{
+  "candidates": [
+    {
+      "source": "original",
+      "artifact": "candidates/original/SKILL.md",
+      "description": "Source snapshot from inputs/source/SKILL.md — v0.1.0, pre-optimization baseline.",
+      "predicted_judge_response": "Passes workspace-init and missing-data-path cases. Likely fails or scores weakly on judge-mode-inference and blocker-first cases because those rules are buried or vague.",
+      "reflection": "The original does not name the three judge-mode shapes, has no dedicated blocker-first section, and the write-back rule does not require the decision summary as an explicit gate.",
+      "selection_notes": "Baseline only. Not a write-back candidate."
+    },
+    {
+      "source": "student",
+      "artifact": "candidates/student/SKILL.md",
+      "description": "Iteration-1 optimized candidate (manual_followup path) — v0.2.0. Addresses all five engineer-review failure modes.",
+      "predicted_judge_response": "Should score higher on all five eval dimensions: workspace-init, missing-data-path, manual-followup recovery, candidate/steering organization, and blocker-first behavior. The three named judge modes and the explicit dual gate (validation + decision summary) are the strongest new signals.",
+      "reflection": "The candidate added ~25% more text. The core trade-off is verbosity vs. precision. The blocker-first section is now prominent but may overlap slightly with the write-back rule — the teacher should assess whether consolidation is possible without losing the signal.",
+      "selection_notes": "Preferred candidate for iteration-1. Proceed to teacher review."
+    }
+  ],
+  "preferred": "candidates/student/SKILL.md"
+}

@@ -1,0 +1,29 @@
+{
+  "candidates": [
+    {
+      "source": "original",
+      "artifact": "candidates/original/SKILL.md",
+      "description": "Iteration-1 student candidate (v0.2.0) — the pre-coaching baseline for this iteration.",
+      "predicted_judge_response": "Strong on all five engineer-review dimensions. Weak on output-contract clarity (items 2 vs 6) and blocker-first scope.",
+      "reflection": "Used as the starting point for iteration-2 narrow pass.",
+      "selection_notes": "Not the preferred candidate."
+    },
+    {
+      "source": "student",
+      "artifact": "candidates/student/SKILL.md",
+      "description": "Iteration-2 student candidate (v0.3.0) — four teacher coaching points applied as a narrow clarity-and-precedence pass.",
+      "predicted_judge_response": "Strong pass on all five engineer-review dimensions and all four coaching points. Judge-mode precedence rule is the strongest new signal. Before-you-start preamble makes reference reading procedural.",
+      "reflection": "Minimal diff from v0.2.0. All changes are targeted and justified by teacher critique. No unintended scope expansion.",
+      "selection_notes": "Preferred candidate for this run."
+    },
+    {
+      "source": "adversary",
+      "artifact": "candidates/adversary/findings.md",
+      "description": "Adversary findings for v0.3.0 — 3 high-severity, 3 medium-severity. Not a revised candidate; findings are deferred to a future iteration.",
+      "predicted_judge_response": "Findings are credible and would strengthen the contract if addressed, but they do not invalidate v0.3.0 as the current best candidate.",
+      "reflection": "Ghost-resume, fit-for-purpose bypass, and paraphrase-holdout are the three most actionable findings for iteration-3.",
+      "selection_notes": "Deferred. No immediate impact on current candidate selection."
+    }
+  ],
+  "preferred": "candidates/student/SKILL.md"
+}

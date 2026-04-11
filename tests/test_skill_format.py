@@ -68,6 +68,7 @@ class TestSkillFileExists:
             "judge-rubric",
             "learn",
             "researcher-research",
+            "trainer-train",
             "trainer-election",
             "trainer-optimize",
             "trainer-synthesize",
@@ -246,6 +247,23 @@ class TestOfficialEvalFixtures:
         assert "scoring" in manifest_text
         assert "do not guess" in manifest_text or "instead of guessing" in manifest_text
 
+    def test_trainer_train_official_eval_manifest_exists(self):
+        manifest_path = SKILLS_DIR / "trainer-train" / "evals" / "evals.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert payload["skill_name"] == "trainer-train"
+        assert len(payload["evals"]) >= 4
+        assert all("prompt" in case for case in payload["evals"])
+        assert all("expected_output" in case for case in payload["evals"])
+        assert all(case.get("assertions") for case in payload["evals"])
+
+        manifest_text = json.dumps(payload).lower()
+        assert ".trainer-workspace" in manifest_text
+        assert "workflow-status.json" in manifest_text
+        assert "engineer-prompt/review.md" in manifest_text
+        assert "steering" in manifest_text
+        assert "manual_followup" in manifest_text or "manual-followup" in manifest_text
+
     def test_trainer_election_official_eval_manifest_exists(self):
         manifest_path = SKILLS_DIR / "trainer-election" / "evals" / "evals.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -372,6 +390,19 @@ class TestOfficialEvalFixtures:
 
         assert ".trainer-workspace/<prompt-name>/" in combined
         assert "<prompt-dir>/<prompt-name>-workspace/" not in combined
+
+    def test_trainer_train_training_fixtures_cover_stage_orchestration_without_named_skill_coupling(self):
+        dataset_dir = SKILLS_DIR / "trainer-train" / "datasets"
+        train_text = (dataset_dir / "train.jsonl").read_text(encoding="utf-8")
+        val_text = (dataset_dir / "val.jsonl").read_text(encoding="utf-8")
+        combined = f"{train_text}\n{val_text}".lower()
+
+        assert "workflow-status.json" in combined
+        assert "engineer-prompt/review.md" in combined
+        assert "manual_followup" in combined or "manual-followup" in combined
+        assert "trainer-optimize" not in combined
+        assert "trainer-synthesize" not in combined
+        assert "trainer-election" not in combined
 
     def test_first_run_example_official_eval_manifest_exists(self):
         manifest_path = (
