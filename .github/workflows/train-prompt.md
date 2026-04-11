@@ -25,10 +25,13 @@ steps:
     run: |-
       set -euo pipefail
       python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv
+      MCP_DIR="${{ github.workspace }}/tools/agent-skills-mcp"
       MCP_LOG=/tmp/agent-skills-mcp.log
-      MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >"$MCP_LOG" 2>&1 &
+      uv sync --directory "$MCP_DIR"
+      MCP_PYTHON="$MCP_DIR/.venv/bin/python"
+      "$MCP_PYTHON" -c "import agent_skills_mcp; import server"
+      MCP_TRANSPORT=streamable-http MCP_PORT=3002 "$MCP_PYTHON" "$MCP_DIR/server.py" >"$MCP_LOG" 2>&1 &
       MCP_PID=$!
-      uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" python -c "import agent_skills_mcp"
       READY=0
       for _ in $(seq 1 30); do
         if ! kill -0 "$MCP_PID" 2>/dev/null; then

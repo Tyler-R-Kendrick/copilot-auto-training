@@ -20,12 +20,13 @@ AGENT_SKILLS_MODULE_PATH = REPO_ROOT / "tools" / "agent-skills-mcp" / "agent_ski
 AGENT_SKILLS_PREFLIGHT = (
     "set -euo pipefail\n"
     "python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv\n"
+    'MCP_DIR="${{ github.workspace }}/tools/agent-skills-mcp"\n'
     "MCP_LOG=/tmp/agent-skills-mcp.log\n"
-    'MCP_TRANSPORT=streamable-http MCP_PORT=3002 uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
-    'python "${{ github.workspace }}/tools/agent-skills-mcp/server.py" >"$MCP_LOG" 2>&1 &\n'
+    'uv sync --directory "$MCP_DIR"\n'
+    'MCP_PYTHON="$MCP_DIR/.venv/bin/python"\n'
+    '"$MCP_PYTHON" -c "import agent_skills_mcp; import server"\n'
+    'MCP_TRANSPORT=streamable-http MCP_PORT=3002 "$MCP_PYTHON" "$MCP_DIR/server.py" >"$MCP_LOG" 2>&1 &\n'
     "MCP_PID=$!\n"
-    'uv run --with "${{ github.workspace }}/tools/agent-skills-mcp" '
-    'python -c "import agent_skills_mcp"\n'
     "READY=0\n"
     "for _ in $(seq 1 30); do\n"
     "  if ! kill -0 \"$MCP_PID\" 2>/dev/null; then\n"
