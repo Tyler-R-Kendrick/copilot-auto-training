@@ -160,8 +160,8 @@ class TestAgentCustomizations:
         assert 'agents: ["researcher", "teacher", "student", "judge", "adversary"]' in text
         assert 'name: "trainer"' in text
         assert 'Treat this agent as the canonical orchestration contract for trainer-led optimization work.' in text
-        assert 'Manage the `researcher` handoff plus all remaining `trainer-*` skill usage yourself' in text
-        assert 'Use the `researcher` agent as the execution path for repository research work, and use the `agent-skills` MCP server as the execution path for the `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
+        assert 'Manage the `researcher` handoff plus the `trainer-train` orchestration skill and the remaining stage-specific `trainer-*` skill usage yourself' in text
+        assert 'Use the `researcher` agent as the execution path for repository research work, and use the `agent-skills` MCP server as the execution path for the `trainer-train`, `trainer-synthesize`, `trainer-optimize`, and optional `trainer-election` skills.' in text
         assert 'handoffs:' in text
         assert '- label: "Request Research Support"' in text
         assert '- label: "Request Teacher Guidance"' in text
@@ -404,7 +404,7 @@ class TestAgentCustomizations:
         find_idx = text.index('Call `find_agent_skill`')
         load_idx = text.index('Call `load_agent_skill`')
         run_idx = text.index('Call `run_agent_skill`')
-        research_idx = text.index('`researcher` -> `trainer-synthesize` -> `trainer-optimize`')
+        research_idx = text.index('`researcher` -> `trainer-train` -> `trainer-synthesize` -> `trainer-optimize`')
 
         assert researcher_idx < find_idx < load_idx < run_idx < research_idx
 
@@ -496,10 +496,11 @@ class TestAgentCustomizations:
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
 
         research_idx = text.index('hand off to the `researcher` agent')
+        train_idx = text.index('Use the `trainer-train` skill through MCP')
         synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
         optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
 
-        assert research_idx < synth_idx < optimize_idx
+        assert research_idx < train_idx < synth_idx < optimize_idx
 
     def test_trainer_agent_selects_llm_judge_for_reference_criteria_datasets(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
