@@ -500,7 +500,7 @@ class TestAgentCustomizations:
         synth_idx = text.index('Use the `trainer-synthesize` skill through MCP')
         optimize_idx = text.index('Run the `trainer-optimize` skill through MCP')
 
-        assert research_idx < train_idx < synth_idx < optimize_idx
+        assert train_idx < research_idx < synth_idx < optimize_idx
 
     def test_trainer_agent_selects_llm_judge_for_reference_criteria_datasets(self):
         text = _read(REPO_ROOT / ".github" / "agents" / "trainer.agent.md")
