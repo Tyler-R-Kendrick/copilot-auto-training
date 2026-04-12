@@ -1,0 +1,43 @@
+name: trainer-train-prompt
+version: "1.0"
+description: Evaluates the trainer-train-prompt skill
+
+execution:
+  target: default
+
+tests:
+  - id: initialize-prompt-workspace
+    criteria: "The response should derive the workspace path from the prompt filename, require the engineering review checkpoint, and initialize workflow-status.json in a resumable state."
+    expected_output: "The loop should derive `summarize` as the prompt name, create `.trainer-workspace/summarize/` with required directories, require `engineer-prompt/review.md`, and initialize `workflow-status.json` with state `pending_engineer_prompt`."
+    input: "Run the trainer loop for `prompts/summarize.prompt.md`. The target has no workspace yet. Initialize the workspace and identify the required checkpoint before optimization."
+    rubrics:
+      - "Response derives workspace path from the prompt filename"
+      - "Response requires the engineering review checkpoint before optimization"
+      - "Response mentions `workflow-status.json` initialization"
+
+  - id: infer-judge-mode-prompt
+    criteria: "The response should infer llm_judge mode for a prompt target with reference+criteria rows and explain the inference rule."
+    expected_output: "The loop should infer `llm_judge` because prompt targets default to open-ended judging, and `reference` plus `criteria` fields confirm the open-ended path. An explicit `scoring` field would override."
+    input: "A prompt file `instructions/triage.instructions.md` has dataset rows with `reference` and `criteria` fields but no explicit `scoring` key. What judge mode should the trainer loop use?"
+    rubrics:
+      - "Response selects `llm_judge` as the judge mode"
+      - "Response explains the default for prompt targets"
+      - "Response notes that explicit `scoring` overrides inference"
+
+  - id: handle-manual-followup-prompt
+    criteria: "The response should treat manual follow-up as a supported branch, save correct artifacts, confirm placeholder preservation, and keep the loop moving."
+    expected_output: "Save `manual-followup-report.json`, answer the model prompt, persist `optimized-prompt.md`, confirm placeholder preservation, and continue with steering and validation."
+    input: "The optimizer returned `mode=manual_followup` with a model-facing prompt for `prompts/classify.prompt.md`. What does the trainer loop do next?"
+    rubrics:
+      - "Response treats manual follow-up as a supported loop branch"
+      - "Response saves `manual-followup-report.json` and `optimized-prompt.md`"
+      - "Response mentions placeholder preservation before write-back"
+
+  - id: write-back-checks-prompt
+    criteria: "The response must enforce all prompt-specific write-back checks: placeholder integrity, evaluator field isolation, validation, and decision summary."
+    expected_output: "Require placeholder preservation, confirm evaluator fields absent from prompt text, confirm validation passes, and require a written decision summary."
+    input: "Before writing a trained candidate back to `prompts/answer.prompt.md`, what checks must the trainer loop perform that are specific to prompt targets?"
+    rubrics:
+      - "Response requires placeholder preservation"
+      - "Response confirms evaluator-only fields absent from prompt-visible text"
+      - "Response requires validation to pass and a decision summary to be written"
