@@ -26,7 +26,6 @@ network:
 safe-outputs:
   create-pull-request:
     max: 1
-    protected-files: allowed
     github-token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 ---
 
@@ -53,7 +52,7 @@ Authoritative source of truth for the current state of the project is the reposi
 4. Read the candidate documentation files and the changed source files.
 5. Compare each documentation file against the current source:
    - Check that commands, file paths, environment variables, CLI flags, and configuration keys are still accurate.
-   - Check that described behaviour matches what the code actually does.
+   - Check that described behavior matches what the code actually does.
    - Check that any linked files still exist at the stated paths.
    - Check that version numbers, dependency names, and Python version requirements match `requirements.txt` and any `pyproject.toml`.
 6. Also review the top-level `README.md` whenever any file changes, because it describes the overall repository.
