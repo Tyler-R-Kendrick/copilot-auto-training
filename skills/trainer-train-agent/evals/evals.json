@@ -4,9 +4,9 @@
     {
       "id": 1,
       "prompt": "I want to optimize `.github/agents/researcher.agent.md`. The agent keeps using web search for everything instead of invoking the `researcher-research` MCP skill. How should the trainer loop initialize the workspace and what should it audit first?",
-      "expected_output": "The response should initialize the workspace at `.github/agents/.trainer-workspace/researcher/`, require the engineering review checkpoint, audit the agent's MCP skill routing instructions against the `researcher-research` skill's description field, identify the routing mismatch as a steering context item, and explain that this is a tool-routing concern rather than a persona or handoff concern.",
+      "expected_output": "The response should initialize the workspace at `.github/agents/.trainer-workspace/researcher.agent/`, require the engineering review checkpoint, audit the agent's MCP skill routing instructions against the `researcher-research` skill's description field, identify the routing mismatch as a steering context item, and explain that this is a tool-routing concern rather than a persona or handoff concern.",
       "assertions": [
-        "Response derives the workspace path from the agent filename (stripping extension)",
+        "Response derives the workspace path by stripping only `.md` from the filename (e.g., `researcher.agent.md` → `researcher.agent`)",
         "Response requires the engineering review checkpoint before optimization",
         "Response audits MCP skill routing instructions against available skill descriptions",
         "Response identifies the routing mismatch as the primary concern"

@@ -8,10 +8,10 @@ execution:
 tests:
   - id: initialize-skill-workspace
     criteria: "The response must correctly initialize the skill workspace, require the review checkpoint, and prioritize frontmatter for an under-triggering skill."
-    expected_output: "Initialize workspace at `skills/researcher-research/.trainer-workspace/researcher-research/`, require `engineer-prompt/review.md`, identify frontmatter (description) as the priority concern for under-triggering."
+    expected_output: "Initialize workspace at `skills/researcher-research/.trainer-workspace/SKILL/`, require `engineer-prompt/review.md`, identify frontmatter (description) as the priority concern for under-triggering."
     input: "I want to improve `skills/researcher-research/SKILL.md`. Agents never invoke it even when research is clearly needed. How should the trainer loop initialize the workspace and what concern should it prioritize?"
     rubrics:
-      - "Response derives workspace path from the skill directory name"
+      - "Response derives workspace path from the target filename (SKILL.md → SKILL)"
       - "Response requires the engineering review checkpoint"
       - "Response identifies frontmatter as the priority concern for under-triggering"
 

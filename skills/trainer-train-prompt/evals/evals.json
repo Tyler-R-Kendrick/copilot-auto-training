@@ -4,9 +4,9 @@
     {
       "id": 1,
       "prompt": "Run the trainer loop for `skills/engineer-prompt/SKILL.md`... wait, that's a skill file. I meant `prompts/summarize.prompt.md`. The target has no workspace yet. Walk me through how the loop should initialize before the first optimization pass.",
-      "expected_output": "The response should identify the target as a prompt file, derive the workspace path as `prompts/.trainer-workspace/summarize/`, require the `engineer-prompt/review.md` checkpoint, initialize `workflow-status.json`, and explain the blocker if the checkpoint is missing.",
+      "expected_output": "The response should identify the target as a prompt file, derive the workspace path as `prompts/.trainer-workspace/summarize.prompt/`, require the `engineer-prompt/review.md` checkpoint, initialize `workflow-status.json`, and explain the blocker if the checkpoint is missing.",
       "assertions": [
-        "Response derives workspace path from the prompt filename (e.g., `summarize`)",
+        "Response derives workspace path from the prompt filename (e.g., `summarize.prompt`)",
         "Response requires the engineering review checkpoint before optimization",
         "Response mentions `workflow-status.json` and checkpoint state"
       ],

@@ -8,7 +8,7 @@ execution:
 tests:
   - id: initialize-prompt-workspace
     criteria: "The response should derive the workspace path from the prompt filename, require the engineering review checkpoint, and initialize workflow-status.json in a resumable state."
-    expected_output: "The loop should derive `summarize` as the prompt name, create `.trainer-workspace/summarize/` with required directories, require `engineer-prompt/review.md`, and initialize `workflow-status.json` with state `pending_engineer_prompt`."
+    expected_output: "The loop should derive `summarize.prompt` as the prompt name, create `.trainer-workspace/summarize.prompt/` with required directories, require `engineer-prompt/review.md`, and initialize `workflow-status.json` with state `pending_engineer_prompt`."
     input: "Run the trainer loop for `prompts/summarize.prompt.md`. The target has no workspace yet. Initialize the workspace and identify the required checkpoint before optimization."
     rubrics:
       - "Response derives workspace path from the prompt filename"

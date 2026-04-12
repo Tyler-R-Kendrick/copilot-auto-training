@@ -11,8 +11,10 @@ This reference defines the routing table, judge-mode rules, and prompt-specific 
 
 ## Workspace derivation
 
-- Strip `.prompty` entirely to derive `<prompt-name>`.
-- Strip the final extension for all other prompt types (e.g., `summarize.prompt.md` → `summarize`).
+Use `.github/hooks/trainer-workspace.py` (`prompt_name_for`) as the canonical source:
+- Strip `.prompty` entirely (e.g., `draft.prompty` → `draft`).
+- Strip only `.md` for all other `.md` files (e.g., `summarize.prompt.md` → `summarize.prompt`; `triage.instructions.md` → `triage.instructions`).
+- For any other extension, use `Path.stem` (strip only the final extension).
 - Use `<target-dir>/.trainer-workspace/<prompt-name>/` as the workspace root.
 
 ## Required checkpoint

@@ -3,10 +3,10 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I want to improve a Python helper function `skills/engineer-code/scripts/format_output.py` using Microsoft Trace. The repo has a pytest suite that covers it. Walk me through how the trainer loop should initialize the workspace and identify the trainable surface before the first optimization pass.",
-      "expected_output": "The response should identify the target as a Python code file, derive the workspace path from the filename, require the engineering review checkpoint, identify the trainable surface (the format_output function as a candidate for `@trace.bundle(trainable=True)`), confirm the feedback signal (pytest), and initialize `workflow-status.json` in a resumable state.",
+      "prompt": "I want to improve `skills/trainer-optimize/scripts/optimize_support.py` using Microsoft Trace. The repo has a pytest suite that covers it. Walk me through how the trainer loop should initialize the workspace and identify the trainable surface before the first optimization pass.",
+      "expected_output": "The response should identify the target as a Python code file, derive the workspace path as `skills/trainer-optimize/scripts/.trainer-workspace/optimize_support/`, require the engineering review checkpoint, identify candidate trainable surfaces in the optimize_support module (e.g., prompt-building or scoring functions as candidates for `@trace.bundle(trainable=True)`), confirm the feedback signal (pytest), and initialize `workflow-status.json` in a resumable state.",
       "assertions": [
-        "Response identifies the Python function as a candidate Trace bundle or node",
+        "Response identifies a Python function or method as a candidate Trace bundle or node",
         "Response requires the engineering review checkpoint before optimization",
         "Response confirms pytest as the feedback signal",
         "Response mentions `workflow-status.json` and workspace initialization"
@@ -28,7 +28,7 @@
     },
     {
       "id": 3,
-      "prompt": "The optimization stage returned a candidate Python file for `scripts/classify.py`, but before I write it back, I need to know: what validation steps are specific to code targets in the trainer loop?",
+      "prompt": "The optimization stage returned a candidate Python file for `skills/trainer-synthesize/scripts/run_synthesize.py`, but before I write it back, I need to know: what validation steps are specific to code targets in the trainer loop?",
       "expected_output": "The response should require the test suite to pass (e.g., pytest), confirm the trainable surface boundaries are intact (Trace imports explicit, no hidden dependency added), confirm the feedback signal can still be rerun deterministically, and require a written decision summary before write-back.",
       "assertions": [
         "Response requires the test suite to pass before write-back",

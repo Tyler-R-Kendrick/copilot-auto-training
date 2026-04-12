@@ -5,12 +5,13 @@ This reference defines the routing table, spec-compliance rules, frontmatter opt
 ## Target type
 
 - `SKILL.md` files in any skill directory following the agentskills.io specification.
-- The skill directory name is used as `<skill-name>` for workspace derivation.
+- The **target file** is `SKILL.md`, not the skill directory. Workspace derivation is based on the filename.
 
 ## Workspace derivation
 
-- Use the skill directory name as `<skill-name>`.
-- Use `<skill-dir>/.trainer-workspace/<skill-name>/` as the workspace root.
+- The target file is `SKILL.md`. Strip `.md` to get `SKILL`.
+- Use `<skill-dir>/.trainer-workspace/SKILL/` as the workspace root (always `SKILL`, regardless of skill directory name).
+- The skill directory name is used only for context and display; it does not affect the workspace path.
 
 ## Required checkpoint
 

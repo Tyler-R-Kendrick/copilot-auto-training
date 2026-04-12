@@ -9,7 +9,7 @@ tests:
   - id: initialize-code-workspace
     criteria: "The response must correctly initialize a code-target workspace, identify the trainable surface, and confirm the feedback signal before optimization begins."
     expected_output: "Derive the workspace from the filename, initialize `.trainer-workspace/classify/`, require the engineering review checkpoint, identify the classify function as a Trace bundle candidate, confirm pytest as the feedback signal, and initialize workflow-status.json."
-    input: "Set up the trainer loop for `scripts/classify.py`. There's a pytest suite that covers it. How should the loop initialize the workspace and identify the trainable surface?"
+    input: "Set up the trainer loop for `skills/trainer-optimize/scripts/config.py`. There's a pytest suite that covers it. How should the loop initialize the workspace and identify the trainable surface?"
     rubrics:
       - "Response identifies the Python function as a Trace bundle or node candidate"
       - "Response requires the engineering review checkpoint"
@@ -37,7 +37,7 @@ tests:
   - id: write-back-checks-code
     criteria: "The response must enforce all code-specific write-back checks."
     expected_output: "Require test suite pass, confirm Trace imports explicit and no hidden dependencies added, confirm feedback signal still deterministically rerunnable, and require a written decision summary."
-    input: "Before writing a trained candidate back to `scripts/classify.py`, what validation steps does the code trainer loop require?"
+    input: "Before writing a trained candidate back to `skills/trainer-optimize/scripts/config.py`, what validation steps does the code trainer loop require?"
     rubrics:
       - "Response requires test suite to pass"
       - "Response checks Trace import integrity and no hidden dependencies"

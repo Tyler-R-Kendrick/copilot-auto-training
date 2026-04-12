@@ -67,7 +67,7 @@ Ensure all agent handoffs are bounded to named, real workspace agents. Flag any 
 
 Follow this order. Consult `references/agent-loop-contract.md` when artifact paths, routing rules, or handoff constraints are uncertain.
 
-1. **Resolve target and workspace.** Derive `<agent-name>` from the selected file by stripping the final extension. Use `<target-dir>/.trainer-workspace/<agent-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
+1. **Resolve target and workspace.** Derive `<agent-name>` from the selected file by stripping only `.md` (e.g., `researcher.agent.md` → `researcher.agent`). Use `<target-dir>/.trainer-workspace/<agent-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
 2. **Require the workspace review checkpoint.** Confirm the engineering review artifact exists before optimization starts. Report a blocker if it is absent.
 3. **Initialize or refresh workspace.** Create or update `workflow-status.json`, source snapshot, the review subdirectory, `inputs/source/`, and `iterations/` directories.
 4. **Audit tool and MCP configuration.** Before optimization, confirm the agent's tool list is correct and that MCP skill routing instructions match the available skill descriptions. Record mismatches as steering context.

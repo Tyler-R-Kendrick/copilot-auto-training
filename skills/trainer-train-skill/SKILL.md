@@ -66,7 +66,7 @@ Before any write-back, confirm the candidate SKILL.md satisfies the agentskills.
 
 Follow this order. Consult `references/skill-loop-contract.md` when artifact paths, scoring mode, or spec-compliance constraints are uncertain.
 
-1. **Resolve target and workspace.** Derive `<skill-name>` from the skill directory name. Use `<skill-dir>/.trainer-workspace/<skill-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
+1. **Resolve target and workspace.** The selected target is the `SKILL.md` file itself. Derive `<prompt-name>` from the filename using the canonical rule: strip `.md` from `SKILL.md` to get `SKILL`. Use `<skill-dir>/.trainer-workspace/SKILL/` as workspace root (the directory name is not used). If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
 2. **Require the workspace review checkpoint.** Confirm the engineering review artifact exists before optimization starts. Report a blocker if it is absent.
 3. **Initialize or refresh workspace.** Create or update `workflow-status.json`, source snapshot of `SKILL.md`, the review subdirectory, `inputs/source/`, and `iterations/` directories.
 4. **Run spec validation.** Before optimization, confirm the current `SKILL.md` is spec-compliant. Record any violations as steering context for the optimizer.

@@ -66,7 +66,7 @@ Code targets use **custom** scoring mode by default. Executable feedback (test p
 
 Follow this order. Consult `references/code-loop-contract.md` when artifact paths, Trace patterns, or feedback-signal choices are uncertain.
 
-1. **Resolve target and workspace.** Derive `<code-name>` from the selected file by stripping the final extension. Use `<target-dir>/.trainer-workspace/<code-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
+1. **Resolve target and workspace.** Derive `<code-name>` from the selected file using the canonical rule: strip only `.md` for `.md` files; for `.prompty` strip entirely; otherwise use `Path.stem`. For a typical Python file (`config.py`), strip `.py` to get `config`. Use `<target-dir>/.trainer-workspace/<code-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
 2. **Require the workspace review checkpoint.** Confirm the engineering review artifact exists before optimization starts. Report a blocker if it is absent.
 3. **Initialize or refresh workspace.** Create or update `workflow-status.json`, source snapshot, the review subdirectory, `inputs/source/`, and `iterations/` directories.
 4. **Identify the trainable surface.** Confirm which code boundaries should become Trace nodes, bundles, or models. Record the trainable surface in the workspace before optimization.

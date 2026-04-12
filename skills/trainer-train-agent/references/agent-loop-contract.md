@@ -9,7 +9,7 @@ This reference defines the routing table, agent-contract constraints, tool-routi
 
 ## Workspace derivation
 
-- Strip the final extension from the target filename to derive `<agent-name>`.
+- Strip only `.md` from the target filename to derive `<agent-name>` (e.g., `researcher.agent.md` → `researcher.agent`).
 - Use `<target-dir>/.trainer-workspace/<agent-name>/` as the workspace root.
 
 ## Required checkpoint

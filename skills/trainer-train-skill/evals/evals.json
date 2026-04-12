@@ -4,9 +4,9 @@
     {
       "id": 1,
       "prompt": "I want to improve `skills/researcher-research/SKILL.md`. The skill under-triggers — agents never invoke it even when research is clearly needed. How should the trainer loop initialize the workspace and what concern should it prioritize first?",
-      "expected_output": "The response should initialize the workspace at `skills/researcher-research/.trainer-workspace/researcher-research/`, require the engineering review checkpoint, identify the frontmatter triggering concern as the priority (since the description field is the primary triggering mechanism), and explain that body optimization is a secondary concern unless execution quality is also broken.",
+      "expected_output": "The response should initialize the workspace at `skills/researcher-research/.trainer-workspace/SKILL/`, require the engineering review checkpoint, identify the frontmatter triggering concern as the priority (since the description field is the primary triggering mechanism), and explain that body optimization is a secondary concern unless execution quality is also broken.",
       "assertions": [
-        "Response derives the workspace path from the skill directory name",
+        "Response derives the workspace path from the target filename (`SKILL.md` → `SKILL`)",
         "Response requires the engineering review checkpoint before optimization",
         "Response identifies frontmatter (description field) as the priority concern for under-triggering",
         "Response mentions `workflow-status.json` initialization"
