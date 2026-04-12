@@ -27,9 +27,24 @@ steps:
       python -m pip install --quiet --disable-pip-version-check --no-cache-dir uv
       MCP_DIR="${{ github.workspace }}/tools/agent-skills-mcp"
       MCP_LOG=/tmp/agent-skills-mcp.log
-      uv sync --directory "$MCP_DIR"
+      MCP_SYNC_LOG=/tmp/agent-skills-mcp-uv-sync.log
+      if ! uv sync --directory "$MCP_DIR" >"$MCP_SYNC_LOG" 2>&1; then
+        echo "uv sync failed for $MCP_DIR"
+        cat "$MCP_SYNC_LOG"
+        exit 1
+      fi
       MCP_PYTHON="$MCP_DIR/.venv/bin/python"
-      "$MCP_PYTHON" -c "import agent_skills_mcp; import server"
+      if [ ! -x "$MCP_PYTHON" ]; then
+        echo "Expected MCP Python interpreter was not created at $MCP_PYTHON"
+        echo "Contents of $MCP_DIR:"
+        ls -la "$MCP_DIR"
+        echo "Contents of $MCP_DIR/.venv (if present):"
+        ls -la "$MCP_DIR/.venv" 2>/dev/null || true
+        echo "uv sync output:"
+        cat "$MCP_SYNC_LOG"
+        exit 1
+      fi
+      "$MCP_PYTHON" -c "import pathlib, sys; mcp_dir = pathlib.Path(sys.argv[1]).resolve(); sys.path.insert(0, str(mcp_dir)); import agent_skills_mcp, server; server_path = pathlib.Path(server.__file__).resolve(); expected_path = (mcp_dir / 'server.py').resolve(); assert server_path == expected_path, f'Imported server from {server_path}, expected {expected_path}'" "$MCP_DIR"
       MCP_TRANSPORT=streamable-http MCP_PORT=3002 "$MCP_PYTHON" "$MCP_DIR/server.py" >"$MCP_LOG" 2>&1 &
       MCP_PID=$!
       READY=0
