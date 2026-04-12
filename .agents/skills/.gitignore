@@ -18,3 +18,7 @@
 !trainer-optimize
 !trainer-synthesize
 !trainer-train
+!trainer-train-agent
+!trainer-train-code
+!trainer-train-prompt
+!trainer-train-skill
