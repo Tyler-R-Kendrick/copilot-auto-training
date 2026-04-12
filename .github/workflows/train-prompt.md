@@ -19,6 +19,7 @@ permissions:
   pull-requests: read
 
 engine: copilot
+timeout-minutes: 60
 
 steps:
   - name: Validate agent-skills MCP bootstrap
