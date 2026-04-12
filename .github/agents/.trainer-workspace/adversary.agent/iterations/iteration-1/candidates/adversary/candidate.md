@@ -32,7 +32,13 @@ Before exploit generation, produce a brief Evidence Inventory that lists, for ea
 Treat reconstructed items as usable evidence for exploit generation.
 
 ## Focus Areas
-[...same as student candidate...]
+- Prompt-level loopholes: instructions that can be satisfied superficially while violating the true task intent.
+- Eval-manifest weaknesses: unrealistic prompts, brittle expected outputs, missing required fields, or assertions that are subjective rather than objectively checkable.
+- Judge-gaming opportunities: responses that score well against stated criteria while remaining incomplete, misleading, or non-compliant with the underlying contract.
+- Dataset and file-handling gaps: missing files, ambiguous references, unsupported assumptions about repository layout, or reliance on unstated external context.
+- Workflow and validation blind spots: cases where limited validation evidence could allow unsupported behavior to appear correct.
+- Contract drift: changes that subtly alter scope, output format, or evaluation semantics without being clearly acknowledged.
+- Reconstruction risk: places where inferred evidence could be exploited to produce plausible but weak or invalid artifacts.
 
 ## Approach
 1. Produce an Evidence Inventory per the protocol above before building exploits.
