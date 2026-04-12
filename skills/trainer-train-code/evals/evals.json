@@ -1,0 +1,56 @@
+{
+  "skill_name": "trainer-train-code",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to improve `skills/trainer-optimize/scripts/optimize_support.py` using Microsoft Trace. The repo has a pytest suite that covers it. Walk me through how the trainer loop should initialize the workspace and identify the trainable surface before the first optimization pass.",
+      "expected_output": "The response should identify the target as a Python code file, derive the workspace path as `skills/trainer-optimize/scripts/.trainer-workspace/optimize_support/`, require the engineering review checkpoint, identify candidate trainable surfaces in the optimize_support module (e.g., prompt-building or scoring functions as candidates for `@trace.bundle(trainable=True)`), confirm the feedback signal (pytest), and initialize `workflow-status.json` in a resumable state.",
+      "assertions": [
+        "Response identifies a Python function or method as a candidate Trace bundle or node",
+        "Response requires the engineering review checkpoint before optimization",
+        "Response confirms pytest as the feedback signal",
+        "Response mentions `workflow-status.json` and workspace initialization"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly initialize a code-target workspace, identify the trainable surface, and confirm the feedback signal before any optimization begins."
+    },
+    {
+      "id": 2,
+      "prompt": "My code optimization dataset has rows with `expected` fields that match exact test output strings. Should the trainer loop use exact-match, custom, or llm_judge mode for this target?",
+      "expected_output": "The response should choose `custom` scoring mode as the default for code targets because executable feedback (test pass/fail) is authoritative. It should note that `expected` rows could support exact-match but that deterministic test execution is a stronger signal than string comparison. An explicit `scoring` row field would override this inference.",
+      "assertions": [
+        "Response selects `custom` as the default judge mode for code targets",
+        "Response explains that deterministic test execution is the primary feedback signal",
+        "Response notes that explicit row-level `scoring` overrides inference"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly select custom scoring mode for a code target with executable feedback signals and explain the reasoning."
+    },
+    {
+      "id": 3,
+      "prompt": "The optimization stage returned a candidate Python file for `skills/trainer-synthesize/scripts/run_synthesize.py`, but before I write it back, I need to know: what validation steps are specific to code targets in the trainer loop?",
+      "expected_output": "The response should require the test suite to pass (e.g., pytest), confirm the trainable surface boundaries are intact (Trace imports explicit, no hidden dependency added), confirm the feedback signal can still be rerun deterministically, and require a written decision summary before write-back.",
+      "assertions": [
+        "Response requires the test suite to pass before write-back",
+        "Response checks that Trace imports and trainable surface boundaries are intact",
+        "Response confirms the feedback signal is still deterministically rerunnable",
+        "Response requires a written decision summary"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must enforce all code-specific write-back checks: test suite pass, trainable surface integrity, feedback signal validity, and decision summary."
+    },
+    {
+      "id": 4,
+      "prompt": "I'm setting up the trainer loop for a code target but there's no test suite or benchmark script — just manual testing. How should the loop handle this missing feedback signal?",
+      "expected_output": "The response should treat the missing feedback signal as a blocker, stop optimization, and report that no repeatable feedback signal exists. It should explain that Microsoft Trace requires deterministic, rerunnable feedback and suggest options: create a test suite, define a benchmark script, or use a deterministic evaluator before the loop can proceed.",
+      "assertions": [
+        "Response treats the missing feedback signal as a blocker",
+        "Response stops optimization until a deterministic signal exists",
+        "Response explains that Trace requires repeatable feedback",
+        "Response suggests concrete options for creating a feedback signal"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly identify missing feedback signal as a blocker and provide actionable guidance for resolving it before the loop can proceed."
+    }
+  ]
+}

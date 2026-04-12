@@ -1,0 +1,44 @@
+name: trainer-train-agent
+version: "1.0"
+description: Evaluates the trainer-train-agent skill
+
+execution:
+  target: default
+
+tests:
+  - id: initialize-agent-workspace
+    criteria: "The response must correctly initialize the agent workspace, require the review checkpoint, and prioritize the MCP routing audit."
+    expected_output: "Initialize workspace at `.github/agents/.trainer-workspace/researcher.agent/`, require the engineering review checkpoint, audit MCP skill routing against available skill descriptions, identify the routing mismatch as the primary concern."
+    input: "I want to optimize `.github/agents/researcher.agent.md`. The agent uses web search for everything instead of the `researcher-research` MCP skill. How should the trainer loop initialize the workspace?"
+    rubrics:
+      - "Response derives workspace path by stripping only `.md` from the agent filename (researcher.agent.md → researcher.agent)"
+      - "Response requires the engineering review checkpoint"
+      - "Response audits MCP skill routing instructions against skill descriptions"
+      - "Response identifies the routing mismatch as the primary concern"
+
+  - id: prompt-bloat-detection
+    criteria: "The response must flag over-broad persona instructions as bloat and recommend explicit routing rules."
+    expected_output: "Flag the over-broad instruction as prompt bloat. Recommend replacing with explicit routing rules matching the agent's actual tools and skills. Explain why broad instructions reduce routing reliability."
+    input: "My agent contract `.github/agents/trainer.agent.md` says 'handle any task the user asks'. How should the trainer loop treat this during optimization?"
+    rubrics:
+      - "Response flags the over-broad instruction as a prompt bloat issue"
+      - "Response recommends replacing with explicit routing rules"
+      - "Response explains why broad instructions reduce routing reliability"
+
+  - id: missing-tool-configuration
+    criteria: "The response must identify unknown tool/MCP configuration as a blocker and refuse to proceed."
+    expected_output: "Treat unknown tool/MCP configuration as a blocker. Stop optimization and require the configuration to be determined before routing optimization can begin."
+    input: "I'm setting up the trainer loop for an agent contract but I can't determine the agent's tool list or MCP skill configuration. How should the loop handle this?"
+    rubrics:
+      - "Response treats unknown tool/MCP configuration as a blocker"
+      - "Response stops optimization until configuration is determined"
+      - "Response explains routing optimization requires knowing available tools"
+
+  - id: write-back-checks-agent
+    criteria: "The response must enforce all agent-specific write-back checks."
+    expected_output: "Require tool routing audit, handoff bounding (bounded to named real agents, no recursive self-invocation), validation passes, decision summary written."
+    input: "The optimizer produced a candidate agent contract for `trainer.agent.md`. Before writing it back, what agent-specific checks should the trainer loop perform?"
+    rubrics:
+      - "Response requires tool routing audit against available tools and MCP skill descriptions"
+      - "Response requires handoff bounding with no recursive self-invocation"
+      - "Response requires validation to pass and decision summary to be written"

@@ -19,6 +19,12 @@ Use this skill as the orchestration contract for one trainer run against one sel
 - Consult those references whenever stage sequencing, artifact paths, scoring behavior, or ownership boundaries are uncertain.
 - Do not improvise artifact paths, stage order, or write-back gates from memory.
 
+## Target-type delegation
+
+Before running the loop, identify the selected target type and read `references/target-routing.md` to determine whether a specialist trainer should handle this target instead. Specialists own target-specific workspace rules, judge-mode defaults, and write-back constraints for their domain.
+
+Use this generic skill only when the target does not match any specialist category, the caller explicitly bypasses delegation, or the relevant specialist is unavailable.
+
 ## When to use this skill
 
 Use it when the current agent needs to:

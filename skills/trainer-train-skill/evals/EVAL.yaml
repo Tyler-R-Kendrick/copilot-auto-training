@@ -1,0 +1,44 @@
+name: trainer-train-skill
+version: "1.0"
+description: Evaluates the trainer-train-skill skill
+
+execution:
+  target: default
+
+tests:
+  - id: initialize-skill-workspace
+    criteria: "The response must correctly initialize the skill workspace, require the review checkpoint, and prioritize frontmatter for an under-triggering skill."
+    expected_output: "Initialize workspace at `skills/researcher-research/.trainer-workspace/SKILL/`, require `engineer-prompt/review.md`, identify frontmatter (description) as the priority concern for under-triggering."
+    input: "I want to improve `skills/researcher-research/SKILL.md`. Agents never invoke it even when research is clearly needed. How should the trainer loop initialize the workspace and what concern should it prioritize?"
+    rubrics:
+      - "Response derives workspace path from the target filename (SKILL.md → SKILL)"
+      - "Response requires the engineering review checkpoint"
+      - "Response identifies frontmatter as the priority concern for under-triggering"
+
+  - id: progressive-disclosure-limit
+    criteria: "The response must enforce the 500-line limit and require restructuring before write-back."
+    expected_output: "Flag 620 lines as exceeding the 500-line limit. Require content extraction into `references/` files with explicit pointers. Confirm spec compliance after restructuring."
+    input: "A candidate `SKILL.md` for `skills/engineer-skill/` is 620 lines long. What should the trainer loop do before write-back?"
+    rubrics:
+      - "Response flags that 620 lines exceeds the 500-line limit"
+      - "Response requires content extraction into `references/` files"
+      - "Response requires spec compliance confirmation before write-back"
+
+  - id: judge-mode-skill
+    criteria: "The response must select llm_judge as default for skill targets and explain why."
+    expected_output: "Default to `llm_judge` for skill targets because skill quality is open-ended. An explicit `scoring: deterministic` would override."
+    input: "My skill dataset rows have `expected` fields with text describing correct agent behavior. What judge mode should the skill trainer loop use?"
+    rubrics:
+      - "Response selects `llm_judge` as the default for skill targets"
+      - "Response explains skill quality is open-ended"
+      - "Response notes explicit `scoring` overrides the default"
+
+  - id: write-back-checks-skill
+    criteria: "The response must enforce all skill-specific write-back checks."
+    expected_output: "Require spec compliance, name unchanged, no evaluator fields in body, validation passes, decision summary written."
+    input: "Before writing a trained candidate back to `skills/judge-trajectory/SKILL.md`, what skill-specific checks must the trainer loop perform?"
+    rubrics:
+      - "Response requires spec compliance (required YAML fields, body length)"
+      - "Response confirms no evaluator-only fields in prompt-visible body"
+      - "Response confirms `name` field is unchanged"
+      - "Response requires validation to pass and decision summary to be written"

@@ -1,0 +1,55 @@
+{
+  "skill_name": "trainer-train-prompt",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the trainer loop for `skills/engineer-prompt/SKILL.md`... wait, that's a skill file. I meant `prompts/summarize.prompt.md`. The target has no workspace yet. Walk me through how the loop should initialize before the first optimization pass.",
+      "expected_output": "The response should identify the target as a prompt file, derive the workspace path as `prompts/.trainer-workspace/summarize.prompt/`, require the `engineer-prompt/review.md` checkpoint, initialize `workflow-status.json`, and explain the blocker if the checkpoint is missing.",
+      "assertions": [
+        "Response derives workspace path from the prompt filename (e.g., `summarize.prompt`)",
+        "Response requires the engineering review checkpoint before optimization",
+        "Response mentions `workflow-status.json` and checkpoint state"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly initialize the workspace for a prompt target, enforce the review checkpoint, and produce a resumable `workflow-status.json` state."
+    },
+    {
+      "id": 2,
+      "prompt": "My prompt file `instructions/triage.instructions.md` has dataset rows with a `reference` field and `criteria` field but no explicit `scoring` key. What judge mode should the trainer loop use, and why?",
+      "expected_output": "The response should infer `llm_judge` mode because prompt targets default to open-ended judging, and the presence of `reference` plus `criteria` fields confirms the open-ended scoring path. It should note that an explicit `scoring` field would override this inference.",
+      "assertions": [
+        "Response selects `llm_judge` as the judge mode",
+        "Response explains that prompt targets default to open-ended judging",
+        "Response notes that an explicit row-level `scoring` field would override inference"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly infer llm_judge mode for a prompt target with reference+criteria rows and explain the inference rule clearly."
+    },
+    {
+      "id": 3,
+      "prompt": "The optimizer returned `mode=manual_followup` with a model-facing prompt instead of a finished candidate for my `prompts/classify.prompt.md` target. What does the trainer loop do next, and what files does it save?",
+      "expected_output": "The response should treat manual follow-up as a supported branch, save `manual-followup-report.json` under the active iteration, answer the model-facing prompt, persist `optimized-prompt.md`, confirm placeholder preservation, and continue with steering and validation rather than stopping.",
+      "assertions": [
+        "Response treats manual follow-up as a supported loop branch, not a failure",
+        "Response saves `manual-followup-report.json` under the active iteration",
+        "Response mentions persisting `optimized-prompt.md` and continuing the loop",
+        "Response mentions placeholder preservation before write-back"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly handle the manual follow-up branch, produce the right artifacts, confirm placeholder preservation, and keep the loop moving forward."
+    },
+    {
+      "id": 4,
+      "prompt": "Before writing a trained candidate back to `prompts/answer.prompt.md`, what checks must the trainer loop perform that are specific to prompt targets?",
+      "expected_output": "The response should require placeholder preservation (no removed, renamed, or reordered template variables), confirm evaluator fields (`expected`, `reference`, `criteria`, `scoring`) are absent from the prompt-visible text, confirm validation passes, and require a written decision summary.",
+      "assertions": [
+        "Response requires placeholder preservation (no removed or renamed variables)",
+        "Response confirms evaluator-only fields are absent from the prompt-visible render path",
+        "Response requires validation to pass before write-back",
+        "Response requires a written decision summary"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must enforce all prompt-specific write-back checks: placeholder integrity, evaluator field isolation, validation, and decision summary."
+    }
+  ]
+}

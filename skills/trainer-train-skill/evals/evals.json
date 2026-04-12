@@ -1,0 +1,55 @@
+{
+  "skill_name": "trainer-train-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to improve `skills/researcher-research/SKILL.md`. The skill under-triggers — agents never invoke it even when research is clearly needed. How should the trainer loop initialize the workspace and what concern should it prioritize first?",
+      "expected_output": "The response should initialize the workspace at `skills/researcher-research/.trainer-workspace/SKILL/`, require the engineering review checkpoint, identify the frontmatter triggering concern as the priority (since the description field is the primary triggering mechanism), and explain that body optimization is a secondary concern unless execution quality is also broken.",
+      "assertions": [
+        "Response derives the workspace path from the target filename (`SKILL.md` → `SKILL`)",
+        "Response requires the engineering review checkpoint before optimization",
+        "Response identifies frontmatter (description field) as the priority concern for under-triggering",
+        "Response mentions `workflow-status.json` initialization"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly initialize the skill workspace, require the review checkpoint, and prioritize frontmatter optimization for an under-triggering skill."
+    },
+    {
+      "id": 2,
+      "prompt": "The candidate `SKILL.md` I'm about to write back for `skills/engineer-skill/` is 620 lines long. What should the trainer loop do about this before writing it back?",
+      "expected_output": "The response should flag the 620-line body as exceeding the 500-line progressive disclosure limit, require the candidate to be restructured before write-back by extracting content into `references/` files with explicit pointers from the body, and confirm spec compliance after restructuring.",
+      "assertions": [
+        "Response flags that 620 lines exceeds the 500-line limit",
+        "Response requires content extraction into `references/` files",
+        "Response requires spec compliance confirmation before write-back"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must enforce the progressive disclosure limit and require restructuring before write-back, not merely note the violation."
+    },
+    {
+      "id": 3,
+      "prompt": "My skill dataset rows all have `expected` fields with specific text strings describing correct agent behavior. What judge mode should the skill trainer loop use?",
+      "expected_output": "The response should default to `llm_judge` for skill targets because skill quality is open-ended. Even though `expected` fields are present, agent behavior quality is not a string-match task. It should note that an explicit row-level `scoring: deterministic` would override this and be treated as authoritative.",
+      "assertions": [
+        "Response selects `llm_judge` as the default for skill targets",
+        "Response explains that skill quality is open-ended and not a string-match task",
+        "Response notes that an explicit row-level `scoring` overrides the default"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly select llm_judge as the default for skill targets and explain why string-matching expected fields does not override that default."
+    },
+    {
+      "id": 4,
+      "prompt": "Before writing a trained candidate back to `skills/judge-trajectory/SKILL.md`, what skill-specific checks must the trainer loop perform?",
+      "expected_output": "The response should require: (1) spec compliance — required YAML fields present, body under 500 lines or properly using progressive disclosure; (2) no evaluator-only fields in the prompt-visible body; (3) the `name` field is unchanged from the original; (4) validation passes; and (5) a decision summary is written.",
+      "assertions": [
+        "Response requires spec compliance (required YAML fields, body length or progressive disclosure)",
+        "Response confirms no evaluator-only fields in the prompt-visible body",
+        "Response confirms the `name` field is unchanged",
+        "Response requires validation to pass and a decision summary to be written"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must enforce all skill-specific write-back checks: spec compliance, field isolation, name preservation, validation, and decision summary."
+    }
+  ]
+}
