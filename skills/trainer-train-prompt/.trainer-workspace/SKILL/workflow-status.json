@@ -1,0 +1,32 @@
+{
+  "target_file": "skills/trainer-train-prompt/SKILL.md",
+  "workspace_root": "skills/trainer-train-prompt/.trainer-workspace/SKILL",
+  "workspace_parent": "skills/trainer-train-prompt",
+  "prompt_name": "SKILL",
+  "workflow_state": "complete",
+  "updated_at": "2026-04-12T17:56:44Z",
+  "required_artifacts": {
+    "engineer_prompt_review": "skills/trainer-train-prompt/.trainer-workspace/SKILL/engineer-prompt/review.md",
+    "source_snapshot": "skills/trainer-train-prompt/.trainer-workspace/SKILL/inputs/source/SKILL.md",
+    "latest_iteration_dir": "skills/trainer-train-prompt/.trainer-workspace/SKILL/iterations/iteration-3",
+    "train_dataset": "skills/trainer-train-prompt/datasets/train.jsonl",
+    "val_dataset": "skills/trainer-train-prompt/datasets/val.jsonl",
+    "eval_manifest": "skills/trainer-train-prompt/evals/evals.json",
+    "optimize_report": "skills/trainer-train-prompt/.trainer-workspace/SKILL/iterations/iteration-3/optimize/manual-followup-report.json",
+    "candidate_dir": "skills/trainer-train-prompt/.trainer-workspace/SKILL/iterations/iteration-3/candidates",
+    "candidate_manifest": null,
+    "latest_steering_turn": null,
+    "steering_summary_dir": null,
+    "validation_log": "skills/trainer-train-prompt/.trainer-workspace/SKILL/iterations/iteration-3/validation/pytest.txt",
+    "decision_summary": "skills/trainer-train-prompt/.trainer-workspace/SKILL/decision.md"
+  },
+  "artifact_contract": {
+    "engineer_prompt": "Save the engineering review and rewrite notes under engineer-prompt/.",
+    "inputs": "Keep stable prompt snapshots and any reused dataset references under inputs/.",
+    "iterations": "Write research, synthesize, optimize, election, candidates, steering, and validation outputs under iterations/iteration-N/.",
+    "candidates": "Stage original, student, and adversary prompt candidates under iterations/iteration-N/candidates/<source>/ together with candidate descriptions, predicted judge responses, and reflection artifacts, plus a preferred candidates.json manifest, before judge review or election.",
+    "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
+    "decision": "Summarize the winning prompt decision and validation outcome in decision.md."
+  },
+  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout. Do not write trainer output into Judge-owned files; keep judge steering as read-only workspace artifacts."
+}

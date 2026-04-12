@@ -1,0 +1,15 @@
+{
+  "mode": "manual_followup",
+  "ok": true,
+  "reason": "Template placeholder validation failed (SKILL.md contains literal {input} as example text, detected as placeholder) and no model is configured in this environment. Falling back to agent-authored optimization per manual_followup contract.",
+  "prompt_file": "skills/trainer-train-prompt/SKILL.md",
+  "train_file": "skills/trainer-train-prompt/datasets/train.jsonl",
+  "val_file": "skills/trainer-train-prompt/datasets/val.jsonl",
+  "judge_mode": "llm_judge",
+  "algorithm": "apo",
+  "iterations": 3,
+  "train_size": 6,
+  "val_size": 4,
+  "model_prompt": "You are an expert prompt engineer. Revise the following SKILL.md to address the weaknesses identified in the engineering review while preserving the frontmatter, overall structure, and all existing correct behaviors. Target improvements: (1) strengthen judge-mode section with routing table reference, (2) add concrete placeholder-preservation example, (3) name trainer-workspace.py script explicitly, (4) expand election branch criteria, (5) add artifact-path specifics to output contract, (6) cross-reference evaluator field isolation from write-back step, (7) add scoring-inconsistency resolution path.",
+  "created_at": "2026-04-12T17:36:44Z"
+}

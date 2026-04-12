@@ -49,7 +49,7 @@ Use the following routing table (sourced verbatim from `references/prompt-loop-c
 | `expected` field only, task has one correct answer | Consider `deterministic`; default to `llm_judge` if ambiguous |
 | No scoring fields | Default to `llm_judge` for prompt targets |
 
-If the caller explicitly supplies a `scoring_mode` override at invocation time, treat that value as authoritative and skip per-row mode inference. Even with a caller-supplied override, still validate that the train and validation splits are internally consistent (i.e., do not imply conflicting modes) before proceeding; report a blocker if they are inconsistent.
+If the caller explicitly supplies a `scoring_mode` override at invocation time, treat that value as authoritative and skip row-shape inference entirely.
 
 ### Placeholder preservation
 
@@ -67,22 +67,21 @@ When the dataset rows expose example pairs or step-by-step reasoning traces, pre
 
 Follow this order. Consult `references/prompt-loop-contract.md` when artifact paths, scoring mode, or stage boundaries are uncertain.
 
-1. **Resolve target and workspace.** Derive `<prompt-name>` by stripping `.prompty` entirely or stripping the final extension. Use `<target-dir>/.trainer-workspace/<prompt-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs. The review checkpoint (Step 2) is exempt from this skip rule and must be re-confirmed on every run regardless of workflow state or tracked artifact pointers.
+1. **Resolve target and workspace.** Derive `<prompt-name>` by stripping `.prompty` entirely or stripping the final extension. Use `<target-dir>/.trainer-workspace/<prompt-name>/` as workspace root. If state indicates a resumed run, audit tracked artifact pointers and skip only stages that already produced valid outputs.
 2. **Require the workspace review checkpoint.** Confirm the engineering review artifact exists before optimization starts. Report a blocker if it is absent.
-3. **Initialize or refresh workspace.** Create or update `workflow-status.json` with an initial `workflow_state` value of `pending_engineer_prompt`. Create the review artifacts subdirectory, `inputs/source/`, and `iterations/` directories. The exact review path is defined in `references/prompt-loop-contract.md`. Copy the target file as the source snapshot to `inputs/source/<basename>` (e.g., `inputs/source/my-prompt.prompt.md`).
+3. **Initialize or refresh workspace.** Create or update `workflow-status.json` with an initial `workflow_state` value of `pending_engineer_prompt`. Create the review subdirectory, `inputs/source/`, and `iterations/` directories. Do not record a vague source snapshot; instead record the resolved absolute path of the target file and its content hash.
 4. **Inspect existing datasets and evals.** Prefer reuse when train, validation, and authored eval assets already fit the prompt target and scoring shape. Keep authored evals, train data, and validation data as separate artifacts in separate files.
 5. **Run missing-data path if needed.** If any required dataset or eval is absent or the validation split is not a genuine holdout, pause optimization and gather them via the caller-supplied researcher and synthesizer before continuing.
 6. **Infer judge mode.** Inspect representative dataset rows and apply the routing table in the Judge mode section above. Default to `llm_judge` for prompt targets. Treat an explicit row-level `scoring` declaration as authoritative. Stop and report inconsistency if train and validation splits imply different modes (see Blocker-first rule for resolution path).
 7. **Run at least one optimization pass.** Pass the inferred judge mode and the prompt-specific constraints (placeholder preservation, evaluator field isolation) to the optimizer.
-8. **Handle manual follow-up if returned.** Save the optimizer report as `manual-followup-report.json`, answer the model-facing prompt, persist the revised candidate as `optimized-prompt.md`, and continue the loop. After persisting `optimized-prompt.md`, confirm placeholder preservation (full set unchanged, no renames) before proceeding to election or write-back.
-9. **Run election if multiple candidates exist.** Use the caller-supplied elector when optimization produces more than one defensible candidate. A candidate is defensible when it: (a) passes the repository validation command with exit code 0, (b) achieves a judge score strictly above the current baseline score, and (c) falls within the elector's acceptable margin relative to the top-ranked candidate. If election produces no defensible candidate, report a blocker — set `workflow_state: pending_iteration_review`, explain why no candidate passed the defensibility gate, and recommend a new optimization pass or caller override before continuing.
+8. **Handle manual follow-up if returned.** Save the optimizer report as `manual-followup-report.json`, answer the model-facing prompt, persist the revised candidate as `optimized-prompt.md`, and continue the loop.
+9. **Run election if multiple candidates exist.** Use the caller-supplied elector when optimization produces more than one defensible candidate. A candidate is defensible when it: (a) passes the repository validation command with exit code 0, (b) achieves a judge score strictly above the current baseline score, and (c) falls within the elector's acceptable margin relative to the top-ranked candidate.
 10. **Publish iteration artifacts.** Stage steering, candidate bundles, validation logs, and a decision summary under the active iteration directory.
 11. **Write back only when all gate conditions are satisfied.** Confirm each of the following before writing the winning candidate back to the source prompt file:
     1. Validation passes — the repository validation command (e.g., `python -m pytest -q`) exits with code 0.
     2. Placeholder preservation confirmed — the full placeholder set is identical between the original and the candidate; no placeholder was added, removed, renamed, or reordered.
     3. Evaluator fields absent — `expected`, `reference`, `criteria`, and `scoring` fields do not appear in the candidate prompt text.
     4. Decision summary written — `<workspace-root>/decision.md` exists and records the winning candidate, scores, and justification.
-    5. Baseline score gate — if a prior baseline score exists in the workspace, the candidate's judge score must be at or above that baseline. Record the candidate score in `decision.md` whether or not a prior baseline score exists.
 
 ## Blocker-first rule
 

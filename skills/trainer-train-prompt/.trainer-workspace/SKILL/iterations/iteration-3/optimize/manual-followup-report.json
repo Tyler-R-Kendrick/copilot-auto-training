@@ -1,0 +1,16 @@
+{
+  "mode": "manual_followup",
+  "ok": true,
+  "reason": "Template placeholder validation failed and no model configured. Agent-authored optimization per manual_followup contract, iteration 3.",
+  "prompt_file": "skills/trainer-train-prompt/SKILL.md",
+  "train_file": "skills/trainer-train-prompt/datasets/train.jsonl",
+  "val_file": "skills/trainer-train-prompt/datasets/val.jsonl",
+  "judge_mode": "llm_judge",
+  "algorithm": "apo",
+  "iterations": 3,
+  "train_size": 6,
+  "val_size": 4,
+  "model_prompt": "Apply two surgical fixes to iteration-2 candidate: (1) Step 3: name engineer-prompt/ directory explicitly. (2) Step 8: append placeholder confirmation sentence.",
+  "created_at": "2026-04-12T17:54:12Z",
+  "prior_iteration": "iteration-2"
+}
