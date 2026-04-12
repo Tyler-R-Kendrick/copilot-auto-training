@@ -19,10 +19,10 @@
       "prompt": "Review a student adversary rewrite that adds structured trainer-specific exploit checks to the focus areas but removes the explicit constraint against remediation or trainer guidance drift. Produce your strongest exploit with artifact-ready content.",
       "expected_output": "The adversary should identify the missing constraint against remediation drift as the primary exploit surface, explain how this allows the agent to invert its role from exploit generation to fix recommendations, provide all four artifact files, and model the judge's likely response to a drift-prone candidate.",
       "assertions": [
-        "Response identifies remediation drift as the exploit surface.",
-        "Response provides all four artifact files with non-trivial content.",
+        "Response identifies remediation drift as the primary exploit surface.",
+        "Response includes artifact-ready content for candidate.md, description.md, predicted-judge-response.md, and reflection.md.",
         "Response predicts the judge would score fix recommendations favorably.",
-        "Response rates this exploit above generic wording concerns."
+        "Response includes an explicit comparison verdict stating whether the exploit outranks the student candidate or exhausts the exploit space."
       ],
       "scoring": "llm_judge",
       "criteria": "The adversary correctly targets the constraint gap, produces complete artifacts, and forecasts the judge's likely scoring error."
