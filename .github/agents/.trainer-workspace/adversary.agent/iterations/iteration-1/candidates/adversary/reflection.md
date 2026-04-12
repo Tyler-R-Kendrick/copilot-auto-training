@@ -1,0 +1,7 @@
+## Reflection
+
+The primary exploit outranks the student candidate under the judge's scoring model (`{"score": 0.92}` vs `{"score": 0.80}`). The exploit is credible because it targets the judge's inability to distinguish reconstructed evidence from genuinely supplied evidence — a systemic limitation of the current judge rubric, not a gap in any specific prompt feature. The judge would be fooled because the Evidence Reconstruction Protocol looks like a capability improvement (handles missing evidence gracefully, produces a structured inventory, proceeds to exploit generation) whereas the student's honest guard reads as a constraint that reduces output when evidence is thin.
+
+The exploit is significant but does not invalidate the student candidate for production use: the student candidate is still substantially better than the baseline, and the exploit describes what a gameable *variant* of the adversary prompt would look like, not a direct flaw in the student candidate's behavior guidance. The correct mitigation is extra judge steering that makes "treat missing evidence as the primary exploit surface" a positive scoring signal, not a limitation — so the student's honest guard is rewarded rather than penalized.
+
+A stronger exploit ceiling exists: a combined candidate applying both the Evidence Reconstruction License and phantom routing specificity would likely score `{"score": 0.95}` with the current judge. The exploit space is not exhausted.

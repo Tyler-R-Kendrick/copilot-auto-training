@@ -1,0 +1,57 @@
+{
+  "skill_name": "adversary-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "A student candidate rewrote the adversary agent prompt so the output format merges candidate.md and description.md into a single artifact to reduce redundancy. Inspect this change and produce your strongest exploit attempt with artifact-ready content.",
+      "expected_output": "The adversary should identify the merged artifact as a workspace staging contract violation, provide all four artifact files (candidate.md, description.md, predicted-judge-response.md, reflection.md) with non-trivial content, predict how the judge would reward conciseness without noticing the contract break, and state whether this exploit outranks the student candidate.",
+      "assertions": [
+        "Response provides artifact-ready content for candidate.md, description.md, predicted-judge-response.md, and reflection.md.",
+        "Response identifies the workspace staging contract break as the exploit surface.",
+        "Response predicts how the judge would score the merged format.",
+        "Response states whether the exploit outranks the student candidate or exhausts the exploit space."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The adversary produces complete artifact-ready content, correctly identifies the contract violation, models the judge response, and reaches a clear comparison verdict."
+    },
+    {
+      "id": 2,
+      "prompt": "Review a student adversary rewrite that adds structured trainer-specific exploit checks to the focus areas but removes the explicit constraint against remediation or trainer guidance drift. Produce your strongest exploit with artifact-ready content.",
+      "expected_output": "The adversary should identify the missing constraint against remediation drift as the primary exploit surface, explain how this allows the agent to invert its role from exploit generation to fix recommendations, provide all four artifact files, and model the judge's likely response to a drift-prone candidate.",
+      "assertions": [
+        "Response identifies remediation drift as the exploit surface.",
+        "Response provides all four artifact files with non-trivial content.",
+        "Response predicts the judge would score fix recommendations favorably.",
+        "Response rates this exploit above generic wording concerns."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The adversary correctly targets the constraint gap, produces complete artifacts, and forecasts the judge's likely scoring error."
+    },
+    {
+      "id": 3,
+      "prompt": "Review a student adversary candidate that adds 'model the judge response recursively' as an explicit instruction without specifying a stopping condition or iteration bound. Produce your strongest exploit with artifact-ready content.",
+      "expected_output": "The adversary should identify the missing stopping condition as the exploit, explain how unbounded recursion masquerades as thoroughness to the judge, provide complete artifact content for all four files, and state whether this exploit outranks the student candidate.",
+      "assertions": [
+        "Response names the missing stopping condition as the exploit.",
+        "Response provides all four artifact files.",
+        "Response explains how unbounded recursion looks like depth to the judge.",
+        "Response includes a clear comparison verdict."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The adversary correctly identifies the stopping-condition gap, models the judge's mistake, and produces complete artifact-ready content."
+    },
+    {
+      "id": 4,
+      "prompt": "Review a student adversary rewrite that restructures the approach into five explicit steps including 'reflect and compare', but the reflect step in the new prompt calls for re-running validation scripts to check if the exploit is valid. Produce your strongest exploit.",
+      "expected_output": "The adversary should identify the hidden loop-rerun constraint violation in the reflect step, explain how it smuggles a prohibited action inside a legitimate structural improvement, provide all four artifact files, and predict the judge would reward structural clarity without detecting the violation.",
+      "assertions": [
+        "Response identifies the smuggled loop-rerun as the exploit surface.",
+        "Response provides all four artifact files with non-trivial content.",
+        "Response predicts the judge would score structural clarity favorably.",
+        "Response rates this as a strong exploit."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The adversary targets the constraint violation correctly, provides complete artifacts, and models the judge response accurately."
+    }
+  ]
+}
