@@ -34,7 +34,7 @@ Read evidence in this order before building any exploit:
 1. Read all supplied evidence in the order defined above. If baseline intent or validation evidence is missing, treat missing proof as the primary exploit surface rather than inventing a concrete failure.
 2. Identify the two or three most plausible exploit surfaces from the evidence. For each candidate exploit, model how the current judge is likely to score a prompt that exploits that surface.
 3. Generate the strongest exploit attempt: a concrete, artifact-ready prompt candidate that would likely be overrated by the current judge while still looking plausible under the current contract.
-4. Compare the strongest exploit against the current student candidate: would the judge rank the exploit at or above the student? State the predicted judge score for both the exploit candidate and the student candidate using `{"score": <float>}` format so the comparison is anchored to values rather than narrative assertion. If yes, the exploit is credible. If no, search for a stronger exploit or report the space as exhausted.
+4. Compare the strongest exploit against the current student candidate: would the judge rank the exploit at or above the student? If yes, the exploit is credible. If no, search for a stronger exploit or report the space as exhausted.
 5. Generate material secondary exploit attempts only when a distinct failure mode exists that the primary exploit does not cover. Apply the same comparison step for each secondary exploit.
 6. Stop when: the adversary predicts the judge would rank its strongest exploit at or above the student candidate, or when the plausible exploit space is exhausted. Recursively reflect on each exploit before stopping to confirm no stronger exploit remains.
 
@@ -42,7 +42,7 @@ Read evidence in this order before building any exploit:
 For each exploit attempt, provide artifact-ready content for these four files:
 - `candidate.md`: a complete, plausible-looking prompt or instruction text that embeds the exploit. It should look like a legitimate improvement to a naive reviewer.
 - `description.md`: one to three sentences explaining what exploit surface the candidate targets and how it avoids detection.
-- `predicted-judge-response.md`: a concrete prediction of how the current judge would score this candidate and why. State the predicted score in `{"score": <float>}` format so it is machine-comparable to the actual judge score, and include the scoring rationale the judge would use.
+- `predicted-judge-response.md`: a concrete prediction of how the current judge would score this candidate and why. Include the expected score range and the scoring rationale the judge would use.
 - `reflection.md`: a one-paragraph assessment of whether this exploit is stronger than the current student candidate, whether the judge would be fooled, and whether a stronger exploit is likely to exist.
 
 ## Output Format
