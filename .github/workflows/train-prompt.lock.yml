@@ -721,7 +721,7 @@ jobs:
       - name: Execute GitHub Copilot CLI
         id: agentic_execution
         # Copilot CLI tool arguments (sorted):
-        timeout-minutes: 20
+        timeout-minutes: 60
         run: |
           set -o pipefail
           touch /tmp/gh-aw/agent-step-summary.md
@@ -1014,7 +1014,7 @@ jobs:
           GH_AW_STALE_LOCK_FILE_FAILED: ${{ needs.activation.outputs.stale_lock_file_failed }}
           GH_AW_GROUP_REPORTS: "false"
           GH_AW_FAILURE_REPORT_AS_ISSUE: "true"
-          GH_AW_TIMEOUT_MINUTES: "20"
+          GH_AW_TIMEOUT_MINUTES: "60"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1127,7 +1127,7 @@ jobs:
         if: always() && steps.detection_guard.outputs.run_detection == 'true'
         id: detection_agentic_execution
         # Copilot CLI tool arguments (sorted):
-        timeout-minutes: 20
+        timeout-minutes: 60
         run: |
           set -o pipefail
           touch /tmp/gh-aw/agent-step-summary.md
@@ -1286,4 +1286,3 @@ jobs:
           name: safe-outputs-items
           path: /tmp/gh-aw/safe-output-items.jsonl
           if-no-files-found: ignore
-
