@@ -2058,6 +2058,7 @@ class TestUpdateDocsWorkflow:
         parsed = self._source_yaml()
         # YAML 1.1 may parse the bare `on` key as boolean True.
         workflow_on = parsed.get("on") or parsed.get(True)
+        assert workflow_on is not None, "Expected update-docs.md frontmatter to define an `on` trigger"
         assert workflow_on == {"pull_request_target": {"types": ["closed"], "branches": ["main"]}}, (
             "update-docs.md should trigger from merged pull requests to main so the workflow can "
             "reliably inspect PR metadata when skipping its own follow-up PRs."

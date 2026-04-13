@@ -56,7 +56,7 @@ Authoritative source of truth for the current state of the project is the reposi
 
 ## Procedure
 
-1. Use the merged pull request from the event payload (`github.event.pull_request`), including its number, title, head branch, and merge commit SHA.
+1. Use the merged pull request from the event payload (`github.event.pull_request`), including `number`, `title`, `head.ref`, and `merge_commit_sha`.
 2. List all files changed in that merged pull request using the GitHub pull request files API. Do not scope the review to a single commit.
 3. For each changed source file in that merged pull request, determine which documentation files could reference or describe that source file.
 4. Read the candidate documentation files and the changed source files.
