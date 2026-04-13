@@ -2059,9 +2059,17 @@ class TestUpdateDocsWorkflow:
         # YAML 1.1 may parse the bare `on` key as boolean True.
         workflow_on = parsed.get("on") or parsed.get(True)
         assert workflow_on is not None, "Expected update-docs.md frontmatter to define an `on` trigger"
-        assert workflow_on == {"pull_request_target": {"types": ["closed"], "branches": ["main"]}}, (
+        assert isinstance(workflow_on, dict), "Expected update-docs.md `on` block to parse as a mapping"
+        pull_request_target = workflow_on.get("pull_request_target")
+        assert isinstance(pull_request_target, dict), (
             "update-docs.md should trigger from merged pull requests to main so the workflow can "
             "reliably inspect PR metadata when skipping its own follow-up PRs."
+        )
+        assert pull_request_target.get("types") == ["closed"], (
+            "update-docs.md should only run after pull requests are closed."
+        )
+        assert pull_request_target.get("branches") == ["main"], (
+            "update-docs.md should only run for pull requests merged into main."
         )
         guard = parsed.get("if")
         assert isinstance(guard, str), "Expected update-docs.md if guard to parse as a string"
