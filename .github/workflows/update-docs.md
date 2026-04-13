@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - README.md
+      - docs/**
+      - examples/**/README.md
+      - skills/**/SKILL.md
 
 description: Review all documentation after each merge to main and open a pull request with corrections if any docs are out-of-date.
 
