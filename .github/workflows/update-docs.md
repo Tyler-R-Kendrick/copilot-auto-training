@@ -3,11 +3,7 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - README.md
-      - docs/**
-      - examples/**/README.md
-      - skills/**/SKILL.md
+if: "${{ !(github.event_name == 'push' && (startsWith(github.event.head_commit.message || '', 'docs: update documentation after merge to main (') || contains(github.event.head_commit.message || '', 'copilot/update-docs/'))) }}"
 
 description: Review all documentation after each merge to main and open a pull request with corrections if any docs are out-of-date.
 
@@ -73,6 +69,8 @@ If one or more documentation files contain inaccurate, outdated, or broken conte
 If every documentation file is already accurate relative to the current source code, do nothing and stop.
 
 ## Pull Request Format
+
+Branch: `copilot/update-docs/<short-sha>`
 
 Title: `docs: update documentation after merge to main (<short-sha>)`
 

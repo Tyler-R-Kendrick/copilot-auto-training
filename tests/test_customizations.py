@@ -2028,6 +2028,67 @@ class TestTrainPromptWorkflow:
         )
 
 
+class TestUpdateDocsWorkflow:
+    WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "update-docs.md"
+    WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "update-docs.lock.yml"
+    SELF_SKIP_GUARD = (
+        "${{ !(github.event_name == 'push' && (startsWith(github.event.head_commit.message || '', "
+        "'docs: update documentation after merge to main (') || contains(github.event.head_commit.message || '', "
+        "'copilot/update-docs/'))) }}"
+    )
+
+    def _parse_frontmatter_yaml(self, text: str) -> str:
+        assert text.startswith("---"), "Expected frontmatter starting with ---"
+        closing = text.find("\n---", 3)
+        assert closing != -1, "Expected closing --- in frontmatter"
+        return text[3:closing]
+
+    def _source_yaml(self) -> dict:
+        parsed = yaml.safe_load(self._parse_frontmatter_yaml(_read(self.WORKFLOW_MD)))
+        assert isinstance(parsed, dict), "Expected update-docs.md frontmatter to parse as a YAML mapping"
+        return parsed
+
+    def _lock_yaml(self) -> dict:
+        parsed = yaml.safe_load(_read(self.WORKFLOW_LOCK))
+        assert isinstance(parsed, dict), "Expected update-docs.lock.yml to parse as a YAML mapping"
+        return parsed
+
+    def test_workflow_source_exists(self):
+        assert self.WORKFLOW_MD.is_file(), f"update-docs.md not found: {self.WORKFLOW_MD}"
+
+    def test_workflow_lock_exists(self):
+        assert self.WORKFLOW_LOCK.is_file(), f"update-docs.lock.yml not found: {self.WORKFLOW_LOCK}"
+
+    def test_source_uses_naming_based_self_skip_guard(self):
+        parsed = self._source_yaml()
+        workflow_on = parsed.get("on", parsed.get(True))
+        assert workflow_on == {"push": {"branches": ["main"]}}, (
+            "update-docs.md should keep the push trigger broad enough to review documentation "
+            "after any merge to main."
+        )
+        assert parsed.get("if") == self.SELF_SKIP_GUARD, (
+            "update-docs.md should skip self-triggered follow-up runs by matching the workflow's "
+            "own PR title or branch naming convention instead of filtering docs paths."
+        )
+
+    def test_source_documents_pr_branch_convention(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Branch: `copilot/update-docs/<short-sha>`" in text, (
+            "update-docs.md should document the PR branch naming convention used by the self-skip guard."
+        )
+
+    def test_lock_applies_self_skip_guard_to_pre_activation(self):
+        pre_activation = self._lock_yaml()["jobs"]["pre_activation"]
+        guard = pre_activation.get("if")
+        assert isinstance(guard, str), "Expected pre_activation.if to be a string guard"
+        assert "docs: update documentation after merge to main (" in guard, (
+            "update-docs.lock.yml should skip self-generated squash merges by matching the PR title prefix."
+        )
+        assert "copilot/update-docs/" in guard, (
+            "update-docs.lock.yml should skip merge commits for the workflow's own PR branch convention."
+        )
+
+
 class TestRefreshGhAwWorkflowLockfilesWorkflow:
     WORKFLOW_YML = REPO_ROOT / ".github" / "workflows" / "refresh-gh-aw-workflow-lockfiles.yml"
 
