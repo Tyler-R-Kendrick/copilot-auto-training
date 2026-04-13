@@ -13,7 +13,7 @@ The source-of-truth skill contracts still live under `skills/`. The `plugins/` t
 Register this repository as a marketplace:
 
 ```bash
-copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
+copilot plugin marketplace add Tyler-R-Kendrick/copilot-auto-training
 ```
 
 Inspect the published plugins:
@@ -43,7 +43,7 @@ In an interactive Copilot CLI session, use `/skills list` to confirm the bundled
 If you do not want to register the marketplace first, install a plugin from its repository subdirectory:
 
 ```bash
-copilot plugin install Tyler-R-Kendrick/copilot-apo:plugins/copilot-training
+copilot plugin install Tyler-R-Kendrick/copilot-auto-training:plugins/copilot-training
 ```
 
 ## Update Or Remove

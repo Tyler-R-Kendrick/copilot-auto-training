@@ -30,7 +30,7 @@ COPILOT_MODEL=default
 COPILOT_TIMEOUT_SECONDS=180
 ```
 
-Start from [/.env.sample](/workspaces/copilot-apo/.env.sample) so the supported Copilot settings stay documented in one place.
+Start from [/.env.sample](../.env.sample) so the supported Copilot settings stay documented in one place.
 
 `COPILOT_TIMEOUT_SECONDS` controls the per-request SDK timeout used by optimizer-backed validation and inference calls. The default is 180 seconds, which gives slower validations more time to finish before the runtime declares a timeout.
 
@@ -130,7 +130,7 @@ python -m pytest -q
 If you want to use the repo's skills through Copilot CLI instead of running the local Python scripts directly, add this repository as a plugin marketplace:
 
 ```bash
-copilot plugin marketplace add Tyler-R-Kendrick/copilot-apo
+copilot plugin marketplace add Tyler-R-Kendrick/copilot-auto-training
 copilot plugin install copilot-training@copilot-training
 ```
 
