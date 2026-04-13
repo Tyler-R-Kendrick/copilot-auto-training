@@ -176,10 +176,12 @@ if normalized != lock_text:
 PY
 }
 
-recorded_targets="$(load_recorded_targets | normalize_targets)"
-if [[ -z "$recorded_targets" ]]; then
-  recorded_targets="$(collect_git_changed_targets | normalize_targets)"
-fi
+recorded_targets="$(
+  {
+    load_recorded_targets
+    collect_git_changed_targets
+  } | normalize_targets
+)"
 
 if [[ "$enforce" -eq 0 ]]; then
   current_targets="$(collect_candidates "$@" | normalize_targets)"
