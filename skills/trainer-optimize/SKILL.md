@@ -208,6 +208,6 @@ Copilot `.env` example at the repository root:
 COPILOT_MODEL=default
 ```
 
-Use [/.env.sample](/workspaces/copilot-apo/.env.sample) as the canonical template for the supported Copilot setting.
+Use [/.env.sample](../../.env.sample) as the canonical template for the supported Copilot setting.
 
 See `references/dataset-format.md` for the dataset contract and `assets/examples.md` for worked examples.
