@@ -37,6 +37,8 @@ safe-outputs:
   create-pull-request:
     max: 1
     github-token: ${{ secrets.COPILOT_GITHUB_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+  noop:
+    report-as-issue: false
 ---
 
 # Update Docs

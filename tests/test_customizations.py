@@ -2095,6 +2095,15 @@ class TestUpdateDocsWorkflow:
             "update-docs.md should document the PR branch naming convention used by the self-skip guard."
         )
 
+    def test_source_disables_noop_issue_reporting(self):
+        safe_outputs = self._source_yaml().get("safe-outputs")
+        assert isinstance(safe_outputs, dict), "Expected update-docs.md to define safe-outputs in frontmatter"
+        noop = safe_outputs.get("noop")
+        assert isinstance(noop, dict), "Expected update-docs.md to define a noop safe-output configuration"
+        assert noop.get("report-as-issue") is False, (
+            "update-docs.md should disable issue reporting for noop runs so docs no-op executions do not post to the no-op issue."
+        )
+
     def test_lock_applies_self_skip_guard_to_pre_activation(self):
         pre_activation = self._lock_yaml()["jobs"]["pre_activation"]
         guard = pre_activation.get("if")
@@ -2107,6 +2116,16 @@ class TestUpdateDocsWorkflow:
         )
         assert "github.event.pull_request.title" in guard, (
             "update-docs.lock.yml should also match the workflow's own PR title convention."
+        )
+
+    def test_lock_disables_noop_issue_reporting(self):
+        steps = self._lock_yaml()["jobs"]["conclusion"]["steps"]
+        noop_step = next((step for step in steps if step.get("name") == "Process No-Op Messages"), None)
+        assert noop_step is not None, "Expected update-docs.lock.yml to process noop messages in conclusion handling"
+        env = noop_step.get("env")
+        assert isinstance(env, dict), "Expected Process No-Op Messages to define env settings"
+        assert env.get("GH_AW_NOOP_REPORT_AS_ISSUE") == "false", (
+            "update-docs.lock.yml should keep noop runs from reporting to the shared no-op issue."
         )
 
 
