@@ -5,7 +5,14 @@ on:
       - closed
     branches:
       - main
-if: "${{ github.event.pull_request.merged == true && !(startsWith(github.event.pull_request.head.ref || '', 'copilot/update-docs/') || startsWith(github.event.pull_request.title || '', 'docs: update documentation after merge to main (')) }}"
+if: >-
+  ${{
+    github.event.pull_request.merged == true
+    && !(
+      startsWith(github.event.pull_request.head.ref || '', 'copilot/update-docs/')
+      || startsWith(github.event.pull_request.title || '', 'docs: update documentation after merge to main (')
+    )
+  }}
 
 description: Review all documentation after each merge to main and open a pull request with corrections if any docs are out-of-date.
 

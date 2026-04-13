@@ -2031,11 +2031,6 @@ class TestTrainPromptWorkflow:
 class TestUpdateDocsWorkflow:
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "update-docs.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "update-docs.lock.yml"
-    SELF_SKIP_GUARD = (
-        "${{ github.event.pull_request.merged == true && !(startsWith(github.event.pull_request.head.ref || '', "
-        "'copilot/update-docs/') || startsWith(github.event.pull_request.title || '', "
-        "'docs: update documentation after merge to main (')) }}"
-    )
 
     def _parse_frontmatter_yaml(self, text: str) -> str:
         assert text.startswith("---"), "Expected frontmatter starting with ---"
@@ -2061,14 +2056,28 @@ class TestUpdateDocsWorkflow:
 
     def test_source_uses_naming_based_self_skip_guard(self):
         parsed = self._source_yaml()
+        # YAML 1.1 may parse the bare `on` key as boolean True.
         workflow_on = parsed.get("on") or parsed.get(True)
         assert workflow_on == {"pull_request_target": {"types": ["closed"], "branches": ["main"]}}, (
             "update-docs.md should trigger from merged pull requests to main so the workflow can "
             "reliably inspect PR metadata when skipping its own follow-up PRs."
         )
-        assert parsed.get("if") == self.SELF_SKIP_GUARD, (
-            "update-docs.md should skip self-triggered follow-up runs by matching the workflow's "
-            "own PR title or branch naming convention instead of commit messages or docs paths."
+        guard = parsed.get("if")
+        assert isinstance(guard, str), "Expected update-docs.md if guard to parse as a string"
+        assert "github.event.pull_request.merged == true" in guard, (
+            "update-docs.md should only activate for merged pull requests to main."
+        )
+        assert "github.event.pull_request.head.ref" in guard, (
+            "update-docs.md should match the workflow's own PR branch naming convention."
+        )
+        assert "github.event.pull_request.title" in guard, (
+            "update-docs.md should match the workflow's own PR title convention."
+        )
+        assert "copilot/update-docs/" in guard, (
+            "update-docs.md should skip self-triggered follow-up runs from its own PR branch pattern."
+        )
+        assert "docs: update documentation after merge to main (" in guard, (
+            "update-docs.md should skip self-triggered follow-up runs from its own PR title pattern."
         )
 
     def test_source_documents_pr_branch_convention(self):
