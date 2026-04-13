@@ -2032,9 +2032,9 @@ class TestUpdateDocsWorkflow:
     WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "update-docs.md"
     WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "update-docs.lock.yml"
     SELF_SKIP_GUARD = (
-        "${{ !(github.event_name == 'push' && (startsWith(github.event.head_commit.message || '', "
-        "'docs: update documentation after merge to main (') || contains(github.event.head_commit.message || '', "
-        "'copilot/update-docs/'))) }}"
+        "${{ github.event.pull_request.merged == true && !(startsWith(github.event.pull_request.head.ref || '', "
+        "'copilot/update-docs/') || startsWith(github.event.pull_request.title || '', "
+        "'docs: update documentation after merge to main (')) }}"
     )
 
     def _parse_frontmatter_yaml(self, text: str) -> str:
@@ -2061,14 +2061,14 @@ class TestUpdateDocsWorkflow:
 
     def test_source_uses_naming_based_self_skip_guard(self):
         parsed = self._source_yaml()
-        workflow_on = parsed.get("on", parsed.get(True))
-        assert workflow_on == {"push": {"branches": ["main"]}}, (
-            "update-docs.md should keep the push trigger broad enough to review documentation "
-            "after any merge to main."
+        workflow_on = parsed.get("on") or parsed.get(True)
+        assert workflow_on == {"pull_request_target": {"types": ["closed"], "branches": ["main"]}}, (
+            "update-docs.md should trigger from merged pull requests to main so the workflow can "
+            "reliably inspect PR metadata when skipping its own follow-up PRs."
         )
         assert parsed.get("if") == self.SELF_SKIP_GUARD, (
             "update-docs.md should skip self-triggered follow-up runs by matching the workflow's "
-            "own PR title or branch naming convention instead of filtering docs paths."
+            "own PR title or branch naming convention instead of commit messages or docs paths."
         )
 
     def test_source_documents_pr_branch_convention(self):
@@ -2081,11 +2081,14 @@ class TestUpdateDocsWorkflow:
         pre_activation = self._lock_yaml()["jobs"]["pre_activation"]
         guard = pre_activation.get("if")
         assert isinstance(guard, str), "Expected pre_activation.if to be a string guard"
-        assert "docs: update documentation after merge to main (" in guard, (
-            "update-docs.lock.yml should skip self-generated squash merges by matching the PR title prefix."
+        assert "github.event.pull_request.merged == true" in guard, (
+            "update-docs.lock.yml should only activate for merged pull requests to main."
         )
         assert "copilot/update-docs/" in guard, (
             "update-docs.lock.yml should skip merge commits for the workflow's own PR branch convention."
+        )
+        assert "github.event.pull_request.title" in guard, (
+            "update-docs.lock.yml should also match the workflow's own PR title convention."
         )
 
 

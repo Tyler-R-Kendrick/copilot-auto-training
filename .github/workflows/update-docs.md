@@ -1,9 +1,11 @@
 ---
 on:
-  push:
+  pull_request_target:
+    types:
+      - closed
     branches:
       - main
-if: "${{ !(github.event_name == 'push' && (startsWith(github.event.head_commit.message || '', 'docs: update documentation after merge to main (') || contains(github.event.head_commit.message || '', 'copilot/update-docs/'))) }}"
+if: "${{ github.event.pull_request.merged == true && !(startsWith(github.event.pull_request.head.ref || '', 'copilot/update-docs/') || startsWith(github.event.pull_request.title || '', 'docs: update documentation after merge to main (')) }}"
 
 description: Review all documentation after each merge to main and open a pull request with corrections if any docs are out-of-date.
 
@@ -32,7 +34,7 @@ safe-outputs:
 
 # Update Docs
 
-After each merge to `main`, review all documentation files in this repository for accuracy and completeness relative to the current source code and project configuration. If any documentation is out-of-date, produce corrected versions and open exactly one pull request. If every document is already accurate, do nothing.
+After each merged pull request to `main`, review all documentation files in this repository for accuracy and completeness relative to the current source code and project configuration. If any documentation is out-of-date, produce corrected versions and open exactly one pull request. If every document is already accurate, do nothing.
 
 ## Context
 
@@ -47,9 +49,9 @@ Authoritative source of truth for the current state of the project is the reposi
 
 ## Procedure
 
-1. Identify the full range of commits included in this push using `github.event.before` (exclusive) and `github.sha` (inclusive).
-2. List all files changed across the entire push range using the GitHub compare API (`/compare/{before}...{sha}`). Do not scope the file list to a single commit — a push to `main` may include multiple commits.
-3. For each changed source file across that range, determine which documentation files could reference or describe that source file.
+1. Use the merged pull request from the event payload (`github.event.pull_request`), including its number, title, head branch, and merge commit SHA.
+2. List all files changed in that merged pull request using the GitHub pull request files API. Do not scope the review to a single commit.
+3. For each changed source file in that merged pull request, determine which documentation files could reference or describe that source file.
 4. Read the candidate documentation files and the changed source files.
 5. Compare each documentation file against the current source:
    - Check that commands, file paths, environment variables, CLI flags, and configuration keys are still accurate.
@@ -76,7 +78,7 @@ Title: `docs: update documentation after merge to main (<short-sha>)`
 
 Body:
 - List each file changed and a one-sentence summary of what was corrected.
-- Include the push range (`github.event.before`…`github.sha`) that triggered this review.
+- Include the merged pull request number and merge commit SHA that triggered this review.
 
 ## Guardrails
 
