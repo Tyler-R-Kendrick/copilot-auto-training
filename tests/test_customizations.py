@@ -2028,6 +2028,88 @@ class TestTrainPromptWorkflow:
         )
 
 
+class TestUpdateDocsWorkflow:
+    WORKFLOW_MD = REPO_ROOT / ".github" / "workflows" / "update-docs.md"
+    WORKFLOW_LOCK = REPO_ROOT / ".github" / "workflows" / "update-docs.lock.yml"
+
+    def _parse_frontmatter_yaml(self, text: str) -> str:
+        assert text.startswith("---"), "Expected frontmatter starting with ---"
+        closing = text.find("\n---", 3)
+        assert closing != -1, "Expected closing --- in frontmatter"
+        return text[3:closing]
+
+    def _source_yaml(self) -> dict:
+        parsed = yaml.safe_load(self._parse_frontmatter_yaml(_read(self.WORKFLOW_MD)))
+        assert isinstance(parsed, dict), "Expected update-docs.md frontmatter to parse as a YAML mapping"
+        return parsed
+
+    def _lock_yaml(self) -> dict:
+        parsed = yaml.safe_load(_read(self.WORKFLOW_LOCK))
+        assert isinstance(parsed, dict), "Expected update-docs.lock.yml to parse as a YAML mapping"
+        return parsed
+
+    def test_workflow_source_exists(self):
+        assert self.WORKFLOW_MD.is_file(), f"update-docs.md not found: {self.WORKFLOW_MD}"
+
+    def test_workflow_lock_exists(self):
+        assert self.WORKFLOW_LOCK.is_file(), f"update-docs.lock.yml not found: {self.WORKFLOW_LOCK}"
+
+    def test_source_uses_naming_based_self_skip_guard(self):
+        parsed = self._source_yaml()
+        # YAML 1.1 may parse the bare `on` key as boolean True.
+        workflow_on = parsed.get("on") or parsed.get(True)
+        assert workflow_on is not None, "Expected update-docs.md frontmatter to define an `on` trigger"
+        assert isinstance(workflow_on, dict), "Expected update-docs.md `on` block to parse as a mapping"
+        pull_request_target = workflow_on.get("pull_request_target")
+        assert isinstance(pull_request_target, dict), (
+            "update-docs.md should trigger from merged pull requests to main so the workflow can "
+            "reliably inspect PR metadata when skipping its own follow-up PRs."
+        )
+        assert pull_request_target.get("types") == ["closed"], (
+            "update-docs.md should only run after pull requests are closed."
+        )
+        assert pull_request_target.get("branches") == ["main"], (
+            "update-docs.md should only run for pull requests merged into main."
+        )
+        guard = parsed.get("if")
+        assert isinstance(guard, str), "Expected update-docs.md if guard to parse as a string"
+        assert "github.event.pull_request.merged == true" in guard, (
+            "update-docs.md should only activate for merged pull requests to main."
+        )
+        assert "github.event.pull_request.head.ref" in guard, (
+            "update-docs.md should match the workflow's own PR branch naming convention."
+        )
+        assert "github.event.pull_request.title" in guard, (
+            "update-docs.md should match the workflow's own PR title convention."
+        )
+        assert "copilot/update-docs/" in guard, (
+            "update-docs.md should skip self-triggered follow-up runs from its own PR branch pattern."
+        )
+        assert "docs: update documentation after merge to main (" in guard, (
+            "update-docs.md should skip self-triggered follow-up runs from its own PR title pattern."
+        )
+
+    def test_source_documents_pr_branch_convention(self):
+        text = _read(self.WORKFLOW_MD)
+        assert "Branch: `copilot/update-docs/<short-sha>`" in text, (
+            "update-docs.md should document the PR branch naming convention used by the self-skip guard."
+        )
+
+    def test_lock_applies_self_skip_guard_to_pre_activation(self):
+        pre_activation = self._lock_yaml()["jobs"]["pre_activation"]
+        guard = pre_activation.get("if")
+        assert isinstance(guard, str), "Expected pre_activation.if to be a string guard"
+        assert "github.event.pull_request.merged == true" in guard, (
+            "update-docs.lock.yml should only activate for merged pull requests to main."
+        )
+        assert "copilot/update-docs/" in guard, (
+            "update-docs.lock.yml should skip merge commits for the workflow's own PR branch convention."
+        )
+        assert "github.event.pull_request.title" in guard, (
+            "update-docs.lock.yml should also match the workflow's own PR title convention."
+        )
+
+
 class TestRefreshGhAwWorkflowLockfilesWorkflow:
     WORKFLOW_YML = REPO_ROOT / ".github" / "workflows" / "refresh-gh-aw-workflow-lockfiles.yml"
 
