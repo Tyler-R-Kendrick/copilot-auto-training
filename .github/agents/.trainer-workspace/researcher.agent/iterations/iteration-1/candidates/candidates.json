@@ -1,0 +1,12 @@
+{
+  "original": {
+    "candidate": "candidates/original/candidate.md",
+    "description": "candidates/original/description.md"
+  },
+  "student": {
+    "candidate": "candidates/student/candidate.md",
+    "description": "candidates/student/description.md"
+  },
+  "selected": "student",
+  "selection_notes": "Student candidate addresses all four high-priority issues from engineer-prompt/review.md. Original retained as baseline. No adversary candidate produced for this iteration."
+}
