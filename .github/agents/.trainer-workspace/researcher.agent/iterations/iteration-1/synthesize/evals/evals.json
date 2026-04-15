@@ -1,0 +1,101 @@
+{
+  "skill_name": "researcher-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are given a researcher agent that must find datasets for evaluating a sentiment-classification prompt. The agent immediately proposes several Hugging Face datasets without calling find_agent_skill or load_agent_skill first. What is the primary contract violation and what should the trainer flag?",
+      "expected_output": "The primary violation is that the researcher agent bypassed the required MCP activation step. It must call find_agent_skill to discover researcher-research, then load_agent_skill to activate the skill contract, before proposing any sources. Free-form source proposals before MCP activation break the repo's required execution path.",
+      "assertions": [
+        "Response identifies skipped find_agent_skill and load_agent_skill as the primary violation.",
+        "Response does not treat free-form dataset proposals as acceptable before MCP activation.",
+        "Response is concise and cites the MCP execution contract."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must name MCP skill activation (find_agent_skill, load_agent_skill) as the required first step, explain that skipping it violates the researcher agent contract, and keep the finding grounded in concrete evidence rather than vague protocol complaint."
+    },
+    {
+      "id": 2,
+      "prompt": "A researcher agent is asked to find datasets for a policy-assistant prompt. The task description is 'find relevant policy datasets'. The agent starts searching without asking about jurisdiction, licensing, or language constraints. Which constraints are required to resolve before searching, and what should the agent do when they are missing?",
+      "expected_output": "The required constraints to resolve before searching are: the task boundary (what policy domain), the scoring rule (what format is an acceptable answer), and the prompt-visible placeholders. Jurisdiction, language, and licensing may be elicitable but are secondary. When required constraints are missing, the agent should ask for them rather than guessing.",
+      "assertions": [
+        "Response distinguishes required constraints (task boundary, scoring rule, placeholders) from elicitable ones.",
+        "Response says to ask rather than guess when required constraints are missing.",
+        "Response does not approve any source before constraints are resolved."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly separate required constraints from optional ones, explain the elicitation step before searching, and avoid recommending sources without constraint resolution."
+    },
+    {
+      "id": 3,
+      "prompt": "A researcher agent reviewed several candidate datasets for a code-review task and found that none of them had traceable annotation guides, explicit licensing, or accountable maintainers. The agent returned three approved sources anyway, citing community adoption as justification. What is the highest-risk problem and what should the reviewer flag?",
+      "expected_output": "The highest-risk problem is that the agent approved sources that failed the approval bar. Community adoption is not a substitute for traceable provenance, explicit licensing, and an accountable maintainer. The agent should have stopped with a blocker report listing the failed bar criteria and the missing evidence, rather than approving weak sources.",
+      "assertions": [
+        "Response names approval-bar failure as the primary risk.",
+        "Response explains that community adoption does not satisfy provenance, licensing, or maintainer requirements.",
+        "Response says the correct action is a blocker report, not forced approval."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify that the agent violated the source approval bar, explain why community adoption is not sufficient evidence, and state that a blocker report is the correct output when no source clears the bar."
+    },
+    {
+      "id": 4,
+      "prompt": "A researcher agent correctly calls find_agent_skill and load_agent_skill, resolves the required constraints, and determines that no candidate source clears the approval bar for a legal-reasoning task. The agent produces a 'research brief' that names two approved sources anyway with a note that they are partial matches. What should the trainer tell the researcher to do instead?",
+      "expected_output": "The trainer should instruct the researcher to stop with an explicit blocker report rather than approving partial sources. A partial match that fails the approval bar is a rejected candidate, not an approved source. The blocker report should name each failed criterion and explain what additional evidence would be needed for a safe synthesis.",
+      "assertions": [
+        "Response says partial matches that fail the bar must be listed as rejected candidates.",
+        "Response calls for a blocker report with failed criteria and missing evidence.",
+        "Response does not accept partial approval as a valid fallback."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must make clear that sources failing the approval bar must be rejected, explain that partial matches are not approved fallbacks, and specify that a blocker report listing failed criteria is the correct output."
+    },
+    {
+      "id": 5,
+      "prompt": "After loading researcher-research, a researcher agent checks whether scripts/run_research.py exists in the skill directory. The file is present. The agent then proceeds to use the loaded skill instructions as its operating contract without running the script. Is this correct behavior?",
+      "expected_output": "No. When scripts/run_research.py is present in the researcher-research skill directory, the agent should call run_agent_skill to execute it, because the script provides deterministic setup that saves time on eval-target derivation and research-brief scaffolding. Using only the loaded instructions when a deterministic helper is available bypasses a useful and supported execution step.",
+      "assertions": [
+        "Response says the agent should run scripts/run_research.py when it is present.",
+        "Response explains that a present deterministic helper justifies run_agent_skill.",
+        "Response does not accept instruction-only mode when the script exists."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must state that run_agent_skill should be called when scripts/run_research.py is present, explain why, and distinguish this from the case where no deterministic helper exists."
+    },
+    {
+      "id": 6,
+      "prompt": "A researcher agent produced a research brief that includes approved sources and mapping notes but omits rejected candidates and unresolved gaps sections. The downstream synthesizer uses the brief to author eval rows and includes two sources the researcher would have rejected. What is the primary contract gap?",
+      "expected_output": "The primary contract gap is the missing rejected-candidates section. Without explicit rejection reasons documented in the brief, the downstream synthesizer cannot distinguish approved from rejected sources and may incorporate weak or non-compliant sources into the eval rows. The research brief is incomplete and the researcher should have included all required sections.",
+      "assertions": [
+        "Response names the missing rejected-candidates section as the primary gap.",
+        "Response explains the downstream risk of missing rejection documentation.",
+        "Response does not accept a brief that omits rejected candidates or unresolved gaps."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify the missing rejected-candidates section as the key gap, explain why it matters for downstream synthesis safety, and confirm that all required sections (approved sources, rejected candidates, mapping notes, unresolved gaps) are necessary."
+    },
+    {
+      "id": 7,
+      "prompt": "A researcher agent is given a task with a clear task boundary, an explicit scoring rule, and no missing constraints. After loading researcher-research, it spends the first two minutes asking the user whether domain terminology, locale, and publication date range are acceptable, even though none of those were mentioned as constraints and the task is well-specified. What should the trainer flag?",
+      "expected_output": "The trainer should flag over-elicitation. When required constraints are already resolved and no optional constraints are missing that would materially affect source selection, the agent should proceed to the research plan rather than asking for unnecessary clarifications. Asking about optional constraints when the task is well-specified adds friction without improving source quality.",
+      "assertions": [
+        "Response identifies unnecessary elicitation as the issue.",
+        "Response says the agent should proceed when required constraints are already resolved.",
+        "Response distinguishes between materially missing constraints and speculative optional ones."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must name over-elicitation as the problem, explain that agents should proceed when required constraints are resolved, and distinguish necessary elicitation from asking about optional constraints when the task is clear."
+    },
+    {
+      "id": 8,
+      "prompt": "A researcher agent correctly activates MCP, elicits constraints, finds three approved sources, and returns a complete research brief. The optimized version of the agent removes the explicit constraint elicitation step and combines the MCP activation and source-search steps into a single instruction. Return the conservator-style review the trainer should act on.",
+      "expected_output": "Highest-risk regression: the rewrite dropped the explicit constraint-elicitation step and blurred MCP activation with source searching. Why it matters: elicitation before searching is the primary safeguard against approving mismatched sources, and blurring the MCP step creates ambiguity about when the loaded skill contract governs the search. Evidence: the changed instructions. Missing validation: rerun eval cases that test constraint resolution and MCP activation before approving the rewrite. Confidence: high.",
+      "assertions": [
+        "Response names dropped constraint-elicitation as the primary regression.",
+        "Response flags blurred MCP activation and source-search as a secondary risk.",
+        "Response recommends rerunning targeted eval cases before approval."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify both the dropped elicitation step and the blurred MCP/search boundary as contract regressions, explain the downstream risk of approving mismatched sources, and recommend concrete validation before approval."
+    }
+  ]
+}
