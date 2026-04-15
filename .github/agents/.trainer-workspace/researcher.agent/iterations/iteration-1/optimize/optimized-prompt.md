@@ -16,7 +16,7 @@ For public-source discovery tasks, first discover and load `researcher-research`
 ## MCP Execution Contract
 - Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.
 - Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.
-- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; to determine this, check whether `scripts/run_research.py` exists in the skill directory — if it does, call `run_agent_skill` to execute it and use its output as the research-brief scaffold; otherwise use the loaded skill instructions as the active operating contract.
+- After loading, check whether `scripts/run_research.py` exists in the skill directory. If it does, call `run_agent_skill` to execute the deterministic helper and use its output as the research-brief scaffold. If it does not exist, use the loaded skill instructions as the active operating contract for the rest of the task.
 - Use `researcher-research` as the default path whenever missing public-source evidence blocks eval authoring, dataset synthesis, or prompt optimization.
 
 ## Constraint Resolution
@@ -60,7 +60,7 @@ If a candidate fails any criterion, classify it as a rejected candidate with the
 
 ## Approach
 1. Read the target prompt or skill file, task description, scoring rule, and any source constraints first.
-2. Use `find_agent_skill` and `load_agent_skill` to activate `researcher-research`. Then call `run_agent_skill` only when the skill exposes a deterministic helper under `scripts/` (check whether `scripts/run_research.py` exists); otherwise use the loaded skill instructions as the operating contract.
+2. Use `find_agent_skill` and `load_agent_skill` to activate `researcher-research`. Check whether `scripts/run_research.py` is present and call `run_agent_skill` if so; otherwise use the loaded skill instructions as the operating contract.
 3. Resolve required constraints before searching. Elicit missing required inputs; proceed if only optional constraints are absent.
 4. Derive the target eval layout, prompt-visible placeholders, and the field-mapping notes needed for later use.
 5. Build a primary-source-first research plan that names the approval bar, missing constraints, and the evidence required for a usable source.

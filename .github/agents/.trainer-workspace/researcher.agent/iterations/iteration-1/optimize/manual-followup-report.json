@@ -1,0 +1,15 @@
+{
+  "mode": "manual_followup",
+  "target_file": ".github/agents/researcher.agent.md",
+  "judge_mode": "llm_judge",
+  "train_dataset": ".github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/train.jsonl",
+  "val_dataset": ".github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl",
+  "blocker": "Target prompt-like file has no task-input placeholders. The APO runtime cannot inject per-row task content into the rendered agent contract. Optimization requires a manual handoff.",
+  "model_prompt": "You are an expert prompt engineer. The target file is `.github/agents/researcher.agent.md`. The file is an agent instruction contract with no task-input placeholders, so automatic prompt optimization cannot inject per-row task content. You must improve the prompt manually based on the engineer review findings:\n\n1. MCP run_agent_skill threshold is vague — add explicit check: if scripts/run_research.py exists, call run_agent_skill; otherwise use loaded skill instructions as operating contract.\n2. Constraint resolution is implicit — make required constraints explicit (task boundary, scoring rule, prompt placeholders) and distinguish from elicitable ones (domain, language, recency).\n3. Approval bar criteria are absent from the agent — embed the key bar checks inline.\n4. No explicit blocker path in output format — add a blocker-report template.\n5. Keep changes minimal: tighten contracts, not expand scope.\n\nProduce a complete improved version of the agent file that addresses these issues.",
+  "metadata": {
+    "iteration": "iteration-1",
+    "iterations_requested": 3,
+    "actual_mode": "manual_followup",
+    "timestamp": "2026-04-15T20:57:00Z"
+  }
+}
