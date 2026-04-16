@@ -1,0 +1,106 @@
+{
+  "skill_name": "researcher-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a research brief for a new SKILL.md that classifies customer support tickets by topic. I have not told you what domain, language, or licensing constraints apply. Start researching public ticket datasets now.",
+      "expected_output": "The researcher agent should stop before searching and elicit the missing constraints: domain terminology, language or locale coverage, licensing or commercial-use requirements, and any label taxonomy or class balance needs. It must not begin source discovery before those constraints are resolved.",
+      "assertions": [
+        "Response asks for at least one missing constraint before starting research.",
+        "Response does not recommend or link to any specific public dataset.",
+        "Response states that the search plan cannot be built until missing inputs are resolved."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The researcher must apply the elicitation-first rule: resolve domain, language, licensing, and taxonomy constraints before building a search plan or recommending sources."
+    },
+    {
+      "id": 2,
+      "prompt": "I need grounded eval cases for a skill that extracts named entities from news articles in English, using only public domain or CC-BY licensed data. Please find suitable datasets.",
+      "expected_output": "The researcher agent should call find_agent_skill and load_agent_skill to activate researcher-research before proposing any sources. It should then produce a research brief with all six required sections: target layout, query plan, approved sources with authority and licensing notes, rejected candidates with rejection reasons, mapping notes for downstream eval authoring, and any unresolved gaps.",
+      "assertions": [
+        "Response states that find_agent_skill and load_agent_skill are called or should be called before source discovery.",
+        "Response includes sections covering approved sources and rejected candidates.",
+        "Response includes mapping notes describing how approved source fields map to eval rows.",
+        "Response notes the licensing requirement (public domain or CC-BY) as part of the approval bar."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The researcher must activate the researcher-research skill before proposing sources, and must produce a research brief covering all six required sections with explicit licensing and mapping notes."
+    },
+    {
+      "id": 3,
+      "prompt": "I want grounded eval cases for a question-answering skill that uses Wikipedia articles as context. Please find suitable QA datasets. The researcher-research skill is not available.",
+      "expected_output": "When the researcher-research skill is not available or exposes no scripts/ helper, the researcher agent should fall back to using the loaded skill instructions as the active operating contract. It should not refuse to help entirely; instead it should proceed with the skill instructions as the guide, note that the MCP skill was unavailable, and produce a research brief using those instructions.",
+      "assertions": [
+        "Response acknowledges that the skill or its script helper is not available.",
+        "Response proceeds with research using the skill instructions as the fallback contract.",
+        "Response does not simply refuse to help."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "When the MCP skill is unavailable, the researcher must use the loaded skill instructions as the fallback rather than refusing the task. The fallback is explicit, not optional."
+    },
+    {
+      "id": 4,
+      "prompt": "I need grounded eval cases for a legal document summarization skill. I need the source data to be commercially licensed, from an authoritative legal publisher, and must cover US federal court documents. Please research suitable datasets.",
+      "expected_output": "The researcher should search for datasets and, if no candidate clears the stated approval bar (authoritative publisher, commercial license, US federal court coverage), produce a clean blocker report. The blocker report should name what evidence is missing, list any weak candidates with rejection reasons, and explicitly recommend stopping synthesis rather than forcing a weak recommendation.",
+      "assertions": [
+        "Response produces a clear blocker recommendation if no source meets all stated criteria.",
+        "Response lists any rejected candidates with explicit rejection reasons.",
+        "Response does not recommend a source that fails the stated licensing or authority requirements.",
+        "Response includes a recommendation to stop synthesis when no approved source exists."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "When no source clears the approval bar, the researcher must produce a clean blocker report with rejection reasons and a stop recommendation rather than forcing a weak recommendation."
+    },
+    {
+      "id": 5,
+      "prompt": "I am optimizing a skill that classifies social media posts by sentiment. The skill has a {post_text} placeholder and expects a label from {positive, negative, neutral}. Please find suitable public sentiment datasets and produce a research brief.",
+      "expected_output": "The researcher should read the prompt interface (the {post_text} placeholder and the three-class label taxonomy) before building the research plan. It should then activate researcher-research, produce a brief with approved sources (such as SST-2 or SemEval), note licensing and provenance, map the {post_text} field to source text columns, and record any unresolved gaps such as platform or demographic coverage.",
+      "assertions": [
+        "Response reads and mentions the {post_text} placeholder and the label taxonomy.",
+        "Response includes at least one approved source with authority and licensing notes.",
+        "Response maps the {post_text} field to the source data structure.",
+        "Response records any unresolved gaps in source coverage."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The researcher must inspect the prompt interface first, then activate the skill, produce a complete research brief covering source authority, licensing, field mapping, and unresolved gaps."
+    },
+    {
+      "id": 6,
+      "prompt": "Please research public datasets for a skill that detects hate speech in tweets. Do not include any datasets with known annotation bias or benchmark contamination risk.",
+      "expected_output": "The researcher should acknowledge the constraint against annotation bias and contamination risk as part of the approval bar, then produce a brief that names specific hate speech datasets (such as HateEval or OffComEval), notes contamination or bias risks for each candidate, rejects any with documented annotation problems, and includes mapping notes for compliant sources.",
+      "assertions": [
+        "Response includes annotation bias and contamination risk as part of the approval bar.",
+        "Response names at least one candidate dataset with notes on its risk profile.",
+        "Response rejects any candidate with documented annotation bias.",
+        "Response includes mapping notes for any approved sources."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The researcher must apply the stated constraints (no bias, no contamination) as part of the source approval bar and explicitly document risk notes for each candidate."
+    },
+    {
+      "id": 7,
+      "prompt": "I am building a skill that extracts medication names and dosages from clinical notes. The dataset must be HIPAA-compliant and use only de-identified patient records. Please research suitable sources.",
+      "expected_output": "The researcher should treat the HIPAA compliance and de-identification requirement as a mandatory approval gate. It should search for clinical NER datasets such as i2b2 or n2c2, note whether each source is de-identified and HIPAA-compliant, reject any source that cannot confirm de-identification, and produce a brief with approved sources or a blocker report if none clear the bar.",
+      "assertions": [
+        "Response treats HIPAA compliance and de-identification as mandatory approval criteria.",
+        "Response names at least one clinical NER dataset candidate.",
+        "Response notes whether each candidate is de-identified.",
+        "Response produces either an approved source or a blocker report; it does not recommend a non-compliant source."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The researcher must apply privacy and compliance constraints as hard approval gates, not optional notes. Non-compliant sources must be rejected explicitly."
+    },
+    {
+      "id": 8,
+      "prompt": "I claimed that the researcher agent does not need to call find_agent_skill or load_agent_skill if I already know what the researcher-research skill does. Is this correct?",
+      "expected_output": "No, this is not correct. The MCP execution contract requires the researcher agent to call find_agent_skill to discover the exact researcher-research skill and call load_agent_skill before first use, regardless of prior knowledge. Skipping these steps violates the execution contract and prevents the loaded skill contract from governing the research behavior.",
+      "assertions": [
+        "Response says the claim is incorrect.",
+        "Response states that find_agent_skill and load_agent_skill are required, not optional.",
+        "Response explains that skipping them violates the MCP execution contract."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly apply the MCP contract: find_agent_skill and load_agent_skill are mandatory steps before any researcher-research work, regardless of prior knowledge of the skill."
+    }
+  ]
+}
