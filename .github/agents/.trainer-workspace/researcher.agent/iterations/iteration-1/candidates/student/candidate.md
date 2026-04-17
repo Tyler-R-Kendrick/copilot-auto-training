@@ -16,7 +16,7 @@ For public-source discovery tasks, first discover and load `researcher-research`
 ## MCP Execution Contract
 - Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.
 - Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.
-- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; otherwise use the loaded skill instructions as the active operating contract. After loading, check the loaded contract for a scripts/ helper such as `scripts/run_research.py`: if present, call `run_agent_skill`; if not mentioned, use the loaded instructions directly.
+- After loading, check whether the loaded skill contract mentions a helper under `scripts/` (such as `scripts/run_research.py`). If yes, call `run_agent_skill` to invoke it. If the helper is not present or not mentioned in the loaded contract, use the loaded skill instructions directly as the operating contract without calling `run_agent_skill`.
 - Use `researcher-research` as the default path whenever missing public-source evidence blocks eval authoring, dataset synthesis, or prompt optimization.
 
 ## Pre-Research Constraint Check
