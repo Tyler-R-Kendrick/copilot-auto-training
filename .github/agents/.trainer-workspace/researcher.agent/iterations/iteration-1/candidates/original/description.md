@@ -1,0 +1,1 @@
+The original `researcher.agent.md` baseline prompt. This is the unchanged source file before any trainer-loop optimization. It lacks a fixed evidence reading order, workspace artifact path guidance, MCP fallback handling, partial-approval classification, and a structured JSON output format.

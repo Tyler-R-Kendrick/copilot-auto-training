@@ -1,0 +1,59 @@
+{
+  "target": "researcher.agent.md — grounded public-source discovery agent for prompt-optimization and eval-authoring workflows",
+  "task_description": "Optimize the researcher agent prompt for operational reliability: fixed evidence reading order, MCP activation before free-form search, structured research-brief output, workspace-aware artifact paths, MCP fallback handling, and clean stopping behavior when no source clears the approval bar.",
+  "research_plan": {
+    "approval_bar": "Sources must be primary or directly authoritative (official benchmarks, official documentation, published peer-reviewed work, or well-known widely-adopted open datasets). Derivative, aggregated, or paraphrased sources require the originating primary source to be identified.",
+    "search_focus": [
+      "Published grounded research workflows for prompt engineering and LLM evaluation",
+      "Official benchmark dataset documentation (e.g., HuggingFace datasets, BIG-Bench, MMLU)",
+      "Authoritative guidance on evidence-reading patterns for LLM agents",
+      "Structured research-brief formats used in LLM annotation workflows"
+    ],
+    "missing_constraints": "No domain-specific jurisdiction, recency, or privacy constraints were provided. Research covers general-purpose eval authoring workflows."
+  },
+  "approved_sources": [
+    {
+      "source": "HuggingFace Datasets documentation (huggingface.co/docs/datasets)",
+      "evidence": "Primary source for structured dataset schema, licensing metadata, and field descriptions. Directly supports field-mapping guidance (input, reference, label, split).",
+      "field_mapping_notes": "HF dataset cards expose 'train'/'validation'/'test' splits, feature schemas, license fields, and citation blocks. These map to: input→feature column, reference→label column, criteria→annotation guidelines, scoring→metric documented in model card.",
+      "license": "Apache 2.0 (documentation itself); individual datasets vary — licensing check required per dataset.",
+      "status": "approved"
+    },
+    {
+      "source": "BIG-Bench (Beyond the Imitation Game Benchmark) — github.com/google/BIG-bench",
+      "evidence": "Authoritative benchmark with task descriptions, eval criteria, and example inputs/outputs for diverse NLP tasks. Supports research-brief format for task boundary and scoring rule documentation.",
+      "field_mapping_notes": "BIG-Bench task files expose 'examples' (input/target pairs), 'metrics', and 'canary_string'. Maps to: input→examples[].input, reference→examples[].target, criteria→metrics list, scoring→preferred_score.",
+      "license": "Apache 2.0",
+      "status": "approved"
+    },
+    {
+      "source": "MMLU (Massive Multitask Language Understanding) — github.com/hendrycks/test",
+      "evidence": "Well-known benchmark for knowledge-coverage evaluation. Provides structured multiple-choice examples with subject-domain labels. Useful for understanding how to document subject constraints in a research brief.",
+      "field_mapping_notes": "MMLU CSV rows: question, A, B, C, D, answer. Maps to: input→question+choices, reference→answer, criteria→subject accuracy, scoring→exact_match.",
+      "license": "MIT",
+      "status": "approved"
+    }
+  ],
+  "rejected_candidates": [
+    {
+      "source": "Random HuggingFace community dataset uploads without official maintainer",
+      "rejection_reason": "Derivative or uncurated; annotation quality and licensing provenance are unverified. Requires primary source identification before use."
+    },
+    {
+      "source": "Blog posts or tutorial content describing dataset workflows",
+      "rejection_reason": "Derivative and non-authoritative. Paraphrases primary documentation without adding verifiable new evidence."
+    }
+  ],
+  "field_mapping": {
+    "input": "The user-facing prompt or question text. For grounded sources, this maps to the primary input field in the dataset (e.g., 'question', 'sentence', 'context').",
+    "reference": "The expected correct output or gold-standard answer. Maps to the label or target field (e.g., 'answer', 'label', 'target').",
+    "criteria": "The scoring criteria or rubric for evaluating the response. Maps to benchmark-provided metric descriptions or annotation guidelines.",
+    "scoring": "The scoring rule: 'deterministic' for exact-match tasks (MMLU, BIG-Bench exact), 'llm_judge' for open-ended tasks requiring rubric-based evaluation, 'custom' for schema-validated or normalization-based tasks."
+  },
+  "unresolved_gaps": [
+    "No grounded public source for 'evidence reading order' patterns specific to LLM research agents — this guidance must be derived from repo conventions rather than external primary sources.",
+    "No authoritative public source for 'MCP fallback handling' in multi-agent prompt workflows — this is repo-specific guidance."
+  ],
+  "stop_recommendation": null,
+  "synthesis_ready": true
+}

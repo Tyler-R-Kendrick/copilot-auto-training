@@ -1,0 +1,18 @@
+{
+  "original": {
+    "prompt": "iterations/iteration-1/candidates/original/prompt.md",
+    "description": "iterations/iteration-1/candidates/original/description.md"
+  },
+  "student": {
+    "prompt": "iterations/iteration-1/candidates/student/prompt.md",
+    "description": "iterations/iteration-1/candidates/student/description.md",
+    "selection_notes": "Addresses all 6 engineer-prompt risks. Strongest candidate overall."
+  },
+  "adversary": {
+    "prompt": "iterations/iteration-1/candidates/adversary/prompt.md",
+    "description": "iterations/iteration-1/candidates/adversary/description.md",
+    "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+    "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+    "exploit_summary": "Adds conditional_sources to JSON schema but removes explicit stopping rule for constraint resolution. Wins on output-format rows only. Does not outrank the student overall."
+  }
+}
