@@ -1,0 +1,1 @@
+The student candidate is stronger than the baseline on all five scored criteria and should be written back to the source file. The only remaining gap (untemplate blocker report structure) is low severity and should not block write-back. The teacher approved it without requesting further revision.

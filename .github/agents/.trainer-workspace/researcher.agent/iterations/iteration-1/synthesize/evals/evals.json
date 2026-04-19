@@ -1,0 +1,73 @@
+{
+  "skill_name": "researcher.agent",
+  "evals": [
+    {
+      "prompt": "I need to research public datasets for a prompt that classifies customer support tickets into billing, technical, access, and cancellation categories. The scoring rule is: return one category label per ticket. What sources should I use for grounded eval cases?",
+      "expected_output": "The researcher should load the researcher-research skill first, build a primary-source-first research plan with an explicit approval bar, recommend only sources with a named maintainer and explicit license, reject weak secondary sources with reasons, and provide mapping notes from source fields to eval row shape.",
+      "assertions": [
+        "The response references the researcher-research skill or MCP discovery before listing sources",
+        "The response includes a research plan with an approval bar",
+        "Recommended sources include named maintainer and license evidence",
+        "Rejected sources are listed with named rejection reasons",
+        "Mapping notes explain how source fields become eval rows"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should demonstrate MCP-first discipline, source approval rigor, and complete output sections."
+    },
+    {
+      "prompt": "Research datasets for the prompt at skills/engineer-prompt/SKILL.md. I want grounded eval cases for prompt-engineering quality assessment. Start from the file contents.",
+      "expected_output": "The researcher reads the target file first to derive the prompt interface and placeholders, then builds a primary-source-first query plan based on that interface before recommending any sources.",
+      "assertions": [
+        "The response reads or references the target file before building the query plan",
+        "The response derives prompt placeholders or interface from the file contents",
+        "The query plan is grounded in the derived prompt interface"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should demonstrate correct evidence reading order: target file first, then plan, then search."
+    },
+    {
+      "prompt": "Find datasets for a prompt that evaluates medical diagnoses from clinical notes. The expected output is a diagnosis code. No other constraints are provided.",
+      "expected_output": "The researcher identifies missing constraints (jurisdiction, licensing, privacy, ICD version, label taxonomy) that materially affect source selection, reports them as blockers, and asks for them before searching rather than proceeding with guessed values.",
+      "assertions": [
+        "The response identifies at least two missing constraints that affect source selection",
+        "The response reports the missing constraints as blockers before searching",
+        "The response does not proceed with guessed constraint values"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should demonstrate blocker reporting discipline: ask for materially missing constraints before searching."
+    },
+    {
+      "prompt": "Research sources for a citation-grounded QA prompt. Wikipedia summaries and blog posts covering NLP benchmarks are easy to find. Should I use them?",
+      "expected_output": "The researcher applies the source approval bar, rejects Wikipedia summaries and blog posts as primary source recommendations, names the rejection reasons (no accountable benchmark maintainer, contamination risk, no annotation guide), and recommends a primary-source alternative such as SQuAD, Natural Questions, or TriviaQA.",
+      "assertions": [
+        "Wikipedia summaries are rejected as primary source recommendations",
+        "Blog posts are rejected with named reasons",
+        "At least one primary-source benchmark alternative is named"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should apply the source approval bar correctly and reject non-primary sources with reasons."
+    },
+    {
+      "prompt": "After researching and approving several sources for a support ticket classification task, what should my research brief include before I hand off to a synthesis workflow?",
+      "expected_output": "The researcher lists all six required output sections: target layout, primary-source query plan, approved sources with provenance and license notes, rejected candidates with reasons, mapping notes from source fields to eval rows, and unresolved gaps or a stop recommendation. The brief should be described as self-contained for downstream synthesis use.",
+      "assertions": [
+        "All six output sections are named or described",
+        "Mapping notes are included as a required section",
+        "The brief is described as self-contained for downstream synthesis"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should enumerate all six required research brief sections and explain their purpose."
+    },
+    {
+      "prompt": "Research public datasets for a prompt that classifies internal enterprise workflow steps from proprietary internal Slack messages. No public source exists for this domain. What should you return?",
+      "expected_output": "The researcher applies the source approval bar, concludes no public source clears it for a proprietary internal domain, and explicitly reports a stop recommendation rather than substituting a tangentially related dataset.",
+      "assertions": [
+        "The response applies the approval bar to the domain",
+        "The response concludes no public source clears the bar",
+        "A stop recommendation is reported rather than a forced substitute"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response should demonstrate stopping discipline: report a blocker rather than forcing a recommendation when no source clears the bar."
+    }
+  ]
+}

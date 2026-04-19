@@ -1,0 +1,28 @@
+{
+  "iteration": "iteration-1",
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline — no evidence reading order, no MCP fallback, no inline approval bar, no stopping rule, underspecified blocker reporting"
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/student/reflection.md",
+      "selection_notes": "Teacher approved for write-back after adversary fix (MCP partial failure guard updated). All six engineer-prompt issues resolved."
+    },
+    "adversary": {
+      "prompt": null,
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Exploit 1 (partial MCP failure graceful degradation) was credible (0.93 vs 0.88). Fix applied to student candidate before write-back. Exploit pattern blocked in adversary steering summary."
+    }
+  },
+  "winner": "student",
+  "decision": "Student candidate approved after adversary fix. Validation: 856 passed."
+}
