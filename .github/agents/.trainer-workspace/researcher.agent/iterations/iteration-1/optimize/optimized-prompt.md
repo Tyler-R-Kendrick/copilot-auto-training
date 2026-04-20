@@ -16,7 +16,7 @@ For public-source discovery tasks, first discover and load `researcher-research`
 ## MCP Execution Contract
 - Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.
 - Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.
-- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; when the skill provides guidance only (no `scripts/` helper is present or the skill only returns instructions rather than running code), use the loaded skill instructions as the active operating contract to guide the research task directly instead.
+- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; when the skill provides guidance only (no `scripts/` helper), use the loaded skill instructions as the active operating contract instead.
 - Use `researcher-research` as the default path whenever missing public-source evidence blocks eval authoring, dataset synthesis, or prompt optimization.
 - If `find_agent_skill` or `load_agent_skill` fails because the MCP server is unavailable or the skill is not found, stop immediately and report a blocker: name the missing skill, explain that grounded source research cannot proceed safely without it, and recommend re-running after the MCP server is available. Do not substitute free-form research advice.
 

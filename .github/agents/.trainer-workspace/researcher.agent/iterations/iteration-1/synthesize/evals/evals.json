@@ -1,0 +1,53 @@
+{
+  "skill_name": "researcher",
+  "evals": [
+    {
+      "prompt": "I need to find grounded public datasets for evaluating a prompt that classifies customer support tickets into categories. The prompt takes a ticket body and returns a category label. Please research suitable sources.",
+      "expected_output": "The agent should invoke find_agent_skill and load_agent_skill for researcher-research before recommending any sources. It should produce a research plan naming the target layout, observed interface, research questions, approval bar, and any missing inputs. It should return approved sources with authority, provenance, licensing, and task-fit notes, plus a ranked list of rejected candidates with explicit rejection reasons. Mapping notes should describe how source fields map to prompt rows and expected outputs.",
+      "scoring": "llm_judge",
+      "criteria": "The response demonstrates MCP-first execution (skill discovery before source recommendations), includes a structured research plan, evaluates at least one source against the approval bar, provides at least one rejected candidate with a reason, and includes mapping notes linking source fields to eval row structure."
+    },
+    {
+      "prompt": "Research datasets suitable for evaluating a code-review assistant prompt. The prompt takes a code diff and returns a list of issues. I need train.jsonl and val.jsonl for APO optimization.",
+      "expected_output": "The agent should invoke find_agent_skill and load_agent_skill for researcher-research, build a research plan that identifies the required scoring rule and data schema, enumerate approved sources with authority and licensing details, list rejected candidates, and provide mapping notes sufficient for a downstream synthesizer to author eval rows.",
+      "scoring": "llm_judge",
+      "criteria": "The agent calls the researcher-research skill via MCP before proposing sources, produces a full research plan with approval bar, approves at least one source with complete metadata, rejects at least one source with an explicit reason, and provides mapping notes that name specific source fields and their eval-row equivalents."
+    },
+    {
+      "prompt": "I want to optimize a prompt that extracts named entities from legal documents. What public datasets can you find for this task? The scoring rule is exact entity match.",
+      "expected_output": "The agent should run the researcher-research skill via MCP, build a research plan identifying domain, language, jurisdiction constraints and any missing inputs, evaluate candidate datasets for legal NER against the approval bar, approve suitable sources with provenance and licensing, and flag any gap between the required exact-match scoring and what the sources actually support.",
+      "scoring": "llm_judge",
+      "criteria": "The agent demonstrates MCP invocation, builds a research plan that names domain and jurisdiction as potentially missing constraints before searching, assesses at least one legal NER dataset for approval bar compliance, records at least one rejection reason, and notes any scoring-to-source mismatch in unresolved gaps."
+    },
+    {
+      "prompt": "Find sources for evaluating a question-answering prompt. The task description and scoring rule are not yet determined. Please proceed with research.",
+      "expected_output": "The agent should recognize that the task description and scoring rule are materially missing inputs, stop and ask for them (or report the gap) rather than guessing, and produce a blocker report that names the specific missing inputs and explains why they block source selection.",
+      "scoring": "llm_judge",
+      "criteria": "The agent identifies the missing scoring rule as a material constraint that blocks source selection, explicitly stops and reports the gap rather than guessing, and names exactly which inputs are needed to proceed. The agent does not recommend any sources under these conditions."
+    },
+    {
+      "prompt": "I have a prompt for sentiment analysis of product reviews. Research suitable datasets. Note: MCP server is currently unavailable.",
+      "expected_output": "When MCP is unavailable, the agent should stop and report a clear blocker identifying the missing MCP skill as the blocker and explaining that the researcher-research skill must be available before the research task can proceed safely. It should not improvise free-form research advice as a substitute.",
+      "scoring": "llm_judge",
+      "criteria": "When researcher-research is not discoverable or not loadable, the agent produces a blocker report naming the missing skill, does not improvise source recommendations, and provides a recommendation to re-run after the MCP server is available."
+    },
+    {
+      "prompt": "Research public sources for evaluating a summarization prompt. The prompt takes a long document and returns a concise summary. The scoring rule is ROUGE-L recall >= 0.4. Licensing must allow commercial use.",
+      "expected_output": "The agent should invoke researcher-research via MCP, build a research plan, evaluate summarization datasets against the approval bar including explicit licensing review, approve sources that satisfy the commercial-use licensing requirement, reject sources with restrictive licensing, and provide mapping notes that describe how document-summary pairs map to prompt rows.",
+      "scoring": "llm_judge",
+      "criteria": "The agent invokes researcher-research via MCP, builds a research plan that includes the ROUGE-L scoring constraint and commercial licensing requirement, evaluates sources against the licensing requirement explicitly, and provides mapping notes that link document fields to prompt placeholders and summary fields to expected output."
+    },
+    {
+      "prompt": "I need to find eval data for a researcher agent itself. The researcher agent should invoke find_agent_skill before proposing any sources. How can I evaluate whether it does this correctly?",
+      "expected_output": "The agent should recognize this as a meta-research task about evaluating agent behavior (not finding external datasets), invoke researcher-research via MCP, and produce a research plan that identifies the agent's behavioral contract as the primary source. It should map the MCP invocation behavior to observable evaluation criteria.",
+      "scoring": "llm_judge",
+      "criteria": "The agent invokes researcher-research via MCP, correctly identifies the agent contract file as the primary authoritative source for behavioral evaluation, and produces mapping notes that connect observable agent outputs to the evaluation criteria in the contract."
+    },
+    {
+      "prompt": "Find datasets for a translation quality evaluation prompt. Target: English to French. The prompt takes a source sentence and machine translation and returns a quality score from 1-5.",
+      "expected_output": "The agent should invoke researcher-research via MCP, identify the evaluation task type (direct assessment of MT quality), build a research plan with domain and language constraints, evaluate standard MT evaluation datasets (e.g., WMT direct assessment), approve datasets with complete metadata including annotation guide and licensing, reject derivative or unlicensed sources, and provide mapping notes that describe how source, translation, and human score fields map to eval rows.",
+      "scoring": "llm_judge",
+      "criteria": "The agent invokes MCP first, builds a research plan that identifies MT quality evaluation as the task type, evaluates at least one standard MT evaluation benchmark against the full approval bar, explicitly records licensing and annotation-quality notes, and provides mapping notes that name source sentence, translation, and human score fields."
+    }
+  ]
+}
