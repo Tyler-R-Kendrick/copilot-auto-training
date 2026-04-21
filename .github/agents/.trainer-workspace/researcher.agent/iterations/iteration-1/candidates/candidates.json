@@ -1,0 +1,28 @@
+{
+  "iteration": "iteration-1",
+  "selected": "student",
+  "selection_notes": "Student candidate resolves all six engineer-identified gaps and the teacher-directed stop-condition ambiguity. The adversary exploit (scoring-rule derivation bypass) is credible but the student's strict gate already guards against it. The student candidate ranks above the original baseline on all engineer-identified dimensions.",
+  "candidates": {
+    "original": {
+      "prompt_artifact": "candidates/original/candidate.md",
+      "description_artifact": null,
+      "predicted_judge_response_artifact": null,
+      "reflection_artifact": null,
+      "selection_notes": "Baseline — missing all six engineer-identified structural elements"
+    },
+    "student": {
+      "prompt_artifact": "candidates/student/candidate.md",
+      "description_artifact": "candidates/student/description.md",
+      "predicted_judge_response_artifact": "candidates/student/predicted-judge-response.md",
+      "reflection_artifact": null,
+      "selection_notes": "Selected — resolves all gaps, strict scoring-rule gate guards against adversary exploit"
+    },
+    "adversary": {
+      "prompt_artifact": "candidates/adversary/candidate.md",
+      "description_artifact": "candidates/adversary/description.md",
+      "predicted_judge_response_artifact": "candidates/adversary/predicted-judge-response.md",
+      "reflection_artifact": "candidates/adversary/reflection.md",
+      "selection_notes": "Rejected — the exploit is credible but the student candidate already guards against it with its strict gate"
+    }
+  }
+}
