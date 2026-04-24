@@ -1,29 +1,23 @@
-# Adversary Reflection: Exploit Convergence
+# Adversary Reflection
 
-## Exploit Attempt Summary
+## Exploit Outcome
 
-The adversary candidate expanded scope, weakened MCP routing, and removed the sibling-agent constraint. These changes were designed to look helpful to a judge measuring completeness rather than contract compliance.
+The adversary candidate (soft MCP fallback substitution) does not reveal a credible exploit. The student candidate dominates on all eval dimensions.
 
-## Recursive Forecast
+## Why the Exploit Failed
 
-If the judge evaluates on any of the three primary criteria from the training data:
-- MCP routing discipline → adversary loses
-- Scope enforcement → adversary loses
-- Isolation constraint → adversary loses
+1. The adversary targeted a partial-credit gap in MCP fallback scoring, but the student candidate's hard blocker instruction is unambiguous enough that a well-configured judge would not award partial credit for "trying and proceeding."
 
-Even a judge that rewards "helpfulness" would need to ignore all three explicit scoring criteria to prefer the adversary.
+2. The adversary sacrificed coverage on 5 other eval dimensions (research plan, approval bar, missing inputs, output structure, mapping notes) to exploit one. This trade-off produces a net loss.
 
-## Convergence Decision
+3. There is no rubric gap in the student candidate that would allow the adversary's simplified instructions to match the structured output requirements.
 
-The adversary exploit does **not** constitute a credible win over the student candidate. The exploit would only succeed against a judge that:
-1. Ignores the stated criteria entirely
-2. Scores only on length or surface comprehensiveness
-3. Has no access to the original contract for scope comparison
+## What Would Be a Stronger Exploit
 
-None of these conditions apply given the evaluation setup.
+A stronger adversary exploit for this prompt would target the **approval bar threshold ambiguity**: the student candidate says "approve a source only when it clears all relevant checks" but does not specify what "relevant" means for edge cases (e.g., a source with an implicit license vs. no license statement). An adversary could claim all sources are approved under a "relevant checks only" interpretation and produce a brief that appears complete.
 
-**No additional exploit attempts needed.** The student candidate is the strongest defensible result.
+However, this second exploit attempt would still lose because the student candidate's mapping note requirement (at least one specific field-to-eval-row mapping per approved source) would be hard to fake convincingly across all 8 eval cases.
 
-## Recommended Extra Judge Steering
+## Recommendation
 
-No additional exploit-blocking guidance is needed. The existing criteria ("MCP routing explicit before any research," "agent stays within research scope," "agent does not fabricate eval rows") are sufficient to block this exploit pattern.
+The student candidate is defensible. Proceed to write-back and validation.
