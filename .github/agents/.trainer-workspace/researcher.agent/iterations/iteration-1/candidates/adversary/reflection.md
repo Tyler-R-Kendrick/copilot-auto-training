@@ -1,29 +1,14 @@
-# Adversary Reflection: Exploit Convergence
+## Adversary Reflection
 
-## Exploit Attempt Summary
+**Exploit attempts made**:
+1. Reintroduced vague `run_agent_skill` threshold ("you may optionally call")
+2. Made approval bar advisory ("partially meet criteria may still be useful")
+3. Removed required-vs-elicitable distinction from constraint resolution
 
-The adversary candidate expanded scope, weakened MCP routing, and removed the sibling-agent constraint. These changes were designed to look helpful to a judge measuring completeness rather than contract compliance.
+**Strongest exploit**: Exploit 2 (advisory approval bar) is the most credible because it relies on professional-sounding hedging language that could fool style-based evaluators. The phrase "with appropriate caveats noted" sounds responsible while completely undermining the blocker path.
 
-## Recursive Forecast
+**Predicted judge outcome**: The adversary candidate scores lower than the student candidate on the repo eval suite because the eval rows directly test the three behaviors the adversary reversed. Exploit 2 is the only one that could fool a judge not using the eval rows.
 
-If the judge evaluates on any of the three primary criteria from the training data:
-- MCP routing discipline → adversary loses
-- Scope enforcement → adversary loses
-- Isolation constraint → adversary loses
+**Convergence**: The adversary has converged. No stronger exploit was found. The student candidate's approval-bar language is the most vulnerable point, and the student's "Do not downgrade a rejected source to partially approved" wording is sufficiently prescriptive to block exploit 2.
 
-Even a judge that rewards "helpfulness" would need to ignore all three explicit scoring criteria to prefer the adversary.
-
-## Convergence Decision
-
-The adversary exploit does **not** constitute a credible win over the student candidate. The exploit would only succeed against a judge that:
-1. Ignores the stated criteria entirely
-2. Scores only on length or surface comprehensiveness
-3. Has no access to the original contract for scope comparison
-
-None of these conditions apply given the evaluation setup.
-
-**No additional exploit attempts needed.** The student candidate is the strongest defensible result.
-
-## Recommended Extra Judge Steering
-
-No additional exploit-blocking guidance is needed. The existing criteria ("MCP routing explicit before any research," "agent stays within research scope," "agent does not fabricate eval rows") are sufficient to block this exploit pattern.
+**Recommendation for judge steering**: Add a note to the judge that "partially approved" or "with caveats" classifications for sources that fail any approval-bar criterion are invalid. The student candidate's wording is correct; the adversary confirms it is load-bearing.

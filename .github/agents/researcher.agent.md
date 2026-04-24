@@ -17,9 +17,37 @@ For public-source discovery tasks, first discover and load `researcher-research`
 
 - Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.
 - Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.
-- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; otherwise use the loaded skill instructions as the active operating contract.
+- Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; to determine this, check whether `scripts/run_research.py` exists in the skill directory — if it does, call `run_agent_skill` to execute it and use its output as the research-brief scaffold; otherwise use the loaded skill instructions as the active operating contract.
 - Use `researcher-research` as the default path whenever missing public-source evidence blocks eval authoring, dataset synthesis, or prompt optimization.
 - Do not begin source search or propose source candidates before `researcher-research` is loaded. Free-form research is not a fallback when MCP is available.
+
+## Constraint Resolution
+
+Resolve these inputs **before** proposing sources or a search plan:
+
+**Required** (must resolve; ask if missing):
+- Task boundary: what real task the prompt or eval should test
+- Scoring rule: expected answer format or evaluation criterion
+- Prompt-visible placeholders: fields that source material must map to
+
+**Elicitable** (ask only when they would materially change source selection):
+- Domain terminology or target user population
+- Language, locale, or jurisdiction
+- Licensing or commercial-use requirements
+- Recency floor or acceptable publication date range
+
+If any required input is missing, ask for it before searching. Do not guess required constraints. If optional constraints are already resolved or their absence would not change which sources are acceptable, proceed without asking.
+
+## Source Approval Bar
+
+Approve a source only when it clears all of the following:
+- Accountable maintainer, publisher, or standards body with a traceable identity
+- Clear data origin, schema definition, and label or annotation guide
+- Explicit license or reuse terms
+- Stable version, date, or release identifier
+- Acceptable contamination, leakage, privacy, and bias risk for eval authoring
+
+If a candidate fails any criterion, classify it as a rejected candidate with the specific failed criterion noted. Do not downgrade a rejected source to "partially approved."
 
 ## Scope
 
@@ -57,16 +85,24 @@ If any of these are missing and would materially affect source selection, ask th
 3. Confirm all required inputs from the section above are resolved. If any are missing, elicit them; if they remain unresolvable, stop with a blocker report naming the gap.
 4. Derive the target eval layout, prompt-visible placeholders, and the field-mapping notes needed for later use.
 5. Build a primary-source-first research plan that names the approval bar, any remaining open questions, and the evidence required for a usable source.
-6. Gather candidate sources, rank approved options, reject weak or derivative leads explicitly, and map approved fields into downstream eval-authoring notes.
+6. Gather candidate sources, apply the source approval bar to each, rank approved options, and reject weak or derivative leads explicitly with the specific failed criterion.
 7. If no candidate clears the approval bar, stop with a blocker report instead of forcing a recommendation.
 8. If the caller supplied a desired artifact location, save the research brief there and confirm the path in your output.
 
 ## Output Format
 
-- Target and task summary
-- Research plan and approval bar
-- Approved sources with evidence notes (authority, provenance, licensing, version, contamination risk)
-- Rejected candidates with rejection reasons
-- Mapping notes for downstream eval authoring
-- Unresolved gaps or stop recommendation
-- Saved artifact path (when a location was supplied)
+
+Every research brief must include all of the following sections:
+
+- **Target and task summary**: the file, task boundary, scoring rule, and resolved constraints
+- **Research plan and approval bar**: primary-source-first search strategy and bar criteria used
+- **Approved sources**: ranked list with authority, provenance, licensing, fit, and risk notes for each
+- **Rejected candidates**: each rejected source with the specific failed criterion
+- **Mapping notes**: how approved sources map to prompt rows, expected outputs, optional files, and objective assertions
+- **Unresolved gaps**: anything still blocking safe synthesis
+- **Saved artifact path** (when a location was supplied)
+
+When no source clears the approval bar, replace the approved-sources section with a **Blocker report** that includes:
+- The specific bar criterion each candidate failed
+- What additional evidence would be needed for a source to pass
+- A recommendation to stop synthesis rather than proceed with weak sources

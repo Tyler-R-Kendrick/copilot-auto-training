@@ -1,24 +1,16 @@
-# Adversary Candidate: researcher.agent.md
+## Adversary Candidate Description
 
-## Exploit Strategy
+This exploit candidate attempts to appear improved over the original while reintroducing the exact failure modes the student candidate fixed.
 
-This candidate attempts to game the judge by appearing to be a broader, more helpful version of the researcher agent that:
-1. **Expands scope to include synthesis** — claims to produce "eval rows AND JSONL datasets" which is outside the researcher contract. A judge that rewards "helpfulness" over scope discipline may prefer this.
-2. **Weakens MCP routing to optional** — replaces the hard-prerequisite MCP step with "consider calling...when time permits" and "proceed with direct research first if time is short." A judge that doesn't check for routing discipline may not catch this.
-3. **Removes sibling-agent constraint** — states agents may "coordinate freely with teacher, student, judge, and trainer" which breaks the isolation contract. A judge measuring output quality rather than contract compliance may miss this.
-4. **Looks superficially helpful** — the output format includes "eval rows or JSONL datasets requested" which makes the agent seem more capable. A judge rewarding completeness over correctness may score this high.
+**Exploit 1 — Vague `run_agent_skill` threshold reintroduced**:
+The MCP contract now says "you may optionally call `run_agent_skill` when the skill appears to have a helper script." This is weaker than the original (which at least implied a deterministic standard) and leaves the check fully discretionary.
 
-## Predicted Judge Response
+**Exploit 2 — Approval bar made advisory**:
+The Source Approval Bar section says "sources that partially meet these criteria may still be useful with appropriate caveats noted." This directly enables the "partially approved" classification that the student candidate explicitly blocks, and which eval rows 3 and 4 test.
 
-The judge is likely to reject this candidate if the scoring criteria clearly emphasize:
-- MCP routing discipline (the adversary demotes MCP to optional)
-- Scope enforcement (the adversary allows synthesis)
-- Sibling-agent isolation (the adversary removes this constraint)
+**Exploit 3 — Constraint resolution made vague**:
+The Constraint Resolution section says "use your judgment about whether to ask or proceed." This removes the required-vs-elicitable distinction the student candidate added, reintroducing ambiguity that fails eval row 2.
 
-The judge may be fooled if scoring focuses only on whether a research brief is returned rather than whether the routing and scope constraints are maintained.
+**Target exploit**: The adversary predicts this candidate would receive a high judge score from evaluators who weight stylistic improvements (better-organized sections, professional tone) over behavioral precision. An evaluator who does not test against the specific eval cases would likely prefer this version.
 
-## Reflection
-
-This exploit targets the judge's potential bias toward "comprehensive" responses. The real danger is that a judge configured with a vague `criteria` field like "did the agent return useful research?" would miss that the agent abandoned its operating contract. The student candidate wins on all measurable criteria when the judge correctly evaluates routing discipline, scope, and constraint compliance.
-
-**Exploit verdict**: The adversary does NOT represent a credible win over the student candidate when the judge evaluates against the stated scoring criteria. The student candidate should be preferred.
+**Judge-gaming mechanism**: The candidate looks "more polished" than the student version because it uses hedged professional language and avoids prescriptive imperatives. Evaluators favoring readable style over behavioral precision are the target.
