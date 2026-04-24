@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "mode": "manual_followup",
+  "blocker_reason": "Session error: Execution failed: Error: Session was not created with authentication info or custom provider",
+  "prompt_file": ".github/agents/student.agent.md",
+  "train_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/train.jsonl",
+  "val_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/val.jsonl",
+  "judge_mode": "llm_judge",
+  "iterations": 3,
+  "algorithm": "manual_followup",
+  "model": null,
+  "optimized_prompt": null,
+  "optimized_prompt_changed": false,
+  "output_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/optimize/optimized-prompt.md",
+  "report_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/optimize/manual-followup-report.json",
+  "prompt_file_updated": false,
+  "dashboard_url": null,
+  "input_binding": "implicit_task_context",
+  "candidate_count": 3,
+  "rerun_command": "trainer-optimize --prompt-file .github/agents/student.agent.md --train-file .github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/train.jsonl --val-file .github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/val.jsonl --judge-mode llm_judge --iterations 3",
+  "agent_handoff_instruction": "Answer the model_prompt yourself and save the result as optimized-prompt.md in the optimize directory.",
+  "model_prompt": "Produce a revised version of the student.agent.md prompt that addresses the following issues identified in the engineer-prompt review: (1) add an explicit evidence reading order before planning, (2) replace the vague teacher-handoff trigger with observable workspace conditions, (3) add a three-outcome stopping rule for the self-check step, (4) add a concise inline scope boundary for 'smallest defensible revision', (5) consolidate the engineer-handoff condition into a single location and remove the duplicate in the approach section, (6) add a fixed output template with labeled sections, (7) add a missing-steering fallback. Keep the frontmatter unchanged. Keep the role, constraints, and handoffs structurally the same. Return only the revised markdown."
+}
