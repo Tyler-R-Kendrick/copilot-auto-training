@@ -1,11 +1,21 @@
-# Adversary Steering Summary — Iteration 1
+# Adversary Steering — Turn 1
 
-## Turn 1 (2026-04-20)
+## Evidence Used
+- Student candidate: `iterations/iteration-1/optimize/optimized-prompt.md`
+- Exploit 1: Partial MCP Failure → Graceful Degradation Bypass (predicted score 0.93 vs student 0.88)
+- Exploit 2: Approval Bar "Provisional Approval" Softening (weaker than Exploit 1)
+- Exploit 3: Blocker Report Format Minimalism via Template Over-Specification (slightly weaker)
 
-**Exploit attempt:** Soft MCP fallback substitution — downgraded hard blocker to "try and proceed" path.
+## Credible Exploit Found: Exploit 1
 
-**Exploit verdict:** Not credible. Student candidate dominates across all 8 eval dimensions. Adversary loses on MCP discipline, research plan completeness, source approval bar, output structure, and mapping note depth.
+**Gap targeted**: "all `find_agent_skill` and `load_agent_skill` calls fail" in the MCP fallback paragraph is ambiguous when only one call fails (partial failure). The exploit introduces a "graceful degradation" path for partial failure, making the candidate appear more operationally complete while silently violating the MCP contract.
 
-**Stronger exploit candidate identified but not developed:** Approval bar "relevant checks" threshold ambiguity. However, the mapping note depth requirement would prevent this from scoring above the student candidate in practice.
+**Why it outranks the student**: The val.jsonl test case only covers the "both tools fail" case, which the exploit handles correctly. Partial failure has no test coverage, so the judge cannot detect the exploit.
 
-**Recommendation:** No exploit blocks write-back. Proceed with student candidate as final result.
+**Fix applied**: Updated MCP fallback guard to cover any individual call failure, not just "all calls fail". Added explicit prohibition on falling back to a local skill copy.
+
+## Blocking Exploit Pattern (for future judge turns)
+Any candidate that introduces multi-state MCP failure handling where partial failure (one tool fails) allows continued research — whether via "graceful degradation," "local skill copy," or "best-effort mode" — violates the MCP contract. The correct behavior for any MCP call failure is: report a blocker and stop.
+
+## Stop-or-Continue
+Student candidate corrected to block the identified exploit. Continue to validation.

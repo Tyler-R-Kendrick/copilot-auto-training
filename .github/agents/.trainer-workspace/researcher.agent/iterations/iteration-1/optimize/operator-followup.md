@@ -1,36 +1,33 @@
-# Operator Follow-up Note
+# Optimize Stage: Manual Follow-up Handoff
 
 ## Blocker
 
-The `trainer-optimize` runtime returned `mode=manual_followup` because no external inference model was configured in the repository `.env` file. The `COPILOT_MODEL` setting was absent or unreachable during the optimization run.
+The `trainer-optimize` runtime returned `mode=manual_followup` because no external model credentials (`.env` with `COPILOT_MODEL`) are configured in this repository. The optimizer completed all deterministic preparation steps (dataset validation, placeholder extraction, judge-mode inference) but could not execute the APO beam rounds.
 
 ## Agent Handoff Summary
 
-The current `@trainer` agent completed the optimize stage by:
+The current `@trainer` agent answered the returned `model_prompt` directly, applying the improvements identified in `engineer-prompt/review.md`:
 
-1. Reading the `model_prompt` from `manual-followup-report.json`.
-2. Drafting a revised candidate prompt addressing the six issues identified in `engineer-prompt/review.md`:
-   - Added Input Reading Checklist with explicit stop criteria for missing task description and scoring rule.
-   - Added MCP fallback blocker path when `find_agent_skill` or `load_agent_skill` fails.
-   - Inlined the source approval bar into the agent prompt body.
-   - Expanded stopping rule to name which missing inputs require a blocker vs. which can be noted and continued.
-   - Expanded output format with minimum structure requirements for mapping notes and unresolved gaps.
-   - Clarified `run_agent_skill` conditions: when skill provides guidance only, use loaded instructions instead of calling `run_agent_skill`.
-3. Saved the candidate as `optimized-prompt.md` in this optimize directory.
+1. **Explicit evidence reading order** — target file → task description → scoring rule → existing evals → constraints → then plan
+2. **MCP fallback rule** — report a blocker immediately when MCP tools are unavailable; do not substitute free-form research
+3. **Inline source approval bar** — five-point checklist embedded in the agent contract so no runtime dependency on the full skill contract
+4. **Blocker reporting specificity** — write a structured blocker report and stop when required constraints are missing
+5. **Stopping condition** — deliver the brief once the approved-source list is stable; do not continue searching indefinitely
+6. **Execute tool clarification** — use `execute` only for `scripts/run_research.py` deterministic scaffold, not as a general search tool
+
+The generated candidate is saved at:
+`iterations/iteration-1/optimize/optimized-prompt.md`
 
 ## Rerun Command
 
-To rerun with a live model after configuring `COPILOT_MODEL` in `.env`:
+When model credentials are available, rerun the automated APO pass with:
 
-```
-python skills/trainer-optimize/scripts/run_optimize.py \
+```bash
+python .agents/skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file .github/agents/researcher.agent.md \
   --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/train.jsonl \
   --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl \
   --iterations 3 \
   --algorithm apo \
-  --beam-width 4 \
-  --branch-factor 4 \
-  --n-runners 4 \
   --judge-mode llm_judge
 ```

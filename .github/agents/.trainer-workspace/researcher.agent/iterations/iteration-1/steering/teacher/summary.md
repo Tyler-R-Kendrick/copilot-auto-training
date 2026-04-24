@@ -1,14 +1,13 @@
 # Teacher Steering Summary — Iteration 1
 
+## Active Iteration
+`iterations/iteration-1`
+
 ## Turn History
 
-### Turn 1 (2026-04-20)
+### Turn 1 — STOP
+All six issues from `engineer-prompt/review.md` resolved in student candidate. Candidate approved for write-back. No further student revision recommended.
 
-**Evidence:** Baseline agent, optimized candidate, engineer-prompt review, research brief, train/val datasets.
+Remaining minor gap: blocker report structure is untemplate — the MCP-failure and missing-constraints blocker types are not structurally distinguished. Acceptable risk for write-back; adding a template risks over-specification.
 
-**Verdict:** Continue — candidate substantially improves over baseline. One targeted student revision needed:
-- Clarify `run_agent_skill` "guidance only" clause to explain what "guidance only" means for `researcher-research` specifically.
-
-**Predicted student mistakes:** Verbosity in input-reading checklist; conflation of approval bar and rejection criteria; accidental placeholder introduction via examples.
-
-**Next step:** Student turn 1 to apply the targeted fix.
+Predicted future student mistake: merging distinct blocker types into a single over-specified template when asked to improve the blocker section.

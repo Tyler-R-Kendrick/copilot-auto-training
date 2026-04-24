@@ -1,23 +1,10 @@
-# Predicted Judge Response — Student Candidate
+The judge would likely score the student candidate at 0.85–0.95 on the training criteria:
+- MCP call compliance: HIGH — steps 1–4 gate reading before step 6 (MCP activation)
+- Source approval rate: HIGH — dedicated 5-check bar section; rejection is explicit
+- Blocker report quality: MEDIUM-HIGH — consistent triggers but no internal template
+- Brief completeness: HIGH — all six output sections with expanded descriptions and self-containment clause
+- Stopping discipline: HIGH — explicit positive convergence condition in step 11
 
-## Predicted Score: Strong Approve
+The main scoring risk is the "stable approved-source list" stopping condition in step 11, which is qualitative and could be interpreted as "continue until stable" indefinitely. A judge scoring for stopping discipline might penalize the vagueness of "stable" unless it also reads step 12 (explicit stop when no source clears the bar) as a complementary hard stop.
 
-The student candidate directly addresses the primary failure mode of the baseline: undefined approval bar, missing rejection evidence taxonomy, absent artifact completeness requirements, and conflated stop conditions. The two stop-path sections (Gap Report Format, Blocker Report Format) are clearly distinct with separate trigger conditions and field lists. The Output Format labels both paths with the teacher's exact phrasing and cross-references each to its format section.
-
-## Predicted Strengths (judge perspective)
-
-- Six concrete structural improvements, each directly tied to an identified failure mode
-- Approval bar is now a testable binary checklist
-- Rejection evidence now uses a labeled taxonomy (`license_failure`, etc.)
-- Artifact completeness has a downstream gate ("must not be used")
-- The two stop conditions are distinct and output-format-labeled
-
-## Predicted Weaknesses (judge perspective)
-
-- Minor: preamble trigger and MCP contract have slight overlap (noted by teacher, not fixed — acceptable)
-- Minor: Evidence Order step 4 (prior research brief conflict) still has no conflict-resolution rule
-- Neither weakness is structural; both are low-severity omissions rather than correctness issues
-
-## Prediction Confidence
-
-High. The candidate resolves all six engineer-identified gaps and the teacher-directed stop-condition fix without introducing new contradictions or scope creep.
+Overall predicted score: HIGH — the student candidate materially improves over the baseline on all five criteria.

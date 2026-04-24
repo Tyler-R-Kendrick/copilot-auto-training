@@ -4,7 +4,7 @@
   "workspace_parent": ".github/agents",
   "prompt_name": "researcher.agent",
   "workflow_state": "complete",
-  "updated_at": "2026-04-20T21:03:45Z",
+  "updated_at": "2026-04-19T21:06:41Z",
   "required_artifacts": {
     "engineer_prompt_review": ".github/agents/.trainer-workspace/researcher.agent/engineer-prompt/review.md",
     "source_snapshot": ".github/agents/.trainer-workspace/researcher.agent/inputs/source/researcher.agent.md",
@@ -28,5 +28,5 @@
     "steering": "Write one steering artifact per agent turn to iterations/iteration-N/steering/<agent>/turn-N/STEERING.md and keep per-agent summaries in iterations/iteration-N/steering/<agent>/summary.md. Use latest_iteration_dir plus the active iteration's steering/, optimize/, election/, and validation/ outputs as the iteration steering bundle. Use workspace-root decision.md, benchmark.json, benchmark.md, and review.html as the cross-run rollup steering bundle.",
     "decision": "Summarize the winning prompt decision and validation outcome in decision.md."
   },
-  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout."
+  "notes": "Run /engineer-prompt first, then @trainer. Keep repo-specific optimization artifacts in .trainer-workspace instead of a generic copied eval layout. Do not write trainer output into Judge-owned files; keep judge steering as read-only workspace artifacts."
 }

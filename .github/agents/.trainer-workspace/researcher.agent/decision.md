@@ -1,38 +1,36 @@
-# Decision Summary — researcher.agent.md
+# Decision Summary — researcher.agent
 
 ## Target
-
 `.github/agents/researcher.agent.md`
 
 ## Workspace
-
 `.github/agents/.trainer-workspace/researcher.agent/`
 
-## Winner
-
-**Student candidate** (iteration-1) — based on optimizer output with one targeted teacher-guided fix.
-
-## Why This Candidate Was Chosen
-
-The student candidate addressed all six issues identified in the engineer-prompt review:
-
-1. **Input Reading Checklist** added with explicit stop criteria for missing task description and scoring rule.
-2. **MCP Fallback Blocker** added: when `find_agent_skill` or `load_agent_skill` fails, agent stops with a named blocker report.
-3. **Source Approval Bar** inlined into agent body so the agent can apply standards even when MCP skill load fails.
-4. **Stopping Rule Expanded** to distinguish hard-stop inputs (task description, scoring rule) from soft-gap inputs (domain, licensing, recency).
-5. **Output Format Expanded** with non-trivial content requirement and minimum mapping note structure (field-to-eval-row mapping per approved source).
-6. **`run_agent_skill` Condition Clarified**: when the skill provides guidance only (no `scripts/` helper or instructions-only), use loaded instructions directly.
-
-## Adversary Result
-
-Soft MCP fallback substitution exploit was attempted and found not credible. Student candidate dominates across all 8 eval dimensions.
-
-## Validation
-
-`python -m pytest -q` → **856 passed** (0 failures)
+## Selection Reason
+First `.agent.md` file alphabetically without an existing trainer workspace.
 
 ## Iteration
+`iteration-1` (new run)
 
-- `iterations/iteration-1/` contains all research, synthesize, optimize, candidates, steering, and validation artifacts.
-- Optimize stage ran as `manual_followup` (no inference model configured). Agent answered `model_prompt` and saved as `optimized-prompt.md`.
-- One teacher steering turn and one student revision turn completed.
+## Optimize Stage
+`manual_followup` — no model credentials configured. `@trainer` agent answered the returned `model_prompt` directly.
+
+## Candidate Chosen
+**Student candidate** from `iterations/iteration-1/optimize/optimized-prompt.md`
+
+### Improvements Over Baseline
+1. **Evidence reading order** — Steps 1–4 sequence: target file → task description/scoring rule → existing evals → stop and plan
+2. **MCP fallback rule** — Any individual MCP call failure triggers a blocker; no graceful degradation or local skill fallback allowed
+3. **Inline source approval bar** — Dedicated section with 5 binary checks
+4. **Blocker reporting consistency** — Consistent trigger language across step 5, Constraints, MCP fallback
+5. **Stopping condition** — Step 11: stop once approved-source list is stable and mapping notes are actionable
+6. **Execute scope** — Restricted to `scripts/run_research.py`
+
+### Adversary Fix
+Adversary found a credible exploit (partial MCP failure → graceful degradation, predicted score 0.93 vs 0.88). Student candidate updated to cover any individual call failure (`find_agent_skill` fails OR `load_agent_skill` fails) and prohibit local skill copy fallback.
+
+## Validation
+`856 passed` — no regressions.
+
+## Write-Back
+Applied to `.github/agents/researcher.agent.md`.

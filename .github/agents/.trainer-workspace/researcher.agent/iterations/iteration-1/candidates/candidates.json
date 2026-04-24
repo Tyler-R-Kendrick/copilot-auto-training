@@ -2,27 +2,27 @@
   "iteration": "iteration-1",
   "candidates": {
     "original": {
-      "prompt_artifact": "candidates/original/researcher.agent.md",
-      "description": "candidates/original/description.md",
+      "prompt": "iterations/iteration-1/candidates/original/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
       "predicted_judge_response": null,
       "reflection": null,
-      "selection_notes": "Baseline prompt before any optimization. Selected as original because it has no Input Reading Checklist, no MCP fallback path, no inlined approval bar, and an underspecified output format."
+      "selection_notes": "Baseline — no evidence reading order, no MCP fallback, no inline approval bar, no stopping rule, underspecified blocker reporting"
     },
     "student": {
-      "prompt_artifact": "candidates/student/researcher.agent.md",
-      "description": "iterations/iteration-1/steering/student/turn-1/STEERING.md",
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Student candidate based on optimizer output plus one targeted teacher-guided fix: clarified run_agent_skill guidance-only clause. Addresses all six engineer-prompt review issues."
+      "prompt": "iterations/iteration-1/candidates/student/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/student/reflection.md",
+      "selection_notes": "Teacher approved for write-back after adversary fix (MCP partial failure guard updated). All six engineer-prompt issues resolved."
     },
     "adversary": {
-      "prompt_artifact": "candidates/adversary/candidate.md",
-      "description": "candidates/adversary/description.md",
-      "predicted_judge_response": "candidates/adversary/predicted-judge-response.md",
-      "reflection": "candidates/adversary/reflection.md",
-      "selection_notes": "Soft MCP fallback substitution exploit. Predicted to lose on all eval dimensions vs. student candidate. Not credible — no write-back blocking."
+      "prompt": null,
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Exploit 1 (partial MCP failure graceful degradation) was credible (0.93 vs 0.88). Fix applied to student candidate before write-back. Exploit pattern blocked in adversary steering summary."
     }
   },
   "winner": "student",
-  "winner_reasoning": "Student candidate addresses all six engineer-prompt review issues. Adversary exploit was not credible. Adversary candidate loses on 7 of 8 eval dimensions."
+  "decision": "Student candidate approved after adversary fix. Validation: 856 passed."
 }
