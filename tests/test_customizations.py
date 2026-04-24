@@ -264,13 +264,13 @@ class TestAgentCustomizations:
         assert 'Do not take over judging, adversarial review, or trainer-loop orchestration.' in text
         assert 'Do not use `engineer-prompt`, `engineer-code`, or any other engineer skills directly.' in text
         assert 'You are a specialist in teacher-guided candidate revision.' in text
-        assert 'Use the `teacher` handoff whenever the critique is incomplete' in text
+        assert 'Use the `teacher` handoff when no active-iteration `STEERING.md` exists' in text
         assert 'Use the `engineer` handoff to format your reasoning trajectory and solution plan into a clearer teacher-ready explanation' in text
-        assert 'Implement the smallest defensible candidate revision' in text
+        assert 'Implement the smallest defensible revision' in text
         assert "Treat turn-scoped `steering/<agent>/turn-N/STEERING.md` artifacts and the active iteration's per-agent `steering/<agent>/summary.md` files as the guidance record" in text
-        assert 'pre-emptively predict whether the `teacher` would approve the revision' in text
+        assert 'three-outcome self-check' in text
         assert 'Do not return answer-only output; expose the plan, reasoning trajectory, tradeoffs, and uncertainty' in text
-        assert 'chain-of-thought, tree-of-thought, chain-of-uncertainty-thought, sketch-of-thought' in text
+        assert 'chain-of-thought, tree-of-thought' in text
 
     def test_adversary_agent_contract_structure(self):
         agent_path = REPO_ROOT / ".github" / "agents" / "adversary.agent.md"
