@@ -1,11 +1,11 @@
-# Teacher Steering Summary — researcher.agent
+# Teacher Steering Summary — Iteration 1
 
-## Turn 1 (2026-04-23)
+## Turn 1 Summary
+- Inspected engineer-prompt review, source snapshot, training dataset, and manual-followup report
+- Identified 5 gaps in baseline: no-op path, missing-constraint handling, MCP fallback, ambiguous agent constraint, inline/artifact output guidance
+- Trainer-authored student candidate addresses all 5 gaps with minimal additions
+- Adversary review confirmed the additions are scored behaviors, not style
+- Decision: **proceed to write-back**, no further revision needed
 
-**Verdict:** APPROVE_WITH_MINOR_EDITS  
-**Evidence:** Original file, optimized candidate, engineer-prompt review  
-
-All 5 improvements from the engineer-prompt review were correctly implemented. One minor regression: the MCP contract bullet hard-coded `scripts/run_research.py` as the helper filename without workspace artifact verification. Teacher recommended replacing with a general reference to "the deterministic helper exposed under `scripts/` by the loaded skill contract".
-
-**Action:** Apply targeted edit to optimized-prompt.md, then write back and validate.  
-**Loop status:** Complete after edit — no further teacher revision needed.
+## Iteration Outcome
+Student candidate wins. Write the optimized content to the target file and run validation.

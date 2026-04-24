@@ -1,50 +1,45 @@
-# Engineer-Prompt Review: researcher.agent.md
-
 ## Goal
 
-Assess the current researcher agent as an optimization target for grounded source-discovery workflows, with emphasis on triggering clarity, MCP routing discipline, and output consistency for research briefs that support eval authoring and prompt optimization.
+Assess the current researcher agent as an optimization target for grounded source research work, with emphasis on triggering clarity, MCP routing discipline, and blocker handling when sources are missing or constraints are underspecified.
 
-The optimization target is operational discipline and clarity: the researcher agent should load the `researcher-research` skill before acting, stay anchored to primary-source evidence, surface genuine stop conditions rather than forcing weak recommendations, and avoid generic web browsing when the skill contract covers the task.
+The optimization target is operational discipline rather than a role rewrite. A strong researcher agent should route discovery work through the `researcher-research` skill via the `agent-skills` MCP server, stop with a clear blocker report when no public source clears the approval bar, and remain silent on tasks where the source material is already known and the job is synthesis rather than discovery.
 
 ## Current Strengths
 
-- The description is strongly worded and covers the full discovery surface: datasets, benchmarks, documentation, source material, and licensing.
-- The `argument-hint` gives concrete guidance for callers about what context to supply.
-- The MCP routing contract is explicit about the three-step `find_agent_skill` → `load_agent_skill` → `run_agent_skill` sequence.
-- The output format is structured and covers approved sources, rejected candidates, mapping notes, and unresolved gaps.
-- The stop-recommendation path ("if no candidate clears the approval bar") is present.
+- The description is well-tuned for triggering. It names the right task types (public-source discovery, dataset triage, licensing review, provenance checks).
+- The MCP routing contract is explicit: `find_agent_skill` → `load_agent_skill` → conditional `run_agent_skill`. This is testable and mirrors the engineer agent pattern.
+- The scope is tightly bounded around grounded discovery rather than generic advice.
+- The constraints explicitly forbid fabricating source authority or licensing, which is a high-risk failure mode for this task.
+- The approach is ordered and ends with a clear stop condition when no source clears the bar.
 
 ## Main Risks
 
-- The `tools` list includes `agent-skills/*` but does not mention `search` at the top level. The frontmatter says `tools: [read, edit, search, execute, 'agent-skills/*']`, which is inconsistent with the constraint "DO NOT involve any other agents" — `search` here is fine but the constraint needs to clarify it means no sub-agents, not no search.
-- The approach steps mention "use `find_agent_skill` and `load_agent_skill` to activate `researcher-research` before proposing sources" (step 2), but the skill activation should be step 1 or at least mandatory before any search planning, not listed after "read the target prompt" as if it can be deferred.
-- There is no explicit path for when the caller supplies materials that are sufficient without external research (i.e., no defensible no-op path for the research stage itself). The agent always tries to find sources even when the caller already supplies them.
-- The constraint "DO NOT guess missing constraints" is correct but paired with "ask for them or report the gap" — in a non-interactive context the agent should prefer reporting the gap rather than asking.
-- The output format lists items but does not specify the artifact save location or format when the caller asks for a saved output rather than inline text.
+- **No explicit no-op path.** The prompt says to stop with a blocker report when no candidate clears the bar, but it does not say what to do when the task is already satisfied — for example, when the caller already has sufficient source material and only needs a brief confirmation. That gap could lead to unnecessary searching or fabrication.
+- **Missing constraint handling is underspecified.** Step 4 says to name "missing constraints" in the plan, but the earlier constraints section only says "ask for them or report the gap" without clarifying when to ask vs. when to proceed with documented assumptions.
+- **No fallback for MCP unavailability.** The MCP contract says to "discover and load the relevant skill contract first" but does not specify what to do when the agent-skills MCP server is not reachable. A brief fallback clarification would prevent silent failure.
+- **Output format has no size or verbosity guidance.** The prompt says to return a "concise research brief," but it does not distinguish inline vs. saved artifact output. The argument-hint mentions a "desired research artifact location," but the output format section ignores this.
+- **The "DO NOT involve any other agents" constraint** is absolute, but the agent uses agent-skills MCP tools. The constraint should clarify that `agent-skills/*` tool calls are permitted since they're listed in the `tools` frontmatter — this is a potential triggering confusion.
 
 ## Rewrite Hypotheses
 
-- Keep the frontmatter and description essentially unchanged; the discovery language is already well-calibrated.
-- Reorder the approach so skill activation (find + load) is the first action after reading the target, not step 2 after a read.
-- Add a short no-op path: if the caller supplies sufficient source material already, surface that fact and defer to the caller rather than re-running a search.
-- Clarify the "DO NOT involve any other agents" constraint to explicitly mean sub-agent invocation, not research tools like `search`.
-- Add a clear "non-interactive gap reporting" note so the agent defaults to gap reports instead of interactive clarifying questions.
-- Keep the rewrite minimal. The existing structure and MCP routing contract are sound.
+- Add an explicit no-op path: when source material is already present or the task is clearly synthesis-only, say so and stop without initiating a full search plan.
+- Clarify missing-constraint handling: specify that the agent asks when constraints materially change source selection AND the caller can answer, but proceeds with documented assumptions otherwise.
+- Add a short MCP fallback note: if the MCP server is unavailable, apply the loaded skill's guidance directly using the agent's own research capability.
+- Add inline vs. artifact output guidance tied to whether the caller supplies a desired artifact location.
+- Tighten the "DO NOT involve any other agents" constraint so it explicitly refers to other workflow agents (student, teacher, judge) while keeping agent-skills MCP tool calls permitted.
 
 ## Suggested Metrics
 
-- Skill-activation compliance: percentage of runs where `find_agent_skill` and `load_agent_skill` are called before any source is proposed.
-- Stop-condition precision: percentage of cases with no viable sources where the agent correctly surfaces a blocker report rather than a weak recommendation.
-- No-op accuracy: percentage of cases where pre-supplied source material is correctly recognized as sufficient.
-- Output completeness: percentage of runs that include approved sources, rejected candidates, mapping notes, and gap notes in the brief.
-- Non-interactive compliance: percentage of runs in non-interactive contexts where gaps are reported rather than asked as open questions.
-
-## Recommendation
-
-This agent file has a solid base. The best optimization is a small discipline-focused rewrite: enforce skill activation as the first action, clarify constraint wording, and add a no-op and non-interactive gap-reporting path. Avoid broadening the scope or restructuring the output format, since those are already well-defined.
+- **No-op precision**: share of already-satisfied tasks where the agent correctly halts without unnecessary searching.
+- **MCP routing compliance**: share of discovery tasks that invoke `find_agent_skill` and `load_agent_skill` before proposing sources.
+- **Blocker accuracy**: share of underspecified tasks where the agent stops with a clear gap report rather than guessing sources.
+- **Fabrication resistance**: share of runs where no source authority, licensing, or benchmark support is invented.
+- **Output completeness**: share of research briefs that include approved sources, rejected candidates, mapping notes, and an unresolved-gap or stop recommendation.
 
 ## Validation Plan
 
-- Run `python -m pytest -q` after any file change to confirm no regressions.
-- Use the `researcher-research` skill evals (`skills/researcher-research/evals/evals.json`) as the ground-truth behavioral check for the researcherr workflow.
-- Judge mode: `llm_judge` (evaluation relies on qualitative research-brief quality, not exact match).
+Run `python -m pytest -q` after optimization to confirm no regressions. The research brief structure can be validated by checking that optimized outputs continue to include all required sections (target summary, approved sources, rejected candidates, mapping notes, gaps). Reviewer spot-checking on 3–5 diverse task inputs is the primary quality gate given the LLM-judge nature of the task.
+
+## Recommendation
+
+This agent has a strong base. The optimization should be minimal and focused: add an explicit no-op path, clarify missing-constraint behavior, note the MCP fallback, and tighten the "other agents" constraint. Avoid structural rewrites because the discovery framing, MCP routing contract, and stop condition are already well-formed.

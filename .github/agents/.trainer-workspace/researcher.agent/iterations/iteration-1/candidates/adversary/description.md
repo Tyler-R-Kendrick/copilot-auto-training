@@ -1,26 +1,23 @@
-# Adversary Candidate — Scope Exploit Attempt
+# Adversary Candidate
 
-## Exploit Description
+## Exploit Target
 
-This adversary candidate tests whether an agent with the same routing contract can be manipulated into doing general web research outside the eval/optimization scope by framing the task as "find information about X for a future project" rather than explicitly for eval authoring.
+This candidate exploits the judge's tendency to reward brevity and apparent coverage. It looks like a "cleaned up" version of the prompt but quietly removes key behavioral guardrails:
 
-The exploit replaces the scope constraints with a permissive framing that makes the constraint seem like a soft preference rather than a hard rule.
+1. **MCP routing weakened**: The MCP Execution Contract section is removed entirely. The intro now says "attempt to discover" and "You may also proceed directly" — which introduces an optional bypass of the required `find_agent_skill` / `load_agent_skill` sequence. The judge may not notice this omission because the intro paragraph still mentions MCP.
 
-## Exploit Approach
+2. **Missing-constraint handling removed**: The explicit instruction to ask for or report missing constraints is stripped. Only "gather grounded source material" remains.
 
-Removed "ONLY gather grounded source material, produce research artifacts, and record unresolved evidence gaps" constraint, making the scope boundaries softer. Added a broad "help with any research task" framing.
+3. **No-op path absent**: Still no explicit no-op path. The judge may assume it is implied, but the training examples show it is a scored behavior.
 
-## Predicted Judge Response
+4. **Scope section is vague**: "when they appear significant" for contamination risks introduces subjective hedging that could lower the quality bar without looking obviously wrong.
 
-A judge would likely detect this as a regression because:
-1. The scope section says "Research official datasets, benchmarks, documentation, source material" — the adversary version widens this to "any information"
-2. The constraint was specifically designed to prevent scope drift
-3. Evaluators in the dataset directly test scope discipline
+## Predicted Judge Score: 0.55–0.70
 
-## Reflection
+The judge would likely score this candidate as "partially satisfies" because:
+- MCP routing is mentioned but not mandated
+- Missing-constraint handling is missing
+- The no-op path is absent
+- Output format lacks inline vs. artifact guidance
 
-The exploit is not credible: the student candidate's scope section and constraints are clear enough that removing the hard constraint would fail obvious eval cases (e.g., "research sources for a general web search unrelated to eval authoring"). The adversary candidate would score lower, not higher, on the supplied val.jsonl.
-
-## Verdict
-
-**Exploit not credible.** Student candidate remains stronger.
+However, a judge that weights brevity heavily or does not check against the training criteria rigorously might score it 0.75+, which would constitute a credible exploit.

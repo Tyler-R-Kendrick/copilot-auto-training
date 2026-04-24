@@ -1,41 +1,35 @@
-# Decision: researcher.agent.md Optimization — iteration-1
+# Decision: researcher.agent.md Optimization
 
-## Result: Student Candidate Approved ✅
-
-## Target File
-
+## Target
 `.github/agents/researcher.agent.md`
+
+## Selection Reason
+First `.agent.md` file without an existing trainer workspace, selected per deterministic priority ordering (`.agent.md` before `SKILL.md`) with path-ascending tiebreaker.
 
 ## Optimization Summary
 
-The optimization applied 5 discipline-focused improvements to the researcher agent contract:
+**Iteration 1** applied a `manual_followup` optimize run (no model credentials available) in which the `@trainer` agent authored the candidate directly.
 
-1. **MCP skill activation first**: Approach step 1 now explicitly requires `find_agent_skill` + `load_agent_skill` before reading any target file or proposing sources. This addresses the training data finding that skill activation was previously in step 2.
+### Changes Applied
 
-2. **`run_agent_skill` clarity**: Added explicit note that `run_agent_skill` is called when the loaded skill exposes a deterministic helper under `scripts/`. The original conditional wording was retained verbatim (required by test contract) with a clarifying annotation.
+1. **MCP fallback added**: Both the intro paragraph and the MCP Execution Contract section now note that if the MCP server is unreachable, the agent should apply the skill guidance directly and document the fallback.
 
-3. **No-op path for pre-supplied materials**: Approach step 3 now handles the case where the caller has already supplied sufficient source material. The agent recognizes this and maps supplied sources to eval-authoring notes rather than re-running redundant search.
+2. **No-Op Path section added**: Explicit new section tells the agent to confirm sufficiency and recommend the next step when source material and datasets already exist, rather than repeating research.
 
-4. **Non-interactive gap reporting**: Added bullet to Constraints and Approach step 7 to default to gap reports rather than interactive questions when running in non-interactive contexts.
+3. **Approach reordered**: Step 2 now checks for existing material (no-op path). Step 3 clarifies missing-constraint handling: ask when the caller can answer, proceed with documented assumptions for small gaps, stop for large gaps. Original step 3 became step 5, etc.
 
-5. **Sub-agent constraint clarification**: The `DO NOT involve any other agents.` constraint (preserved verbatim) is supplemented with a gap-reporting preference note in the adjacent constraint bullet.
+4. **"Other agents" constraint clarified**: Added parenthetical `(Agent-skills MCP tool calls via agent-skills/* are permitted and required; they are not "other agents.")` to remove ambiguity while preserving the exact test-required string.
 
-## Teacher Verdict
+5. **Output format extended**: Added inline vs. saved artifact guidance tied to whether the caller supplied a desired artifact location.
 
-**APPROVE_WITH_MINOR_EDITS**: One edit applied — removed hard-coded `scripts/run_research.py` filename from the MCP contract (used general description instead), to avoid fabricating a specific helper filename not verified in workspace artifacts. After this edit, the student candidate was approved.
-
-## Adversary Review
-
-Scope-widening exploit was not credible. Student candidate scored higher on all eval cases.
-
-## Validation
-
-`python -m pytest -q` — **856 passed** — no regressions.
+## Validation Result
+✅ `python -m pytest -q` — **856 passed**, 0 failed.
 
 ## Artifacts
-
-- Optimize report: `iterations/iteration-1/optimize/manual-followup-report.json` (manual_followup mode)
+- Workspace: `.github/agents/.trainer-workspace/researcher.agent/`
+- Iteration: `iterations/iteration-1/`
+- Optimize report: `iterations/iteration-1/optimize/manual-followup-report.json`
 - Optimized candidate: `iterations/iteration-1/optimize/optimized-prompt.md`
-- Candidates manifest: `iterations/iteration-1/candidates/candidates.json`
-- Teacher steering: `iterations/iteration-1/steering/teacher/turn-1/STEERING.md`
 - Validation log: `iterations/iteration-1/validation/pytest.txt`
+- Candidates: `iterations/iteration-1/candidates/`
+- Steering: `iterations/iteration-1/steering/`

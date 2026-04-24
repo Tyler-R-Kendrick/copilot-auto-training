@@ -1,18 +1,16 @@
 # Original Candidate
 
-This is the original `researcher.agent.md` before optimization.
+The baseline `researcher.agent.md` as it existed before this optimization run.
 
-## Known Issues (from engineer-prompt review)
+## Key Properties
+- Strong MCP routing contract with `find_agent_skill` / `load_agent_skill` / conditional `run_agent_skill`
+- Clear scope bounded to grounded discovery
+- Explicit fabrication prohibition
+- Stop condition when no source clears the bar
 
-1. Skill activation step deferred to step 2 (after "Read the target file" in step 1)
-2. `run_agent_skill` condition is ambiguous ("only when skill exposes deterministic helper")
-3. No explicit no-op path for pre-supplied source materials
-4. "DO NOT involve any other agents" is ambiguous about search/read tools
-5. Non-interactive gap reporting not specified (defaulting to asking questions)
-
-## Predicted Judge Response
-
-The original scores lower on:
-- MCP skill activation compliance (step ordering)
-- Non-interactive context handling
-- Pre-supplied materials recognition
+## Known Gaps
+- No explicit no-op path for already-satisfied tasks
+- Missing-constraint handling says "ask or report" but does not specify when to ask vs. proceed
+- No MCP fallback for server unavailability
+- "DO NOT involve any other agents" constraint is ambiguous about agent-skills MCP tools
+- No inline vs. saved artifact guidance in output format

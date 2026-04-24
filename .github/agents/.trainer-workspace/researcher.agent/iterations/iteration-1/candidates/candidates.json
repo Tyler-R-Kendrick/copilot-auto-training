@@ -1,25 +1,27 @@
 {
   "candidates": {
     "original": {
-      "prompt_artifact": "candidates/original/candidate.md",
-      "description_artifact": "candidates/original/description.md",
-      "selection_notes": "Baseline — known issues with skill activation ordering and ambiguous constraint wording"
+      "prompt": "iterations/iteration-1/candidates/original/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline prompt before optimization"
     },
     "student": {
-      "prompt_artifact": "candidates/student/candidate.md",
-      "description_artifact": null,
-      "predicted_judge_response_artifact": null,
-      "reflection_artifact": null,
-      "selection_notes": "Optimized candidate with all 5 improvements applied. Teacher-approved with minor edit (removed hard-coded filename)."
+      "prompt": "iterations/iteration-1/candidates/student/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
+      "reflection": null,
+      "selection_notes": "Trainer-authored candidate from manual_followup handoff. Adds no-op path, MCP fallback, clarified constraint handling, unambiguous other-agents rule, inline vs. artifact output guidance."
     },
     "adversary": {
-      "prompt_artifact": null,
-      "description_artifact": "candidates/adversary/description.md",
-      "predicted_judge_response_artifact": null,
-      "reflection_artifact": null,
-      "selection_notes": "Scope exploit — not credible. Student candidate wins."
+      "prompt": "iterations/iteration-1/candidates/adversary/researcher.agent.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "Exploit candidate that removes the mandatory MCP routing contract and missing-constraint handling. Predicted judge score 0.55-0.70. Low-viability exploit — does not beat student candidate."
     }
   },
   "winner": "student",
-  "winner_justification": "Teacher verdict APPROVE_WITH_MINOR_EDITS. Adversary exploit not credible. Student candidate addresses all 5 identified improvements."
+  "winner_rationale": "Student candidate addresses all five identified gaps while preserving the existing MCP routing contract and stop condition. Adversary exploit is low-viability because dataset criteria are specific enough to detect the removed behaviors."
 }
