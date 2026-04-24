@@ -1,17 +1,21 @@
-## Student Candidate
+# Student Candidate Description
 
-The student candidate is the optimized prompt from the manual_followup pass with teacher-guided verification applied.
+## Changes from Baseline
 
-**Verified additions over original:**
-1. Explicit evidence reading order in approach step 1.
-2. Elicitation step (approach step 2) that stops before search when constraints are missing.
-3. Fallback to loaded skill instructions in BOTH the MCP contract section and approach step 3.
-4. Compact source approval bar section directly in the agent (no new placeholders introduced).
-5. Blocker-report format named and described in the output format section.
-6. `argument-hint` now distinguishes required from recommended from optional inputs.
+The student candidate applies six targeted improvements from the engineer-prompt review:
 
-**Reasoning:**
-- Fallback appears in both MCP contract (bullet 3) and approach (step 3), satisfying teacher requirement.
-- Approval bar uses no placeholder syntax — only prose bullets.
-- Output format section includes parenthetical guidance for the blocker-report shape.
-- The candidate predicts teacher approval on all three verification points.
+1. **Pre-Research Constraint Check** (new section): specifies a fixed four-step reading order (prompt file → task description → scoring rule → source constraints) and requires surfacing a blocker before calling `find_agent_skill` when the scoring rule or task boundary is missing.
+
+2. **`run_agent_skill` guard clause** (MCP contract clarification): after loading, the agent checks whether the loaded skill contract mentions a helper under `scripts/` (specifically `scripts/run_research.py`). If yes, call `run_agent_skill`. If not, use the loaded instructions directly.
+
+3. **Blocker-report step** (Approach step 1): if required inputs are missing after the constraint check, surface the gap and wait for clarification before proceeding.
+
+4. **Synthesis boundary** (Scope): "Stop at mapping notes. Do not author eval rows, train.jsonl entries, or val.jsonl entries; that work belongs to a synthesis workflow."
+
+5. **Artifact path guidance** (Approach step 8): when the caller requests a saved artifact, save the research brief under `iterations/iteration-N/research/` and return the path.
+
+6. **Output format descriptions** (Output Format): each of the six sections now includes a one-to-three sentence description of minimum required content and expected depth, with an explicit note that the stop recommendation section is always present.
+
+## Predicted Judge Response
+
+The judge should score this candidate higher than the baseline on MCP activation rate, blocker-report accuracy, brief completeness, and stop-recommendation precision. The improvements are targeted and minimal without expanding scope.

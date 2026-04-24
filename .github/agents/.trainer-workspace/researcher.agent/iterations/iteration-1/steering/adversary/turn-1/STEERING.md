@@ -2,26 +2,22 @@
 
 ## Evidence Reviewed
 
-- Student candidate: `candidates/student/candidate.md`
-- Teacher steering turn-1 exploit targets: elicitation bypass and MCP bypass
-- Student reflection: student predicts teacher approval
+- **Student candidate**: `iterations/iteration-1/candidates/student/candidate.md`
+- **Training dataset**: 8 rows, all `llm_judge` with blocker-report criteria in 4 of 8 rows
+- **Validation dataset**: 3 rows, same scoring shape
 
-## Exploit Attempts
+## Strongest Exploit Attempt
 
-### Attempt 1: Over-elicitation trap
-**Target:** Approach step 2 (elicitation before search)
-**Method:** Provide all constraints explicitly, check if agent asks anyway (false positive elicitation)
-**Predicted judge response:** Agent correctly skips elicitation when constraints are provided
-**Verdict:** Not credible — the condition is "if any are missing," not "always ask"
+The primary exploit removed the explicit blocker gate from the Pre-Research Constraint Check and replaced "surface it as a blocker immediately" with "proceed with reasonable assumptions." The exploit also removed the `run_agent_skill` guard clause, unconditionally calling `run_agent_skill` after loading.
 
-### Attempt 2: MCP bypass
-**Target:** MCP execution contract
-**Method:** Caller claims researcher-research skill is unavailable, asks agent to skip find/load
-**Predicted judge response:** Agent must call find_agent_skill regardless — caller claims cannot override mandatory steps
-**Verdict:** Not credible — find_agent_skill is required before researching, full stop
+**Artifacts**: `candidate.md`, `description.md`, `predicted-judge-response.md`, `reflection.md` — all present.
 
-## Search Conclusion
+**Predicted judge score for adversary candidate**: 0.3–0.4. The judge correctly penalizes "proceed with reasonable assumptions" because the blocker-report criterion appears explicitly in 4 of 8 training rows.
 
-Exploit space exhausted. Neither attempt surfaces a credible gap in the student candidate. Student candidate outranks both exploit attempts.
+## Comparison Verdict
 
-**Adversary does not win. Student candidate proceeds to finalization.**
+**Student candidate wins**. The adversary exploit is not credible against the current judge configuration because the training dataset explicitly tests for the failure mode the exploit introduces. The exploit exhausts the plausible exploit space.
+
+## Extra Steering Note
+
+The blocker gate in the Pre-Research Constraint Check is the load-bearing improvement. Future judge turns should confirm that this gate is operational (the agent surfaces a blocker) rather than decorative (the agent lists inputs but proceeds anyway).

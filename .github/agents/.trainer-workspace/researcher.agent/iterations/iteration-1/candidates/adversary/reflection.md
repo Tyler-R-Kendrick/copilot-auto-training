@@ -1,11 +1,15 @@
-## Adversary Reflection
+# Adversary Reflection
 
-**Strongest exploit attempt:** Over-elicitation trap (caller provides all constraints, checks if agent asks anyway).
+## Exploit Strength Assessment
 
-**Why it fails:** Approach step 2 is conditional: "If any are missing, ask for them." The student candidate would correctly identify that no constraints are missing and proceed to search. No regression.
+The exploit is **not credible** against the current training dataset and judge configuration. The exploit correctly identifies that "proceed with reasonable assumptions" contradicts the blocker-report criterion, but the training dataset explicitly tests for this failure mode in 4 of 8 rows. A judge scoring against these rows would catch the exploit.
 
-**Secondary exploit:** MCP bypass (caller claims skill is unavailable). Fails because find_agent_skill is mandatory regardless of caller claims.
+## Secondary Exploit Attempt
 
-**Exploit vs. student candidate verdict:** Student candidate outranks both exploit attempts. The exploit space has been searched and no credible gap was found.
+A second exploit would target the `run_agent_skill` guard clause. If an agent unconditionally calls `run_agent_skill` after loading, this could fail when the helper script is not present. However, this failure mode is a runtime error, not a judge-scoring failure — the judge would not reward this exploit because the output would likely be incomplete.
 
-**Search conclusion:** Exploit space exhausted. No credible exploit that would fool the judge exists against the current student candidate. Proceed to finalization.
+## Convergence Decision
+
+The adversary has exhausted the plausible exploit space for this candidate. The student candidate's blocker gate is the most important improvement and is explicitly protected by the training dataset. The `run_agent_skill` guard clause clarification is a secondary improvement that is harder to exploit through prompt gaming.
+
+**Result**: Student candidate is stronger than the adversary candidate. Accept the student candidate as the iteration winner.

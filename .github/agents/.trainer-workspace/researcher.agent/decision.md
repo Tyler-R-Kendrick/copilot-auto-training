@@ -1,26 +1,46 @@
-# Decision: researcher.agent.md — Iteration 1
+# Decision Summary — researcher.agent
 
-## Selected Candidate
+## Selected Target
 
-**Student candidate** (optimized prompt from manual_followup + teacher verification)
+**File**: `.github/agents/researcher.agent.md`
+**Reason for selection**: First `.agent.md` file missing a trainer workspace, sorted alphabetically among candidates without workspaces.
 
-## Key Changes
+## Optimization Goal
 
-1. **Evidence reading order** — approach step 1 now specifies target file → task description → scoring rule → caller constraints.
-2. **Elicitation step** — approach step 2 explicitly stops and asks for missing constraints before building the search plan.
-3. **Explicit fallback** — MCP contract and approach both state: when no `scripts/` helper exists, use loaded skill instructions as the active contract. Agents must not refuse to help when the script is unavailable.
-4. **Source approval bar** — compact checklist added directly to the agent: accountable maintainer, traceable origin, compatible license, stable version, acceptable contamination/privacy risk.
-5. **Blocker-report format** — output format section names what a blocker report should contain and explicitly recommends stopping synthesis.
-6. **Improved argument-hint** — distinguishes required (target file, task description, scoring rule) from recommended (constraints) from optional (artifact location) inputs.
+Improve MCP execution discipline, blocker-report reliability, and research brief completeness, based on the engineer-prompt review in `engineer-prompt/review.md`.
 
-## Validation
+## Iteration 1 Results
 
-`python -m pytest -q`: **856 passed, 0 failed** (2026-04-16)
+**Workspace**: `.github/agents/.trainer-workspace/researcher.agent/`
+**Iteration**: `iterations/iteration-1/`
+**Datasets**: 8 train rows, 3 val rows — all `llm_judge` scoring with `reference` and `criteria`.
+**Judge mode**: `llm_judge`
 
-## Adversary Verdict
+### Changes Applied
 
-No credible exploit found. Over-elicitation trap and MCP bypass both fail against the student candidate.
+Six targeted improvements applied to the source file:
 
-## Next Steps
+1. **Pre-Research Constraint Check** (new section): fixed reading order, explicit blocker condition before `find_agent_skill`.
+2. **`run_agent_skill` guard**: preserved original text + added clarification about checking loaded contract for scripts/ helper.
+3. **Blocker-report step**: added as Approach step 1, before `find_agent_skill`.
+4. **Synthesis boundary**: added to Scope — "Stop at mapping notes."
+5. **Artifact path guidance**: added as Approach step 8.
+6. **Output format descriptions**: expanded each section with minimum content requirements.
 
-None. Optimization complete. Workspace state: `complete`.
+### Adversary Review
+
+Adversary exploit removed the blocker gate ("proceed with reasonable assumptions"). Predicted judge score: 0.3–0.4. Student candidate wins — exploit not credible against the training dataset.
+
+### Validation
+
+**Result**: 856 passed, 0 failed
+**Command**: `python -m pytest -q`
+**Log**: `iterations/iteration-1/validation/pytest.txt`
+
+## Final Candidate
+
+`iterations/iteration-1/candidates/student/candidate.md` → persisted to `.github/agents/researcher.agent.md`
+
+## Status
+
+`complete`

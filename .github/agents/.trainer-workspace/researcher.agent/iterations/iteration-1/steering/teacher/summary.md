@@ -1,16 +1,9 @@
-# Teacher Steering Summary — Iteration 1
+# Teacher Steering Summary — researcher.agent
 
-## Turn 1 Summary
+## Iteration 1
 
-**Evidence:** Baseline prompt, engineer review, optimized candidate from manual_followup pass, 8 eval cases.
+**Turn 1**: Reviewed baseline vs. optimized candidate. The candidate applied all six improvements from the engineer-prompt review: pre-MCP constraint check with fixed reading order, clarified `run_agent_skill` guard clause naming `scripts/run_research.py`, explicit blocker-report step at position 1 of Approach, synthesis boundary added to Scope, artifact path guidance added to Approach step 8, and output format descriptions with minimum content guidance.
 
-**Key findings:**
-- Baseline prompt has correct role framing and MCP structure but three behavioral rules are implicit: elicitation, fallback, and blocker-report format.
-- Optimized candidate closes all three gaps with minimal additions.
-- Predicted score improvement: ~0.5 → ~0.9 on affected cases.
+**Verdict**: Accept. No regression detected. Teacher predicts no further improvement without new evaluation evidence. Stop iteration.
 
-**Student task:** Verify fallback appears in both MCP contract and approach, approval bar has no new placeholders, and blocker-report guidance in output format is self-contained.
-
-**Adversary task:** Test elicitation bypass (caller omits constraints) and MCP bypass (caller claims skill unavailable).
-
-**Stop-or-continue:** Continue for one student verification pass and one adversary pass, then conclude if student prediction is confirmed.
+**Next step**: Adversary review → validation → persist to source file.

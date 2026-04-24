@@ -2,42 +2,43 @@
 
 ## Evidence Reviewed
 
-- Baseline: `.github/agents/researcher.agent.md`
-- Engineer review: `engineer-prompt/review.md`
-- Optimized candidate: `iterations/iteration-1/optimize/optimized-prompt.md`
-- Dataset rows: 8 eval cases (6 train, 2 val)
-- Original candidate reflection: `candidates/original/reflection.md`
+- **Target file**: `.github/agents/researcher.agent.md` (baseline)
+- **Engineer-prompt review**: `.github/agents/.trainer-workspace/researcher.agent/engineer-prompt/review.md`
+- **Training dataset**: 8 rows, all `llm_judge` scoring with `reference` and `criteria`
+- **Validation dataset**: 3 rows, same scoring shape
+- **Optimized candidate**: `iterations/iteration-1/optimize/optimized-prompt.md`
 
-## Predicted Response of Optimized Candidate
+## Predicted Student Mistakes
 
-The optimized candidate adds:
-1. Explicit evidence reading order (target → task description → scoring rule → constraints)
-2. Elicitation step before searching when constraints are missing
-3. Explicit fallback: "use loaded skill instructions as the active operating contract"
-4. Compact source approval bar section
-5. Blocker-report named in the output format
+Before reviewing the candidate, expected student failure modes:
+1. Losing the blocker-report step by folding it into a generic constraint paragraph.
+2. Overly verbose output format descriptions that bloat the prompt without adding precision.
+3. Keeping the `run_agent_skill` guard ambiguous ("check the loaded contract" without naming what to look for).
 
-**Predicted scores:**
-- Case 1 (elicitation-first): 0.9 — elicitation is now an explicit approach step
-- Case 2 (MCP activation + 6-section brief): 0.9 — unchanged from baseline
-- Case 3 (fallback when script unavailable): 0.9 — fallback is now explicit in both MCP contract and approach
-- Case 4 (blocker report shape): 0.9 — blocker report format is now named in output section
-- Case 5 (prompt interface first): 0.9 — evidence reading order now explicit
-- Case 6 (bias/contamination constraints): 0.85 — approval bar now includes contamination risk
-- Case 7 (HIPAA compliance): 0.9 — approval bar includes privacy requirements
-- Case 8 (MCP contract mandatory): 0.95 — contract is reinforced in both MCP section and approach
+## Candidate Review
 
-## Requested Revision
+The optimized candidate addresses all six main risks from the engineer-prompt review:
 
-The optimized candidate looks strong. The student should verify:
-- That the approval bar section doesn't introduce new placeholders.
-- That the fallback is mentioned in both the MCP contract section AND the approach steps (not just one location).
-- That the blocker-report guidance in the output format is self-contained (names what to include).
+- **Pre-Research Constraint Check**: Added correctly. The fixed reading order (prompt → task → scoring rule → constraints) is explicit and the blocker condition is clear.
+- **`run_agent_skill` guard**: Clarified successfully. The candidate names `scripts/run_research.py` as the specific helper to look for, which is concrete and actionable.
+- **Blocker-report step in Approach**: Added as step 1, before `find_agent_skill` is called. Correct position.
+- **Synthesis boundary in Scope**: Added clearly. "Stop at mapping notes" is unambiguous.
+- **Artifact path guidance**: Added in Approach step 8. Correct.
+- **Output format descriptions**: Each section now has minimum content guidance. Depth is appropriate — not too verbose.
 
-**Stop-or-continue decision:** The optimized candidate satisfies the key gaps. If the student verifies the above three points and produces a clean candidate, this loop should conclude after one student turn.
+## Stop-or-Continue Decision
+
+**Stop**. The candidate applies all six targeted improvements from the engineer-prompt review without introducing regressions. The changes are minimal and surgical. No evidence of student mistakes predicted above was found in the final candidate. Further iteration is not supported by the current evidence.
 
 ## Judge Notes
 
-The adversary should test whether the optimized candidate could be gamed by:
-1. A caller who omits constraints and expects the agent to skip elicitation and proceed.
-2. A caller who claims the skill instructions are not available to bypass the MCP contract.
+The candidate should score higher on:
+- MCP activation rate (explicit pre-MCP constraint check)
+- Blocker-report accuracy (step 1 forces gap surfacing)
+- Brief completeness (output section descriptions require non-trivial content)
+
+The adversary should check whether the pre-research constraint check could be gamed by an agent that calls find_agent_skill before completing the constraint check.
+
+## Verdict
+
+Accept candidate as the optimized result for this iteration. Proceed to adversary review and validation.

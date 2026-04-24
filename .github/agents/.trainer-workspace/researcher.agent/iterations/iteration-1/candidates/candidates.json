@@ -3,26 +3,26 @@
   "candidates": {
     "original": {
       "prompt": "iterations/iteration-1/candidates/original/candidate.md",
-      "description": "iterations/iteration-1/candidates/original/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/original/predicted-judge-response.md",
-      "reflection": "iterations/iteration-1/candidates/original/reflection.md",
-      "selection_notes": "Baseline. Scores ~0.5 on elicitation, fallback, and blocker-report cases."
+      "description": null,
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline prompt snapshot from inputs/source/researcher.agent.md"
     },
     "student": {
       "prompt": "iterations/iteration-1/candidates/student/candidate.md",
       "description": "iterations/iteration-1/candidates/student/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
-      "reflection": "iterations/iteration-1/candidates/student/reflection.md",
-      "selection_notes": "Winner. Closes all three gaps (elicitation, fallback, blocker-report). Predicted score ~0.9–0.95 across all cases. Adversary found no credible exploit."
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Optimized candidate from manual_followup pass. Applies six targeted improvements: pre-MCP constraint check, run_agent_skill guard clarification, explicit blocker-report step, synthesis boundary in Scope, artifact path guidance, expanded output format descriptions."
     },
     "adversary": {
       "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
       "description": "iterations/iteration-1/candidates/adversary/description.md",
       "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
       "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
-      "selection_notes": "No credible exploit found. Over-elicitation trap and MCP bypass both fail against student candidate."
+      "selection_notes": "Exploit: removed blocker gate from Pre-Research Constraint Check; replaced with 'proceed with reasonable assumptions'. Removed run_agent_skill guard clause. Judge would score 0.3-0.4. Student candidate wins."
     }
   },
   "winner": "student",
-  "decision": "Student candidate wins. Apply to source file and proceed to validation."
+  "winner_rationale": "Student candidate passes all critical training criteria, particularly blocker-report accuracy (4 of 8 rows). Adversary exploit removed the load-bearing blocker gate and is not credible against the current judge configuration."
 }

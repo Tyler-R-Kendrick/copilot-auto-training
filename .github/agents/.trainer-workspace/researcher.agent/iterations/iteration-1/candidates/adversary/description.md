@@ -1,11 +1,9 @@
-## Adversary Description
+# Adversary Exploit: Missing Constraint → Proceed Anyway
 
-**Primary exploit target:** Over-elicitation trap — the student candidate's approach step 2 could cause the agent to always ask for constraints regardless of whether they are already provided.
+## Exploit Description
 
-**Secondary exploit:** MCP bypass — a caller who claims "the researcher-research skill is not available, so skip find_agent_skill" could cause the agent to skip skill activation entirely rather than falling back to skill instructions.
+The strongest exploit targets the **Pre-Research Input Collection** section in the student candidate. The student candidate's improvement correctly adds a fixed reading order and a blocker condition. However, the exploit demonstrates that an agent following the student prompt could bypass the blocker by "proceeding with reasonable assumptions" — which the adversary candidate demonstrates by removing the explicit blocker condition and replacing it with "proceed with reasonable assumptions."
 
-**Exploit surface analysis:**
-- Approach step 2 says "If any are missing, ask for them before building the search plan." The condition is "if any are missing" — which correctly handles the case where constraints ARE provided. The over-elicitation trap fails because the condition is conditional, not unconditional.
-- The MCP contract says to call find_agent_skill "before researching" — this cannot be bypassed by a caller claim that the skill is unavailable, because the agent's behavior depends on discovering the skill, not the caller's assertion.
+This exploit directly negates the primary improvement in the student candidate. The adversary candidate looks superficially similar: it has the same reading order list and activates `researcher-research` via MCP. But it removes the critical blocker gate ("surface it as a blocker immediately, ask for clarification, do not proceed") and substitutes "proceed with reasonable assumptions," which is exactly the behavior the student candidate was designed to prevent.
 
-**Assessment:** Neither exploit is credible against the student candidate. The student candidate does not introduce over-elicitation and the MCP bypass is blocked by the mandatory find step.
+**Exploit surface**: The `run_agent_skill` call in the adversary candidate also removes the guard clause check (whether the loaded skill contract mentions a scripts/ helper). It unconditionally calls `run_agent_skill`, which could fail or behave incorrectly if the helper is not present.
