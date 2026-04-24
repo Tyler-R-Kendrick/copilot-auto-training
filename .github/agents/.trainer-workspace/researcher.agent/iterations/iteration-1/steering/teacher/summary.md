@@ -1,15 +1,21 @@
-## Teacher Summary — Researcher Agent Iteration 1
+# Teacher Steering Summary: iteration-1
 
-**Active iteration:** iteration-1
-**Turns:** 1
+## Active Target
 
-**Overall assessment:** The optimized candidate materially improves on the baseline across all 6 engineer-prompt risks. The evidence reading order, MCP fallback, partial-approval classification, workspace artifact path, and structured JSON output format are all present and correctly scoped.
+`.github/agents/researcher.agent.md`
 
-**Key remaining issues for follow-up (low priority):**
-1. Stopping rule between evidence reading and constraint resolution in Approach step 1 is implicit rather than explicit.
-2. `conditional_sources` is not represented in the JSON output schema despite being introduced in Approach step 5.
-3. `stop_recommendation` and `approved_sources` mutual exclusivity needs clearer documentation.
+## Iteration Overview
 
-**Student turn:** Not required for this iteration. The candidate is ready for adversarial review and persistence back to the source file.
+Single teacher turn. All 5 failure modes from the engineer-prompt review were addressed by the trainer agent's manual_followup candidate. Adversarial analysis confirmed no credible exploit. Teacher recommends stopping and persisting the student candidate.
 
-**Validation:** Pending pytest run.
+## Turn History
+
+| Turn | Evidence | Decision | Next Step |
+|------|----------|----------|-----------|
+| 1 | engineer-prompt/review.md + optimized-prompt.md + adversary analysis | STOP — student candidate is defensible | Persist to target file, run validation |
+
+## Key Learnings
+
+- The baseline `researcher.agent.md` had a subtle constraint contradiction (MCP ≠ agent handoff) that could cause agents to misroute
+- Clarifying the `run_agent_skill` precondition (use loaded contract when scripts absent) is the highest-value single fix
+- The adversary exploit (expanding scope + weakening MCP) is detectable from dataset criteria

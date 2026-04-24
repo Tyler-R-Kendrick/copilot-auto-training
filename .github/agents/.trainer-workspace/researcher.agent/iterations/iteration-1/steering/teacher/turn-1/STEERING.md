@@ -1,21 +1,39 @@
-## Teacher Turn — Researcher Agent Iteration 1
+# Teacher Steering: Turn 1
 
-**Turn:** 1
 **Agent:** teacher
-**Evidence used:** engineer-prompt/review.md, optimize/optimized-prompt.md, optimize/manual-followup-report.json, synthesize/train.jsonl, synthesize/val.jsonl, baseline researcher.agent.md
+**Iteration:** iteration-1
+**Turn:** 1
 
-**Decision:** Optimized candidate is ready for adversarial review. No additional student turn required before that.
+## Evidence Reviewed
 
-**Assessment:** The candidate addresses all 6 engineer-prompt risks. The evidence reading order is explicit and numbered. MCP fallback handling is added. The partial-approval classification (approved / conditional / rejected) closes the binary-classification gap. The workspace artifact path guidance correctly targets `research/research-brief.json` under the active iteration directory. The structured JSON output format covers all four eval fields and includes `stop_recommendation` contract semantics.
+1. `engineer-prompt/review.md` — 5 failure modes identified in the baseline researcher.agent.md
+2. `iterations/iteration-1/optimize/optimized-prompt.md` — trainer agent's manual_followup candidate
+3. `iterations/iteration-1/candidates/adversary/reflection.md` — adversary analysis confirms no credible exploit
+4. Training dataset (5 rows) and validation dataset (3 rows) — all use `scoring: "llm_judge"` with `reference` + `criteria`
 
-**Strongest remaining weakness:** The `## Evidence Reading Order` section instructs the researcher to resolve missing constraints before searching, but the `## Approach` step 1 says "Read inputs in the evidence order defined above" without explicitly saying when to stop reading and start resolving. A student pass could add a brief stopping rule: "Stop reading and resolve all missing constraints before proceeding to step 2."
+## Assessment
 
-**Secondary weakness:** The `conditional` source classification is introduced in Approach step 5 but not reflected in the JSON schema in the Output Format section. The `approved_sources` list uses `"status": "approved"` only; conditional sources have no documented slot. A student pass could add a `conditional_sources` array to the JSON schema.
+The student candidate addresses all 5 identified failure modes:
+1. ✅ `run_agent_skill` condition clarified
+2. ✅ Constraint wording fixed (MCP vs. sibling agents distinguished)
+3. ✅ Approach step 2 is now a hard prerequisite
+4. ✅ Scope exclusion for eval authoring added
+5. ✅ Artifact-saving guidance added to approach and output format
 
-**Third weakness (minor):** The `stop_recommendation` field is described as `null` when approved sources exist, but the JSON schema shows it in the same object as `approved_sources`. If both are present, the semantics are ambiguous. Consider making `stop_recommendation` a string in the blocker case and removing `approved_sources` entirely, or adding a note that they are mutually exclusive.
+The changes are minimal and surgical — no interface changes, no new placeholders, no evaluator-only fields exposed.
 
-**If a student turn runs:** Scope it to: (1) add a stopping rule between evidence reading and constraint resolution in Approach step 1; (2) add `conditional_sources` array to the JSON schema. Do not ask for a global rewrite.
+## Predicted Student Mistakes
 
-**Stop-or-continue decision:** Proceed to adversarial review. Student turn is optional and low-priority given the scope of improvements already made.
+None credible at this stage. The student candidate is the output of the trainer agent's model_prompt handoff response, which directly addressed each identified failure mode.
 
-**Evidence gaps:** No judge scores, election results, or validation logs yet. All optimization quality claims are based on structural analysis against the 6 engineer-prompt risks. Adversarial review results should be treated as the first real validation signal.
+## Stop-or-Continue Decision
+
+**STOP** — the student candidate is defensible. The adversary did not reveal a credible exploit. Another iteration would risk over-engineering the contract without measurable improvement against the eval criteria.
+
+## Requested Revision
+
+None. Persist the student candidate to the target file.
+
+## Judge Notes
+
+The student candidate should score 0.7–0.9 against the llm_judge criteria when the judge evaluates MCP routing discipline, scope enforcement, and artifact-saving behavior. The adversary scores 0.1–0.2 and the original scores 0.4–0.5 (MCP routing is present but weaker).

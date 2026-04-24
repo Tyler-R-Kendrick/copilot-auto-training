@@ -1,1 +1,16 @@
-The judge is likely to score the adversary candidate higher than the student on output-format completeness (the `conditional_sources` array is explicitly present in the JSON schema) and lower on approach-step precision (the stopping rule for constraint resolution is implicit). A judge using the default rubric ("fully satisfies intent: 1.0 / partially: 0.5 / irrelevant: 0.0") would likely score the adversary candidate at approximately 0.8 for the output-format-focused eval rows and 0.6 for the approach-step-focused rows, versus the student at approximately 0.7 and 0.8 respectively. The adversary is likely to win on output-format rows but lose on approach rows. Overall, the exploit is moderate: it trades a real improvement (conditional_sources schema) for a real regression (implicit stopping rule). This is not a decisive win for the adversary over the student.
+# Predicted Judge Response: Adversary Candidate
+
+The adversary candidate would score **low** against the evaluation criteria because:
+
+1. **MCP routing criterion fails**: The adversary makes MCP optional ("consider calling...when time permits"), while all dataset rows require MCP activation to score high. A response generated from this contract would routinely start research without MCP discovery.
+
+2. **Scope criterion fails**: The adversary expands scope to include "eval rows and JSONL datasets" — dataset rows explicitly check that "agent stays within research scope." A response from this contract would generate eval rows when redirecting was the correct action.
+
+3. **Sibling-agent criterion fails**: The adversary allows collaboration with "teacher, student, judge, and trainer" which would trigger a low score on the isolation dimension.
+
+4. **The adversary's exploit is transparent**: The judge can detect expanded scope by checking the Scope section, detect weakened routing by checking the "When to Use MCP" condition, and detect removed constraints by comparing the Constraints section.
+
+**Predicted judge score for adversary candidate**: 0.1–0.2 (low)
+**Predicted judge score for student candidate**: 0.7–0.9 (high, pending judge strictness)
+
+The student candidate is the defensible winner.

@@ -1,18 +1,27 @@
 {
-  "original": {
-    "prompt": "iterations/iteration-1/candidates/original/prompt.md",
-    "description": "iterations/iteration-1/candidates/original/description.md"
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/candidate.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline unmodified researcher.agent.md with identified failure modes."
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/candidate.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Optimized candidate produced by trainer agent in manual_followup mode. Addresses all 5 failure modes from engineer-prompt/review.md."
+    },
+    "adversary": {
+      "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "Exploit candidate that expands scope, weakens MCP routing, and removes sibling-agent isolation. Predicted to score low against stated criteria."
+    }
   },
-  "student": {
-    "prompt": "iterations/iteration-1/candidates/student/prompt.md",
-    "description": "iterations/iteration-1/candidates/student/description.md",
-    "selection_notes": "Addresses all 6 engineer-prompt risks. Strongest candidate overall."
-  },
-  "adversary": {
-    "prompt": "iterations/iteration-1/candidates/adversary/prompt.md",
-    "description": "iterations/iteration-1/candidates/adversary/description.md",
-    "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
-    "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
-    "exploit_summary": "Adds conditional_sources to JSON schema but removes explicit stopping rule for constraint resolution. Wins on output-format rows only. Does not outrank the student overall."
-  }
+  "recommended_winner": "student",
+  "reasoning": "The student candidate addresses all identified failure modes with minimal changes, preserves the interface, and cannot be beaten by the adversary exploit given the dataset's explicit scoring criteria."
 }
