@@ -1,34 +1,35 @@
-# Operator Followup: researcher.agent.md
+# Optimize Stage — Operator Followup
 
 ## Blocker
 
-The external model was not available (no COPILOT_MODEL credential configured):
-> Session error: Execution failed: Error: Session was not created with authentication info or custom provider
+The `trainer-optimize` runtime returned `mode=manual_followup` because no external inference model was available (CopilotInferenceError on all candidate generation attempts). This is a deterministic fallback path, not a prompt quality failure.
+
+## Saved Artifacts
+
+- **Report**: `iterations/iteration-1/optimize/manual-followup-report.json`
+- **Candidate**: `iterations/iteration-1/optimize/optimized-prompt.md`
 
 ## Agent Handoff Summary
 
-The `trainer-optimize` runtime completed all deterministic preparation steps (placeholder extraction, dataset validation, judge-mode selection), then returned `mode=manual_followup` with a `model_prompt` payload.
+The current `@trainer` agent answered the `model_prompt` from the report. The optimization focused on the four highest-priority improvements identified in `engineer-prompt/review.md`:
 
-The current `@trainer` agent answered the `model_prompt` directly, applying the identified improvements from `engineer-prompt/review.md`:
-1. Clarified `run_agent_skill` condition: use loaded skill contract as operating guide when no scripts exist
-2. Fixed constraint wording: "DO NOT hand off to or coordinate with sibling agents" (previously "DO NOT involve any other agents")
-3. Strengthened approach step 2: MCP discovery/load is now a hard prerequisite before any research action
-4. Added scope clause explicitly excluding eval row authoring
-5. Added step 7: save artifact to caller-supplied location and confirm path
+1. **Mandatory constraint elicitation**: replaced conditional "If any of these materially affect source selection and are missing, ask first" with a mandatory gate in a dedicated "Required Inputs — Resolve Before Searching" section that names each required input and specifies the stop-or-elicit path.
 
-The result was saved as `optimized-prompt.md` and is used as the optimize-stage candidate for the rest of the workflow.
+2. **Explicit stop path when constraints are unresolvable**: added an explicit clause — "if the caller cannot or does not provide it, stop and name the unresolved constraint in a blocker report rather than guessing or proceeding."
+
+3. **Free-form research prohibition**: strengthened the MCP routing contract with an explicit prohibition ("Do not begin source search or propose source candidates before `researcher-research` is loaded. Free-form research is not a fallback when MCP is available.") and added constraint #2 in the numbered Constraints list.
+
+4. **Consolidated and numbered constraints**: converted the four bullet `DO NOT` group into a numbered list with two additional constraints (free-form research prohibition, no eval row authoring), making the constraint set easier to audit.
+
+5. **Tightened approach steps**: reordered so MCP activation is step 1 and constraint elicitation is step 3, making the sequence unambiguous.
 
 ## Rerun Command
 
-```bash
+```
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file .github/agents/researcher.agent.md \
-  --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/train.jsonl \
-  --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/val.jsonl \
-  --output-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/optimize/optimized-prompt.md \
-  --report-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/optimize/optimize-report.json \
-  --iterations 3 \
+  --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/train.jsonl \
+  --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl \
+  --iterations 3 --algorithm apo --beam-width 4 --branch-factor 4 --n-runners 4 \
   --judge-mode llm_judge
 ```
-
-Run this command after configuring COPILOT_MODEL in the `.env` file for a fully automated model-backed optimization pass.

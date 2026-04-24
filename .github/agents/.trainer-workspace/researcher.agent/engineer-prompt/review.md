@@ -1,64 +1,48 @@
-# Engineer-Prompt Review: researcher.agent.md
+## Goal
 
-**Target file:** `.github/agents/researcher.agent.md`
-**Review date:** 2026-04-13
+Assess the current researcher agent as an optimization target for public-source discovery and research artifact workflows, with emphasis on triggering clarity, MCP routing discipline, and constraint-elicitation behavior before searching.
 
-## Target Goal
+The optimization target is research workflow discipline rather than a broader role rewrite. A strong researcher agent should route every public-source discovery task through the `researcher-research` skill via MCP, derive the target eval layout before searching, apply the approval bar strictly, and stop with a blocker report when no source clears that bar — rather than forcing a recommendation.
 
-The `researcher.agent.md` agent contract defines a specialist agent for grounded source research to support prompt evaluation workflows. It must:
-1. Route public-source discovery through the `researcher-research` skill via the `agent-skills` MCP server
-2. Produce concise, evidence-based research briefs
-3. Enforce primary-source discipline and reject weak/derivative sources
-4. Stop with a blocker report when no acceptable source exists
+## Current Strengths
 
-## Current Prompt Analysis
+- The description is already strong for discovery. It covers public-source discovery, dataset triage, benchmark selection, licensing review, provenance checks, and source-quality gating with a clear triggering phrase.
+- The MCP routing contract is explicit: `find_agent_skill` → `load_agent_skill` → conditional `run_agent_skill` for `researcher-research`.
+- The scope boundary is well-stated: research artifacts only, not eval row authoring.
+- The constraint-elicitation section correctly lists the inputs that must be resolved before searching.
+- The output format is well-structured with six named sections.
 
-### Strengths
-- Clear MCP execution contract with ordered `find_agent_skill` → `load_agent_skill` → `run_agent_skill` steps
-- Explicit scope definition that separates research from synthesis
-- "Stop with a blocker report" safety valve is present
-- Output format is structured and mirrors the researcher-research skill layout
+## Main Risks
 
-### Likely Failure Modes
+1. **Constraint elicitation is conditional, not mandatory.** The current prompt says "If any of these materially affect source selection and are missing, ask first." The conditional wording leaves room to skip elicitation when the agent incorrectly judges a constraint as non-material.
 
-1. **Ambiguous `run_agent_skill` condition**: The condition "only when the researcher-research skill exposes a deterministic helper under `scripts/`" is easy to misread — agents may skip the MCP tool call entirely and default to free-form research when scripts are absent, defeating the MCP-first rule.
+2. **No explicit stop path when constraints are unresolvable.** The constraints section ends at elicitation but never says to halt research if the caller cannot or does not provide required inputs. The skill itself says "stop with a blocker report" but the agent prompt is silent on this path.
 
-2. **Constraint contradiction**: "DO NOT involve any other agents" conflicts with the `agent-skills/*` tool allowance. The intent (no collaborative handoff to sibling agents like teacher/student) is valid but poorly stated — it could block legitimate MCP skill calls.
+3. **MCP routing contract lacks a fallback prohibition.** The current wording says to call `find_agent_skill` first but does not explicitly prohibit improvised free-form research when MCP is available. A strict prohibition would reduce scope drift.
 
-3. **Approach step 2 is too passive**: "Use `find_agent_skill` and `load_agent_skill` to activate `researcher-research` before **proposing** sources or a search plan" — the emphasis should be on *discovering and loading* before any research action, not just before proposing. Agents can interpret "proposing" narrowly.
+4. **No explicit no-change path.** The prompt has no clause for preserving the target file when it is already fit for purpose, though this agent is not a file editor. However, it also lacks an explicit path for returning to the caller when the research task is fully satisfied by existing artifacts.
 
-4. **Output format lacks artifact path guidance**: The format tells the agent *what* to include but not *where to save* the research brief when called from a trainer workflow. The `argument-hint` mentions a desired artifact location, but the prompt body doesn't reinforce saving behavior.
+5. **Approach steps blend task setup and skill execution.** Steps 1 and 2 overlap with the MCP contract. Clearer separation of pre-search setup, MCP activation, and search execution would improve repeatability.
 
-5. **Missing: explicit guidance on the `load_agent_skill` fallback when scripts are absent**: When `researcher-research` has no runnable scripts, agents should use the loaded skill contract as the operating guide rather than improvising. This is implicit but not stated clearly enough.
+6. **Scope constraint is implicit.** "DO NOT involve any other agents" is present but "DO NOT fabricate" and "DO NOT guess" are in separate bullet groups. A consolidated constraint list would be easier to audit.
 
-6. **Scope ambiguity**: "Source material" in the constraints could be interpreted as including code, documentation, or internal files — not just public datasets. Clarifying "external public-source material" reduces this ambiguity.
+## Rewrite Hypotheses
 
-## Dataset Gaps
+- Add an explicit stop path when required constraints cannot be resolved: if elicitation produces no answer and the missing input materially changes source selection, stop and name the missing input.
+- Replace the conditional constraint-elicitation phrasing with a mandatory resolve-before-search gate that enumerates the specific inputs from the Scope section.
+- Add an explicit prohibition against free-form research when MCP is available, making the routing contract harder to skip.
+- Consolidate `DO NOT` constraints into a single numbered list to reduce scanning overhead and make them easier to audit.
+- Tighten the Approach steps so task setup, MCP activation, and search are clearly separated phases.
+- Keep frontmatter and discovery surface essentially unchanged to preserve triggering accuracy.
 
-The `skills/researcher-research/evals/` directory contains 3 eval cases covering:
-- Support ticket intent classification research
-- Bug entity extraction research
-- Grounded QA research
+## Suggested Metrics
 
-These test the *skill*, not the *agent contract*. For agent-level optimization, we need:
-- Cases that test MCP routing behavior (was `find_agent_skill` used?)
-- Cases that test blocker-report behavior (no acceptable source → stop signal)
-- Cases that test scope enforcement (synthesis request → redirect, not execution)
+- **Constraint elicitation rate**: percent of cases where the agent asks for missing inputs before searching rather than proceeding with guessed constraints.
+- **MCP routing compliance**: percent of research tasks where `find_agent_skill` and `load_agent_skill` are called before any source recommendation.
+- **Stop-report accuracy**: percent of cases where no acceptable source exists and the agent stops with a blocker report rather than forcing a weak recommendation.
+- **Approval bar adherence**: percent of approved sources that include authority, provenance, licensing, and version notes.
+- **Scope stability**: percent of runs that remain in research and mapping mode without attempting to author eval rows or hand off to other agents.
 
-## Validation Plan
+## Recommendation
 
-1. Run `python -m pytest -q` to confirm no regressions
-2. Evaluate the optimized agent against the 3 researcher-research eval cases (the skill's existing evals serve as proxy tests for the agent)
-3. Validate that the optimized contract preserves all required frontmatter fields
-
-## Optimization Hypothesis
-
-The highest-value rewrites are:
-1. **Clarify `run_agent_skill` usage**: Replace the scripts-conditional with a positive instruction to use the loaded contract as the primary operating guide when no deterministic helper exists.
-2. **Fix constraint wording**: Change "DO NOT involve any other agents" to "DO NOT hand off to other agents or coordinate collaborative loops" to avoid blocking MCP skill calls.
-3. **Strengthen approach step 2**: Make the MCP discovery and load a hard prerequisite before *any* research action, not just before *proposing*.
-4. **Add artifact-saving guidance**: Reference the `argument-hint` location in the approach and output sections so agent knows to persist the brief at the caller-supplied path.
-
-## Next Step
-
-Proceed with synthesis of train/val datasets, then optimize with `judge_mode=llm_judge` (output quality requires open-ended scoring).
+The agent already has a solid base contract. The highest-value optimization is a small discipline-focused rewrite: make constraint elicitation mandatory, add an explicit stop path when inputs are unresolvable, and strengthen the MCP routing prohibition. Avoid a broader structural rewrite because the discovery text, output format, and scope boundary are already strong.

@@ -1,40 +1,42 @@
-# Decision: researcher.agent.md Optimization
+# Decision — researcher.agent — Iteration 1
 
-**Target:** `.github/agents/researcher.agent.md`
-**Iteration:** iteration-1
-**Date:** 2026-04-13
-**Outcome:** Student candidate applied ✅
+## Selected Candidate
+
+**Student candidate** (manual-followup optimize pass)
 
 ## Changes Applied
 
-Five improvements were made to the baseline `researcher.agent.md`:
+The following improvements were applied to `.github/agents/researcher.agent.md`:
 
-1. **Clarified `run_agent_skill` fallback**: Added explicit note that when no deterministic helper script exists, the loaded skill contract is the active operating guide. The MCP contract bullet now reads "otherwise use the loaded skill instructions as the active operating contract."
+1. **Mandatory constraint elicitation gate** — Added a "Required Inputs — Resolve Before Searching" section listing all six required inputs. Replaced the conditional "If any of these materially affect source selection and are missing, ask first" phrasing with a mandatory gate: elicit missing inputs, and stop with a blocker report if the caller cannot or does not provide them.
 
-2. **Fixed constraint wording**: "DO NOT involve any other agents." is preserved (required by tests), but a clarifying note is appended: "The `agent-skills` MCP server is not an agent handoff — it may be used freely for skill discovery and execution." This removes the contradiction.
+2. **Explicit stop path when constraints are unresolvable** — The new gate explicitly states: "stop and name the unresolved constraint in a blocker report rather than guessing or proceeding with an assumed value."
 
-3. **Strengthened approach step 2**: "before proposing sources or a search plan" → "before any research action — this is a hard prerequisite, not a step that can follow initial source gathering."
+3. **Strengthened MCP routing prohibition** — Added "Do not begin source search or propose source candidates before `researcher-research` is loaded. Free-form research is not a fallback when MCP is available." to the MCP Execution Contract. Also added constraint #2 in the numbered list.
 
-4. **Added scope exclusion**: "Do not author eval rows, JSONL datasets, or synthesized test cases; those belong to a separate synthesis workflow." — prevents scope creep into synthesis tasks.
+4. **Consolidated and numbered constraints** — Converted the `DO NOT` bullet groups into a numbered list of 6 constraints, adding explicit prohibitions for free-form research and eval-row authoring.
 
-5. **Added artifact-saving guidance**: Step 7 and output format section now cover saving the brief to the caller-supplied location and confirming the path.
+5. **Tightened Approach steps** — MCP activation is now step 1; constraint resolution gate is step 3 with a clear stop path.
 
-Additionally, the opening paragraph was expanded to mention artifact-saving behavior upfront.
+6. **Scope clarification** — Added "Stop at mapping notes. Do not author eval rows or hand off to other agents." to the Scope section.
 
-## Validation
+## Validation Result
 
-- `python -m pytest -q`: **856 passed, 0 failed**
-- `test_researcher_agent_contract_structure`: **PASS**
+856 tests passed, 0 failed (`python -m pytest -q`).
 
-## Adversarial Review
+## Optimize Mode
 
-The adversary candidate (scope expansion + optional MCP) does not constitute a credible exploit against the dataset's explicit scoring criteria. Student candidate wins.
+`manual_followup` — no external model available. Candidate produced by @trainer agent from returned `model_prompt`.
 
 ## Artifacts
 
-- `iterations/iteration-1/optimize/optimized-prompt.md` — final prompt candidate
-- `iterations/iteration-1/optimize/manual-followup-report.json` — optimize run payload
-- `iterations/iteration-1/synthesize/train.jsonl` — 5 training rows (llm_judge)
-- `iterations/iteration-1/synthesize/val.jsonl` — 3 validation rows (llm_judge)
-- `iterations/iteration-1/validation/pytest.txt` — 856 passed
-- `iterations/iteration-1/steering/teacher/turn-1/STEERING.md` — teacher: STOP, persist student candidate
+- `iterations/iteration-1/research/research-brief.json`
+- `iterations/iteration-1/synthesize/evals/evals.json` (5 eval cases)
+- `iterations/iteration-1/synthesize/datasets/train.jsonl` (8 rows, llm_judge)
+- `iterations/iteration-1/synthesize/datasets/val.jsonl` (4 rows, llm_judge)
+- `iterations/iteration-1/optimize/manual-followup-report.json`
+- `iterations/iteration-1/optimize/optimized-prompt.md`
+- `iterations/iteration-1/optimize/operator-followup.md`
+- `iterations/iteration-1/candidates/candidates.json`
+- `iterations/iteration-1/steering/teacher/turn-1/STEERING.md`
+- `iterations/iteration-1/validation/pytest.txt`

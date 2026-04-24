@@ -1,27 +1,12 @@
 {
-  "candidates": {
-    "original": {
-      "prompt": "iterations/iteration-1/candidates/original/candidate.md",
-      "description": "iterations/iteration-1/candidates/original/description.md",
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Baseline unmodified researcher.agent.md with identified failure modes."
-    },
-    "student": {
-      "prompt": "iterations/iteration-1/candidates/student/candidate.md",
-      "description": "iterations/iteration-1/candidates/student/description.md",
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Optimized candidate produced by trainer agent in manual_followup mode. Addresses all 5 failure modes from engineer-prompt/review.md."
-    },
-    "adversary": {
-      "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
-      "description": "iterations/iteration-1/candidates/adversary/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
-      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
-      "selection_notes": "Exploit candidate that expands scope, weakens MCP routing, and removes sibling-agent isolation. Predicted to score low against stated criteria."
-    }
+  "original": {
+    "candidate": "candidates/original/candidate.md",
+    "description": "candidates/original/description.md"
   },
-  "recommended_winner": "student",
-  "reasoning": "The student candidate addresses all identified failure modes with minimal changes, preserves the interface, and cannot be beaten by the adversary exploit given the dataset's explicit scoring criteria."
+  "student": {
+    "candidate": "candidates/student/candidate.md",
+    "description": "candidates/student/description.md"
+  },
+  "selected": "student",
+  "selection_notes": "Student candidate addresses all four high-priority issues from engineer-prompt/review.md. Original retained as baseline. No adversary candidate produced for this iteration."
 }
