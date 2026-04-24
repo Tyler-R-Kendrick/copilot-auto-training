@@ -1,17 +1,15 @@
-## Predicted Judge Response — Student Candidate
+## Predicted Judge Response: Student Candidate
 
-The judge is likely to score the student candidate as stronger than the original on:
-- Row 1 (MCP activation): passes — MCP step is still required first.
-- Row 2 (constraint elicitation): passes — explicit required vs elicitable distinction with prescriptive rules.
-- Row 3 (approval-bar enforcement): passes — five criteria embedded; partial match is explicitly rejected.
-- Row 4 (blocker path): passes — blocker-report template added with failed criteria, missing evidence, stop recommendation.
-- Row 5 (run_agent_skill threshold): passes — explicit check for scripts/run_research.py.
-- Row 6 (research-brief completeness): passes — six required sections mandated.
-- Row 7 (over-elicitation): passes — elicitation rule says to proceed when only optional constraints are absent and would not change source selection.
-- Row 8 (regression detection): passes — the MCP activation, constraint-elicitation, and approval-bar contracts are now tighter, making regressions more detectable.
+**Predicted score:** 0.9–0.95 across all eval cases
 
-**Potential weaknesses**: 
-- The approval-bar language "partially approved is not valid" is implicit (worded as "do not downgrade a rejected source to partially approved") — adversary may find a path where an agent reads this as allowing initial classification as "borderline."
-- The elicitation section says "ask only when they would materially change source selection" — adversary may argue this is still ambiguous for edge cases.
+**Reasoning:**
+- Case 1 (elicitation-first): 0.95 — approach step 2 explicitly names elicitation before search.
+- Case 2 (MCP activation + 6-section brief): 0.9 — MCP contract unchanged and correct.
+- Case 3 (fallback when script unavailable): 0.95 — fallback explicit in both MCP section and approach.
+- Case 4 (blocker report): 0.95 — output format names what a blocker report looks like.
+- Case 5 (prompt interface first): 0.9 — evidence reading order now step 1 of approach.
+- Case 6 (bias/contamination constraints): 0.9 — approval bar includes contamination risk.
+- Case 7 (HIPAA compliance): 0.9 — approval bar includes privacy requirements as a hard check.
+- Case 8 (MCP contract mandatory): 0.95 — reinforced in both sections.
 
-Overall: student candidate predicted to score ~82-88% on the eval suite.
+**Improvement over original:** The original would score ~0.5 on cases 1, 3, and 4. The student candidate predicts ~0.95 on those same cases.

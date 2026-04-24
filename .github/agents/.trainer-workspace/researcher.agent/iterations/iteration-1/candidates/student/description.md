@@ -1,10 +1,17 @@
-Optimized researcher.agent.md candidate produced via manual-followup path. Key improvements over original:
+## Student Candidate
 
-1. Mandatory constraint elicitation gate (Required Inputs section with explicit stop-or-elicit path)
-2. Explicit stop path when constraints are unresolvable
-3. Strong free-form research prohibition in MCP contract and consolidated constraint list
-4. Numbered constraint list (6 items) replacing separate bullet groups
-5. MCP activation moved to step 1 of Approach; constraint resolution gate at step 3
-6. Scope section adds explicit "Stop at mapping notes. Do not author eval rows or hand off to other agents."
+The student candidate is the optimized prompt from the manual_followup pass with teacher-guided verification applied.
 
-Training data shows the candidate should score higher on: constraint elicitation rate, MCP routing compliance, stop-report accuracy, and scope stability.
+**Verified additions over original:**
+1. Explicit evidence reading order in approach step 1.
+2. Elicitation step (approach step 2) that stops before search when constraints are missing.
+3. Fallback to loaded skill instructions in BOTH the MCP contract section and approach step 3.
+4. Compact source approval bar section directly in the agent (no new placeholders introduced).
+5. Blocker-report format named and described in the output format section.
+6. `argument-hint` now distinguishes required from recommended from optional inputs.
+
+**Reasoning:**
+- Fallback appears in both MCP contract (bullet 3) and approach (step 3), satisfying teacher requirement.
+- Approval bar uses no placeholder syntax — only prose bullets.
+- Output format section includes parenthetical guidance for the blocker-report shape.
+- The candidate predicts teacher approval on all three verification points.

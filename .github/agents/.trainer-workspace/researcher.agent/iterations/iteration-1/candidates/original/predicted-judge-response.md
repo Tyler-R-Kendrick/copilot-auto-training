@@ -1,11 +1,10 @@
-## Predicted Judge Response — Original Candidate
+## Predicted Judge Response: Original Candidate
 
-The judge is likely to score the original as weaker than the student candidate on:
-- MCP threshold clarity (fails eval row 5: run_agent_skill when script is present)
-- Constraint elicitation (fails row 2: distinguishing required from elicitable)
-- Approval-bar enforcement (fails rows 3, 4: blocker path and explicit bar)
-- Research-brief completeness (fails row 6: missing required-section mandate)
+**Predicted score:** 0.5–0.6
 
-The original would likely pass rows 1 (MCP activation concept is present), 7 (elicitation over-reach is addressable), and row 8 (the contract regression detection behavior is preserved).
-
-Overall: original scores ~40-50% on the eval suite; student candidate is predicted to score ~80-85%.
+**Reasoning:**
+- The original would correctly handle the skill-activation contract (find/load/run) for most cases.
+- It would likely fail on elicitation (case 1): the approach says to "read constraints first" but does not explicitly say to stop and ask when they are missing.
+- It would likely fail on the fallback contract (case 3): the fallback to skill instructions is implicit ("otherwise use the loaded skill instructions") but could be missed.
+- It would likely fail on the blocker-report format (case 4): the approach says to "stop with a blocker report" but does not name what a blocker report looks like, so the agent may produce a weak half-recommendation instead.
+- The judge would score this as "partially satisfies intent" for cases involving elicitation, fallback, and blocker reporting.

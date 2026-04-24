@@ -1,35 +1,36 @@
-# Optimize Stage — Operator Followup
+# Operator Follow-up: manual_followup Optimize Pass
 
 ## Blocker
 
-The `trainer-optimize` runtime returned `mode=manual_followup` because no external inference model was available (CopilotInferenceError on all candidate generation attempts). This is a deterministic fallback path, not a prompt quality failure.
+`trainer-optimize` returned `mode=manual_followup` because the external model endpoint was unavailable.
 
-## Saved Artifacts
-
-- **Report**: `iterations/iteration-1/optimize/manual-followup-report.json`
-- **Candidate**: `iterations/iteration-1/optimize/optimized-prompt.md`
+**Blocker reason:** Session error: Execution failed: Error: Session was not created with authentication info or custom provider
 
 ## Agent Handoff Summary
 
-The current `@trainer` agent answered the `model_prompt` from the report. The optimization focused on the four highest-priority improvements identified in `engineer-prompt/review.md`:
+The current `@trainer` agent answered the `model_prompt` from the `manual-followup-report.json` by:
 
-1. **Mandatory constraint elicitation**: replaced conditional "If any of these materially affect source selection and are missing, ask first" with a mandatory gate in a dedicated "Required Inputs — Resolve Before Searching" section that names each required input and specifies the stop-or-elicit path.
+1. Reading the baseline prompt (`researcher.agent.md`) and the training/validation datasets.
+2. Applying the improvements identified in the `engineer-prompt/review.md`:
+   - Added explicit evidence reading order (target file → task description → scoring rule → constraints).
+   - Added elicitation step: ask for missing constraints before searching.
+   - Added explicit fallback path when no `scripts/` helper is available from the MCP skill.
+   - Added a compact source approval bar section directly in the agent.
+   - Added a named blocker-report format to the output section.
+   - Improved the `argument-hint` to distinguish required from optional inputs.
+3. Saved the revised prompt as `optimized-prompt.md`.
 
-2. **Explicit stop path when constraints are unresolvable**: added an explicit clause — "if the caller cannot or does not provide it, stop and name the unresolved constraint in a blocker report rather than guessing or proceeding."
+## Artifacts
 
-3. **Free-form research prohibition**: strengthened the MCP routing contract with an explicit prohibition ("Do not begin source search or propose source candidates before `researcher-research` is loaded. Free-form research is not a fallback when MCP is available.") and added constraint #2 in the numbered Constraints list.
+- `manual-followup-report.json` — full report from trainer-optimize
+- `optimized-prompt.md` — agent-authored optimized candidate
 
-4. **Consolidated and numbered constraints**: converted the four bullet `DO NOT` group into a numbered list with two additional constraints (free-form research prohibition, no eval row authoring), making the constraint set easier to audit.
-
-5. **Tightened approach steps**: reordered so MCP activation is step 1 and constraint elicitation is step 3, making the sequence unambiguous.
-
-## Rerun Command
+## Optional Rerun Command
 
 ```
 python skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file .github/agents/researcher.agent.md \
   --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/train.jsonl \
   --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl \
-  --iterations 3 --algorithm apo --beam-width 4 --branch-factor 4 --n-runners 4 \
-  --judge-mode llm_judge
+  --iterations 3 --algorithm apo --beam-width 4 --branch-factor 4 --n-runners 4 --judge-mode llm_judge
 ```

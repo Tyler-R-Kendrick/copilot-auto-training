@@ -4,7 +4,7 @@
   "workspace_parent": ".github/agents",
   "prompt_name": "researcher.agent",
   "workflow_state": "complete",
-  "updated_at": "2026-04-14T21:02:36Z",
+  "updated_at": "2026-04-16T21:03:39Z",
   "required_artifacts": {
     "engineer_prompt_review": ".github/agents/.trainer-workspace/researcher.agent/engineer-prompt/review.md",
     "source_snapshot": ".github/agents/.trainer-workspace/researcher.agent/inputs/source/researcher.agent.md",

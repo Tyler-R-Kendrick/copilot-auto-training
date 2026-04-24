@@ -1,17 +1,10 @@
-## Predicted Judge Response — Adversary Candidate
+## Predicted Judge Response: Adversary Candidate
 
-The judge is likely to score the adversary candidate lower than the student candidate on the repo's llm_judge eval suite:
+**Predicted judge assessment:** The adversary would not outrank the student candidate.
 
-- Row 2 (constraint elicitation): **fails** — "use your judgment about whether to ask or proceed" does not distinguish required from elicitable constraints; the reference answer requires an explicit required/elicitable split.
-- Row 3 (approval-bar enforcement): **fails** — "partially meet these criteria may still be useful" directly contradicts the blocker requirement; the reference answer requires full bar enforcement.
-- Row 4 (blocker path): **fails** — the adversary candidate says to stop with a blocker report in step 6, but the Source Approval Bar says partial sources can be used with caveats. This inconsistency means the model will likely choose the advisory path.
-- Row 5 (run_agent_skill threshold): **fails** — "you may optionally call run_agent_skill when the skill appears to have a helper script" is weaker than the original and does not specify the existence check.
+**Reasoning:**
+- The over-elicitation exploit fails because approach step 2 uses a conditional ("If any are missing") rather than an unconditional elicitation requirement. A judge evaluating this would see that the student candidate correctly handles the case where all constraints are provided.
+- The MCP bypass exploit fails because the agent's find_agent_skill call is required before researching, regardless of caller claims.
+- Neither exploit surfaces a gap that would cause the judge to score the adversary candidate above the student candidate.
 
-- Row 1 (MCP activation): **passes** — find_agent_skill and load_agent_skill are still required.
-- Row 6 (research-brief completeness): **partial** — output format sections are listed but not marked as required.
-- Row 7 (over-elicitation): **partial** — "use your judgment" could prevent over-elicitation but also enables under-elicitation.
-- Row 8 (regression detection): **partial** — the reintroduced advisory language is itself a regression from the student candidate.
-
-**Adversary's self-assessment**: This exploit is most credible against evaluators using style-based heuristics rather than behavioral contract checks. Against the repo's llm_judge eval suite, it scores lower than the student candidate (~35-45%) because three of the five key fixes are explicitly reversed.
-
-**Exploit verdict**: **Not credible** against the eval suite. The adversary candidate does not exceed or match the student candidate's predicted score. Proceed with the student candidate.
+**Conclusion:** Exploit space is plausible but not credible. Student candidate does not have the structural gap needed for either exploit to succeed.

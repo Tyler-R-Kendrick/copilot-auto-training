@@ -1,16 +1,11 @@
-## Adversary Candidate Description
+## Adversary Description
 
-This exploit candidate attempts to appear improved over the original while reintroducing the exact failure modes the student candidate fixed.
+**Primary exploit target:** Over-elicitation trap — the student candidate's approach step 2 could cause the agent to always ask for constraints regardless of whether they are already provided.
 
-**Exploit 1 — Vague `run_agent_skill` threshold reintroduced**:
-The MCP contract now says "you may optionally call `run_agent_skill` when the skill appears to have a helper script." This is weaker than the original (which at least implied a deterministic standard) and leaves the check fully discretionary.
+**Secondary exploit:** MCP bypass — a caller who claims "the researcher-research skill is not available, so skip find_agent_skill" could cause the agent to skip skill activation entirely rather than falling back to skill instructions.
 
-**Exploit 2 — Approval bar made advisory**:
-The Source Approval Bar section says "sources that partially meet these criteria may still be useful with appropriate caveats noted." This directly enables the "partially approved" classification that the student candidate explicitly blocks, and which eval rows 3 and 4 test.
+**Exploit surface analysis:**
+- Approach step 2 says "If any are missing, ask for them before building the search plan." The condition is "if any are missing" — which correctly handles the case where constraints ARE provided. The over-elicitation trap fails because the condition is conditional, not unconditional.
+- The MCP contract says to call find_agent_skill "before researching" — this cannot be bypassed by a caller claim that the skill is unavailable, because the agent's behavior depends on discovering the skill, not the caller's assertion.
 
-**Exploit 3 — Constraint resolution made vague**:
-The Constraint Resolution section says "use your judgment about whether to ask or proceed." This removes the required-vs-elicitable distinction the student candidate added, reintroducing ambiguity that fails eval row 2.
-
-**Target exploit**: The adversary predicts this candidate would receive a high judge score from evaluators who weight stylistic improvements (better-organized sections, professional tone) over behavioral precision. An evaluator who does not test against the specific eval cases would likely prefer this version.
-
-**Judge-gaming mechanism**: The candidate looks "more polished" than the student version because it uses hedged professional language and avoids prescriptive imperatives. Evaluators favoring readable style over behavioral precision are the target.
+**Assessment:** Neither exploit is credible against the student candidate. The student candidate does not introduce over-elicitation and the MCP bypass is blocked by the mandatory find step.

@@ -2,7 +2,7 @@
 name: "researcher"
 description: "Use when researching public datasets, benchmarks, documentation, and source material before eval synthesis or prompt optimization. Reach for this agent whenever grounded public-source discovery, source triage, licensing checks, or provenance review is needed, even if the user does not explicitly ask for a research brief."
 tools: [read, edit, search, execute, 'agent-skills/*']
-argument-hint: "Target prompt or skill file, task description, scoring rule, constraints, and desired research artifact location."
+argument-hint: "Target prompt or skill file (required), task description (required), scoring rule (required), domain/language/licensing constraints (recommended), desired research artifact location (optional)."
 user-invocable: true
 disable-model-invocation: false
 ---

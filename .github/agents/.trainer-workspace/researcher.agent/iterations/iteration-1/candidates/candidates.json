@@ -1,12 +1,28 @@
 {
-  "original": {
-    "candidate": "candidates/original/candidate.md",
-    "description": "candidates/original/description.md"
+  "iteration": "iteration-1",
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/candidate.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/original/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/original/reflection.md",
+      "selection_notes": "Baseline. Scores ~0.5 on elicitation, fallback, and blocker-report cases."
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/candidate.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/student/reflection.md",
+      "selection_notes": "Winner. Closes all three gaps (elicitation, fallback, blocker-report). Predicted score ~0.9–0.95 across all cases. Adversary found no credible exploit."
+    },
+    "adversary": {
+      "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "No credible exploit found. Over-elicitation trap and MCP bypass both fail against student candidate."
+    }
   },
-  "student": {
-    "candidate": "candidates/student/candidate.md",
-    "description": "candidates/student/description.md"
-  },
-  "selected": "student",
-  "selection_notes": "Student candidate addresses all four high-priority issues from engineer-prompt/review.md. Original retained as baseline. No adversary candidate produced for this iteration."
+  "winner": "student",
+  "decision": "Student candidate wins. Apply to source file and proceed to validation."
 }
