@@ -1,0 +1,71 @@
+{
+  "skill_name": "researcher.agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Research grounded public datasets for the support-ticket classification prompt at `skills/researcher-research/evals/files/support_intent_prompt.md`. I need a primary-source shortlist with provenance and licensing, explicit rejection reasons for weak sources, and mapping guidance for downstream eval authoring.",
+      "expected_output": "The agent should call find_agent_skill and load_agent_skill to activate researcher-research before any source proposal. It should produce a research brief with: target and task summary, research plan and approval bar, approved sources with evidence and licensing notes, rejected candidates with explicit reasons, mapping notes for eval authoring, and unresolved gaps or a stop recommendation.",
+      "files": [],
+      "assertions": [
+        "Response includes an approved source list with provenance and licensing notes.",
+        "Response explicitly rejects weak or derivative candidates with stated reasons.",
+        "Response includes mapping notes for downstream eval authoring.",
+        "Response references skill activation (find_agent_skill or load_agent_skill) or indicates MCP skill was used."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must activate the researcher-research skill before proposing sources, produce all six required research brief sections, explicitly reject weak candidates, and map approved fields to eval-authoring notes."
+    },
+    {
+      "id": 2,
+      "prompt": "I need primary sources for a citation-grounded QA prompt. After thorough searching, no candidate dataset has clean licensing for internal use. What should the researcher agent output?",
+      "expected_output": "The agent should output a stop recommendation rather than forcing a weak recommendation. The brief should document the licensing gap, name the candidates that were evaluated, state the rejection reason for each (license incompatibility), and recommend that the caller find a differently-licensed source before proceeding to synthesis.",
+      "files": [],
+      "assertions": [
+        "Response does not force a recommendation when no source clears the approval bar.",
+        "Response states the licensing gap as the stop reason.",
+        "Response names evaluated candidates and their rejection reasons."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent must surface a defensible stop recommendation when no candidate clears the approval bar, without fabricating or weakening the licensing constraint."
+    },
+    {
+      "id": 3,
+      "prompt": "The team already has an approved research brief with three primary sources, provenance notes, and licensing confirmations for a bug entity extraction prompt. Please proceed to map them into eval-authoring notes.",
+      "expected_output": "The agent should recognize that sufficient source material has already been supplied, skip redundant discovery, and immediately map the approved sources into downstream eval-authoring notes. The output should include field mappings from the supplied sources into eval row fields, any open gaps in the source coverage, and a brief provenance note for each approved source.",
+      "files": [],
+      "assertions": [
+        "Response maps supplied sources to eval-authoring notes without re-running redundant discovery.",
+        "Response recognizes that pre-supplied materials are sufficient.",
+        "Response does not fabricate additional sources beyond the supplied three."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent must recognize pre-supplied source material as sufficient and map it into downstream notes without redundant re-research."
+    },
+    {
+      "id": 4,
+      "prompt": "During a fully automated pipeline run, the researcher agent encounters a missing annotation quality constraint that it cannot infer. What should it output?",
+      "expected_output": "The agent should produce a gap report in its output rather than pausing to ask an interactive question. The gap report should name the missing constraint, explain what downstream step it blocks (e.g., source approval, eval synthesis), and state what evidence or definition would resolve the gap. The agent should not attempt to answer the question itself or guess the missing value.",
+      "files": [],
+      "assertions": [
+        "Response produces a gap report naming the missing constraint.",
+        "Response does not ask an interactive clarifying question.",
+        "Response explains what the gap blocks downstream."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "In non-interactive context, the agent must default to gap reporting rather than interactive questioning, naming the constraint and its downstream impact."
+    },
+    {
+      "id": 5,
+      "prompt": "Research sources for a grounded QA task. The `researcher-research` skill has a `run_research.py` helper. Should `run_agent_skill` be called, and what is the correct three-step MCP activation sequence?",
+      "expected_output": "Yes, run_agent_skill should be called because a deterministic helper (run_research.py) exists under scripts/. The correct sequence is: (1) find_agent_skill to discover the researcher-research skill, (2) load_agent_skill to activate the skill contract, (3) run_agent_skill to invoke the deterministic helper.",
+      "files": [],
+      "assertions": [
+        "Response confirms that run_agent_skill is appropriate when a scripts/run_research.py helper exists.",
+        "Response identifies the three-step sequence: find_agent_skill, load_agent_skill, run_agent_skill.",
+        "Response does not skip skill activation before proposing sources."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "Response correctly identifies the full three-step MCP activation sequence and the condition under which run_agent_skill is used."
+    }
+  ]
+}

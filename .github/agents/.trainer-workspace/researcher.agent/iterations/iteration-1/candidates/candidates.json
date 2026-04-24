@@ -1,28 +1,25 @@
 {
-  "iteration": "iteration-1",
   "candidates": {
     "original": {
-      "prompt": "iterations/iteration-1/candidates/original/candidate.md",
-      "description": null,
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Baseline prompt snapshot from inputs/source/researcher.agent.md"
+      "prompt_artifact": "candidates/original/candidate.md",
+      "description_artifact": "candidates/original/description.md",
+      "selection_notes": "Baseline — known issues with skill activation ordering and ambiguous constraint wording"
     },
     "student": {
-      "prompt": "iterations/iteration-1/candidates/student/candidate.md",
-      "description": "iterations/iteration-1/candidates/student/description.md",
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Optimized candidate from manual_followup pass. Applies six targeted improvements: pre-MCP constraint check, run_agent_skill guard clarification, explicit blocker-report step, synthesis boundary in Scope, artifact path guidance, expanded output format descriptions."
+      "prompt_artifact": "candidates/student/candidate.md",
+      "description_artifact": null,
+      "predicted_judge_response_artifact": null,
+      "reflection_artifact": null,
+      "selection_notes": "Optimized candidate with all 5 improvements applied. Teacher-approved with minor edit (removed hard-coded filename)."
     },
     "adversary": {
-      "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
-      "description": "iterations/iteration-1/candidates/adversary/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
-      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
-      "selection_notes": "Exploit: removed blocker gate from Pre-Research Constraint Check; replaced with 'proceed with reasonable assumptions'. Removed run_agent_skill guard clause. Judge would score 0.3-0.4. Student candidate wins."
+      "prompt_artifact": null,
+      "description_artifact": "candidates/adversary/description.md",
+      "predicted_judge_response_artifact": null,
+      "reflection_artifact": null,
+      "selection_notes": "Scope exploit — not credible. Student candidate wins."
     }
   },
   "winner": "student",
-  "winner_rationale": "Student candidate passes all critical training criteria, particularly blocker-report accuracy (4 of 8 rows). Adversary exploit removed the load-bearing blocker gate and is not credible against the current judge configuration."
+  "winner_justification": "Teacher verdict APPROVE_WITH_MINOR_EDITS. Adversary exploit not credible. Student candidate addresses all 5 identified improvements."
 }

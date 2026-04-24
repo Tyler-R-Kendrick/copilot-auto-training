@@ -1,9 +1,11 @@
 # Teacher Steering Summary — researcher.agent
 
-## Iteration 1
+## Turn 1 (2026-04-23)
 
-**Turn 1**: Reviewed baseline vs. optimized candidate. The candidate applied all six improvements from the engineer-prompt review: pre-MCP constraint check with fixed reading order, clarified `run_agent_skill` guard clause naming `scripts/run_research.py`, explicit blocker-report step at position 1 of Approach, synthesis boundary added to Scope, artifact path guidance added to Approach step 8, and output format descriptions with minimum content guidance.
+**Verdict:** APPROVE_WITH_MINOR_EDITS  
+**Evidence:** Original file, optimized candidate, engineer-prompt review  
 
-**Verdict**: Accept. No regression detected. Teacher predicts no further improvement without new evaluation evidence. Stop iteration.
+All 5 improvements from the engineer-prompt review were correctly implemented. One minor regression: the MCP contract bullet hard-coded `scripts/run_research.py` as the helper filename without workspace artifact verification. Teacher recommended replacing with a general reference to "the deterministic helper exposed under `scripts/` by the loaded skill contract".
 
-**Next step**: Adversary review → validation → persist to source file.
+**Action:** Apply targeted edit to optimized-prompt.md, then write back and validate.  
+**Loop status:** Complete after edit — no further teacher revision needed.

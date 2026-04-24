@@ -1,44 +1,37 @@
-# Teacher Steering — Turn 1
+# Steering Turn 1 — Teacher Review
 
-## Evidence Reviewed
+## Evidence Used
 
-- **Target file**: `.github/agents/researcher.agent.md` (baseline)
-- **Engineer-prompt review**: `.github/agents/.trainer-workspace/researcher.agent/engineer-prompt/review.md`
-- **Training dataset**: 8 rows, all `llm_judge` scoring with `reference` and `criteria`
-- **Validation dataset**: 3 rows, same scoring shape
-- **Optimized candidate**: `iterations/iteration-1/optimize/optimized-prompt.md`
+- Original `researcher.agent.md`
+- Optimized candidate from manual-followup optimize pass
+- Engineer-prompt review summary (5 identified improvements)
 
-## Predicted Student Mistakes
+## Teacher Assessment
 
-Before reviewing the candidate, expected student failure modes:
-1. Losing the blocker-report step by folding it into a generic constraint paragraph.
-2. Overly verbose output format descriptions that bloat the prompt without adding precision.
-3. Keeping the `run_agent_skill` guard ambiguous ("check the loaded contract" without naming what to look for).
+All 5 improvements were implemented correctly, with one partial regression:
 
-## Candidate Review
+**Improvement 1 (Reorder skill activation):** ✅ Correct  
+**Improvement 2 (`run_agent_skill` condition):** ⚠️ Partial regression — MCP contract bullet hard-codes `scripts/run_research.py` which is a fabricated specific filename not verified in workspace artifacts.  
+**Improvement 3 (No-op path):** ✅ Correct  
+**Improvement 4 (Non-interactive gap reporting):** ✅ Correct  
+**Improvement 5 (Sub-agent constraint):** ✅ Correct  
 
-The optimized candidate addresses all six main risks from the engineer-prompt review:
+## Predicted Student Mistake
 
-- **Pre-Research Constraint Check**: Added correctly. The fixed reading order (prompt → task → scoring rule → constraints) is explicit and the blocker condition is clear.
-- **`run_agent_skill` guard**: Clarified successfully. The candidate names `scripts/run_research.py` as the specific helper to look for, which is concrete and actionable.
-- **Blocker-report step in Approach**: Added as step 1, before `find_agent_skill` is called. Correct position.
-- **Synthesis boundary in Scope**: Added clearly. "Stop at mapping notes" is unambiguous.
-- **Artifact path guidance**: Added in Approach step 8. Correct.
-- **Output format descriptions**: Each section now has minimum content guidance. Depth is appropriate — not too verbose.
+Student will likely retain `scripts/run_research.py` because the engineer review implied it exists — but the specific filename was never cited in workspace artifacts.
 
-## Stop-or-Continue Decision
+## Requested Revision
 
-**Stop**. The candidate applies all six targeted improvements from the engineer-prompt review without introducing regressions. The changes are minimal and surgical. No evidence of student mistakes predicted above was found in the final candidate. Further iteration is not supported by the current evidence.
+In MCP Execution Contract bullet 3, replace:
+> "the `researcher-research` skill exposes a `scripts/run_research.py` helper"
 
-## Judge Notes
-
-The candidate should score higher on:
-- MCP activation rate (explicit pre-MCP constraint check)
-- Blocker-report accuracy (step 1 forces gap surfacing)
-- Brief completeness (output section descriptions require non-trivial content)
-
-The adversary should check whether the pre-research constraint check could be gamed by an agent that calls find_agent_skill before completing the constraint check.
+With:
+> "the deterministic helper exposed under `scripts/` by the loaded skill contract"
 
 ## Verdict
 
-Accept candidate as the optimized result for this iteration. Proceed to adversary review and validation.
+**APPROVE_WITH_MINOR_EDITS** — one targeted edit, no structural changes needed.
+
+## Stop-or-Continue
+
+Apply the targeted edit and write back. Teacher predicts no further improvement is needed after this change.

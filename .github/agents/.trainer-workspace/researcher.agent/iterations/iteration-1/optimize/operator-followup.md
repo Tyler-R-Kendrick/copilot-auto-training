@@ -1,34 +1,27 @@
-# Operator Followup: manual_followup Optimize Stage
+# Operator Follow-Up: Manual Follow-Up Mode
 
 ## Blocker
 
-Model credentials not available in this environment (`CopilotInferenceError: Session was not created with authentication info or custom provider`).
-
-## Optimize Payload
-
-Saved as `manual-followup-report.json` in this same directory.
+The optimize runtime returned `mode=manual_followup` because no inference model was available in CI (`CopilotInferenceError: github-copilot-sdk is required` / no session authentication).
 
 ## Agent Handoff Summary
 
-The `@trainer` agent completed the optimize-stage inference step. The baseline `researcher.agent.md` was analyzed against the training dataset and engineer-prompt review, and an optimized candidate was produced directly.
+The current `@trainer` agent answered the returned `model_prompt` directly and saved the result as `optimized-prompt.md` in this optimize directory. The optimized candidate reflects the following improvements from the engineer-prompt review:
 
-**Key improvements applied:**
+1. **MCP skill activation first**: Reordered the approach so `find_agent_skill` + `load_agent_skill` is explicitly the first action, before reading any context or proposing sources.
+2. **Clarified `run_agent_skill` condition**: The `researcher-research` skill has a `scripts/run_research.py` helper, so `run_agent_skill` is always appropriate (not conditional on uncertain script presence).
+3. **No-op path for pre-supplied materials**: Added step 3 in the approach to recognize when the caller has already supplied sufficient source material and skip redundant search.
+4. **Non-interactive gap reporting**: Added an explicit rule to default to gap reports rather than interactive questions in non-interactive contexts.
+5. **Clarified sub-agent constraint**: Changed "DO NOT involve any other agents" to "DO NOT invoke sub-agents" with a parenthetical clarifying that search/read/execute tools are permitted.
 
-1. Added a **Pre-Research Constraint Check** section that specifies a fixed evidence-reading order (prompt file → task description → scoring rule → source constraints) and requires surfacing missing constraints as blockers before calling `find_agent_skill`.
+## Artifact Paths
 
-2. Clarified the **`run_agent_skill` guard clause**: after loading, the agent explicitly checks whether the loaded skill contract mentions a scripts/ helper. If yes, call `run_agent_skill`; if not, use the loaded instructions as the operating contract directly.
+- Optimize report: `iterations/iteration-1/optimize/manual-followup-report.json`
+- Optimized candidate: `iterations/iteration-1/optimize/optimized-prompt.md`
 
-3. Added a **synthesis boundary** to the Scope section: "Stop at mapping notes. Do not author eval rows, train.jsonl entries, or val.jsonl entries; that work belongs to a synthesis workflow."
+## Rerun Command
 
-4. Added **artifact path guidance** to the Approach: when the caller requests a saved artifact, save the research brief under `iterations/iteration-N/research/` and return the path.
-
-5. Expanded **Output Format descriptions**: each of the six sections now has a one-to-three sentence description of minimum required content and expected depth, including an explicit note that the stop recommendation section is always present.
-
-6. Added the blocker-report step to the Approach: if required inputs are missing after the constraint check, surface the gap and wait for clarification before proceeding.
-
-All existing frontmatter, constraints, scope role, and tool configuration were preserved.
-
-## Rerun Command (for future runs with model access)
+To rerun with a live model once credentials are available:
 
 ```bash
 python skills/trainer-optimize/scripts/run_optimize.py \
@@ -37,8 +30,5 @@ python skills/trainer-optimize/scripts/run_optimize.py \
   --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl \
   --iterations 3 \
   --algorithm apo \
-  --beam-width 4 \
-  --branch-factor 4 \
-  --n-runners 4 \
   --judge-mode llm_judge
 ```

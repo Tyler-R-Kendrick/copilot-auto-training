@@ -1,54 +1,50 @@
+# Engineer-Prompt Review: researcher.agent.md
+
 ## Goal
 
-Assess the current researcher agent as an optimization target for grounded source research work in prompt-optimization workflows, with emphasis on MCP execution discipline, evidence ordering, blocker reporting, and research brief completeness.
+Assess the current researcher agent as an optimization target for grounded source-discovery workflows, with emphasis on triggering clarity, MCP routing discipline, and output consistency for research briefs that support eval authoring and prompt optimization.
 
-The optimization target is execution reliability, not role expansion. A strong researcher agent should activate the researcher-research skill before any free-form search, resolve missing constraints before proposing sources, surface a clear approval bar, and return a structured brief that a downstream synthesizer can consume without ambiguity.
+The optimization target is operational discipline and clarity: the researcher agent should load the `researcher-research` skill before acting, stay anchored to primary-source evidence, surface genuine stop conditions rather than forcing weak recommendations, and avoid generic web browsing when the skill contract covers the task.
 
 ## Current Strengths
 
-- The role is narrowly scoped: grounded source discovery, triage, and brief authoring only.
-- The MCP execution contract is explicit: find → load → run before any research.
-- The constraints correctly prohibit guessing, involving other agents, and fabricating source authority.
-- The approach section lists the right six steps in the right order.
-- The output format names all six required sections.
+- The description is strongly worded and covers the full discovery surface: datasets, benchmarks, documentation, source material, and licensing.
+- The `argument-hint` gives concrete guidance for callers about what context to supply.
+- The MCP routing contract is explicit about the three-step `find_agent_skill` → `load_agent_skill` → `run_agent_skill` sequence.
+- The output format is structured and covers approved sources, rejected candidates, mapping notes, and unresolved gaps.
+- The stop-recommendation path ("if no candidate clears the approval bar") is present.
 
 ## Main Risks
 
-1. **No evidence-order for incoming artifacts.** The approach says "Read the target prompt or skill file, task description, scoring rule, and any source constraints first," but does not specify what to do when some of these inputs are missing before the MCP activation step, leaving the agent to improvise.
-
-2. **`run_agent_skill` guard clause is ambiguous.** The MCP contract says to call `run_agent_skill` "only when the researcher-research skill exposes a deterministic helper under `scripts/`; otherwise use the loaded skill instructions as the active operating contract." This is ambiguous: an agent new to the repo cannot easily determine whether a scripts/ helper exists without reading the skill content, but the contract implies they should decide this before loading. In practice the agent may skip the load step or call run_agent_skill anyway.
-
-3. **No explicit blocker-report path.** The constraints say "DO NOT guess missing constraints that materially change source selection; ask for them or report the gap." But the approach does not name a step for surfacing missing constraints before the MCP load, which means a partially-specified task may proceed into research rather than pausing for clarification.
-
-4. **Output format is flat.** The six output sections are named but not described in terms of required content, leaving the agent to vary depth significantly across runs. In particular, "Unresolved gaps or stop recommendation" is vague: the agent may produce a thin note or a full stop recommendation without guidance on when each is appropriate.
-
-5. **No artifact path guidance.** The agent description says to "return a concise research brief unless the caller explicitly asks for a saved artifact path," but there is no instruction for where to save the brief or how to name the file when the caller does ask. Other agents in the same repo (adversary, teacher) have more explicit artifact naming.
-
-6. **Scope section does not mention eval authoring limits.** The scope says "Separate research from synthesis" implicitly through constraints, but the scope section itself does not call out that the researcher should stop at mapping notes, which could cause scope creep in edge cases.
+- The `tools` list includes `agent-skills/*` but does not mention `search` at the top level. The frontmatter says `tools: [read, edit, search, execute, 'agent-skills/*']`, which is inconsistent with the constraint "DO NOT involve any other agents" — `search` here is fine but the constraint needs to clarify it means no sub-agents, not no search.
+- The approach steps mention "use `find_agent_skill` and `load_agent_skill` to activate `researcher-research` before proposing sources" (step 2), but the skill activation should be step 1 or at least mandatory before any search planning, not listed after "read the target prompt" as if it can be deferred.
+- There is no explicit path for when the caller supplies materials that are sufficient without external research (i.e., no defensible no-op path for the research stage itself). The agent always tries to find sources even when the caller already supplies them.
+- The constraint "DO NOT guess missing constraints" is correct but paired with "ask for them or report the gap" — in a non-interactive context the agent should prefer reporting the gap rather than asking.
+- The output format lists items but does not specify the artifact save location or format when the caller asks for a saved output rather than inline text.
 
 ## Rewrite Hypotheses
 
-- Add a pre-MCP checklist: read inputs in a fixed order (prompt file → task description → scoring rule → constraints), confirm which are present, and surface a blocker note before calling `find_agent_skill` if any materially affect source selection.
-- Clarify the `run_agent_skill` guard clause: after loading the skill, check whether `scripts/run_research.py` is mentioned in the loaded contract; if yes, call `run_agent_skill`; if the helper is not mentioned or not available, use the loaded instructions as the operating contract directly.
-- Add an explicit blocker-report step to the approach: if required inputs are missing after reading the target file, surface the gap immediately and wait for clarification before proceeding.
-- Expand the output format descriptions: for each of the six sections, add one sentence describing the minimum required content and the depth expected.
-- Add artifact path guidance: when the caller requests a saved artifact, save the research brief under the iteration research directory (`iterations/iteration-N/research/`) and return the path.
-- Add an explicit synthesis boundary to the scope section: note that the researcher stops at mapping notes and does not author eval rows.
+- Keep the frontmatter and description essentially unchanged; the discovery language is already well-calibrated.
+- Reorder the approach so skill activation (find + load) is the first action after reading the target, not step 2 after a read.
+- Add a short no-op path: if the caller supplies sufficient source material already, surface that fact and defer to the caller rather than re-running a search.
+- Clarify the "DO NOT involve any other agents" constraint to explicitly mean sub-agent invocation, not research tools like `search`.
+- Add a clear "non-interactive gap reporting" note so the agent defaults to gap reports instead of interactive clarifying questions.
+- Keep the rewrite minimal. The existing structure and MCP routing contract are sound.
 
 ## Suggested Metrics
 
-- MCP activation rate: percent of runs where `find_agent_skill` and `load_agent_skill` are called before any research begins.
-- Blocker-report accuracy: percent of runs where missing-constraint gaps are surfaced before proceeding rather than guessed.
-- Brief completeness: percent of runs where all six output sections are present and non-trivial.
-- Stop-recommendation precision: percent of runs where a stop recommendation is issued when no source clears the approval bar.
-- Approval-bar explicitness: percent of runs where the approval bar is stated before sources are evaluated.
-
-## Validation Plan
-
-Run `python -m pytest -q` from the repository root after applying any rewrite to confirm no regressions in existing tests. Review representative research brief outputs against the evals.json cases in `skills/researcher-research/evals/` for section completeness and source-triage discipline.
+- Skill-activation compliance: percentage of runs where `find_agent_skill` and `load_agent_skill` are called before any source is proposed.
+- Stop-condition precision: percentage of cases with no viable sources where the agent correctly surfaces a blocker report rather than a weak recommendation.
+- No-op accuracy: percentage of cases where pre-supplied source material is correctly recognized as sufficient.
+- Output completeness: percentage of runs that include approved sources, rejected candidates, mapping notes, and gap notes in the brief.
+- Non-interactive compliance: percentage of runs in non-interactive contexts where gaps are reported rather than asked as open questions.
 
 ## Recommendation
 
-This is a worthwhile optimization target because research brief quality directly gates downstream synthesize and optimize quality. The current agent has correct role scoping and a clean MCP contract, but is underspecified on constraint resolution, blocker reporting, and output section depth.
+This agent file has a solid base. The best optimization is a small discipline-focused rewrite: enforce skill activation as the first action, clarify constraint wording, and add a no-op and non-interactive gap-reporting path. Avoid broadening the scope or restructuring the output format, since those are already well-defined.
 
-Prioritize a rewrite that adds a pre-MCP constraint check, clarifies the `run_agent_skill` guard, and expands output section descriptions. Measure on brief completeness and blocker-report rate. Only expand examples if the first structured rewrite still produces incomplete section content.
+## Validation Plan
+
+- Run `python -m pytest -q` after any file change to confirm no regressions.
+- Use the `researcher-research` skill evals (`skills/researcher-research/evals/evals.json`) as the ground-truth behavioral check for the researcherr workflow.
+- Judge mode: `llm_judge` (evaluation relies on qualitative research-brief quality, not exact match).

@@ -15,7 +15,7 @@ For public-source discovery tasks, first discover and load `researcher-research`
 
 ## MCP Execution Contract
 
-- Call `find_agent_skill` to discover the exact `researcher-research` skill before researching.
+- Call `find_agent_skill` to discover the exact `researcher-research` skill before researching. Do this first — before reading context or proposing any source.
 - Call `load_agent_skill` before first use so the loaded skill contract and bundled assets guide the task.
 - Call `run_agent_skill` only when the `researcher-research` skill exposes a deterministic helper under `scripts/`; to determine this, check whether `scripts/run_research.py` exists in the skill directory — if it does, call `run_agent_skill` to execute it and use its output as the research-brief scaffold; otherwise use the loaded skill instructions as the active operating contract.
 - Use `researcher-research` as the default path whenever missing public-source evidence blocks eval authoring, dataset synthesis, or prompt optimization.
@@ -64,6 +64,7 @@ If a candidate fails any criterion, classify it as a rejected candidate with the
 4. DO NOT fabricate source authority, licensing, annotation quality, or benchmark support.
 5. DO NOT author eval rows; stay in research and mapping scope only.
 6. ONLY gather grounded source material, produce research artifacts, and record unresolved evidence gaps.
+7. In non-interactive contexts, default to gap reports rather than interactive clarifying questions.
 
 ## Required Inputs — Resolve Before Searching
 
@@ -80,14 +81,15 @@ If any of these are missing and would materially affect source selection, ask th
 
 ## Approach
 
-1. Activate `researcher-research` via MCP: call `find_agent_skill`, then `load_agent_skill`. Do not propose sources before this step.
+1. Activate `researcher-research` via MCP: call `find_agent_skill`, then `load_agent_skill`. Do this first — before reading any target file or proposing sources.
 2. Read the target prompt or skill file, task description, scoring rule, and any source constraints.
-3. Confirm all required inputs from the section above are resolved. If any are missing, elicit them; if they remain unresolvable, stop with a blocker report naming the gap.
-4. Derive the target eval layout, prompt-visible placeholders, and the field-mapping notes needed for later use.
-5. Build a primary-source-first research plan that names the approval bar, any remaining open questions, and the evidence required for a usable source.
-6. Gather candidate sources, apply the source approval bar to each, rank approved options, and reject weak or derivative leads explicitly with the specific failed criterion.
-7. If no candidate clears the approval bar, stop with a blocker report instead of forcing a recommendation.
-8. If the caller supplied a desired artifact location, save the research brief there and confirm the path in your output.
+3. If the caller has already supplied sufficient source material with provenance and licensing notes, map the supplied sources into eval-authoring notes rather than re-running a redundant search.
+4. Confirm all required inputs from the section above are resolved. If any are missing, elicit them; if in a non-interactive context or if they remain unresolvable, record them as unresolved gaps in a blocker report.
+5. Derive the target eval layout, prompt-visible placeholders, and the field-mapping notes needed for later use.
+6. Build a primary-source-first research plan that names the approval bar, any remaining open questions, and the evidence required for a usable source.
+7. Gather candidate sources, apply the source approval bar to each, rank approved options, and reject weak or derivative leads explicitly with the specific failed criterion.
+8. If no candidate clears the approval bar, stop with a blocker report instead of forcing a recommendation.
+9. If the caller supplied a desired artifact location, save the research brief there and confirm the path in your output.
 
 ## Output Format
 
