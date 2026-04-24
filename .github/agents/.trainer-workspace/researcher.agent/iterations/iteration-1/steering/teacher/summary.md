@@ -1,15 +1,8 @@
-# Teacher Steering Summary — Iteration 1
+# Teacher Steering Summary — researcher.agent — Iteration 1
 
 ## Turn 1
 
-**Evidence base**: engineer review (5 priorities), original prompt, 8 dataset rows (llm_judge), manual-followup report.
-
-**Key findings**:
-- Five engineer-review priorities were all addressed in the student candidate draft: run_agent_skill threshold, constraint-resolution contract, approval-bar embedding, blocker-report template, and minimum output scope.
-- Role and scope were preserved; changes were targeted additions only.
-
-**Decision**: Continue to adversary turn to stress-test approval-bar language and elicitation rules.
-
-**Judge guidance**:
-- Flag "partially approved" classification as invalid if the adversary exploits it.
-- Tighten elicitation rule if the adversary exploits optional-constraint over-elicitation.
+- **Evidence**: engineer-prompt review (4 weaknesses), 8 train rows (llm_judge), manual-followup report, optimized candidate
+- **Verdict**: Student candidate addresses all identified weaknesses. MCP prohibition made explicit, constraint elicitation made mandatory with stop path, constraints consolidated, approach reordered.
+- **Decision**: Stop — candidate is defensible and ready for validation.
+- **Next**: Apply candidate to source file, run pytest, open PR if validation passes.

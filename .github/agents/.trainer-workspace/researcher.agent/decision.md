@@ -1,37 +1,42 @@
-# Decision Summary — researcher.agent
+# Decision — researcher.agent — Iteration 1
 
 ## Selected Candidate
 
-**Student candidate** (winner over original and adversary).
+**Student candidate** (manual-followup optimize pass)
 
-## Optimization Goal
+## Changes Applied
 
-Improve the researcher agent contract by making the MCP `run_agent_skill` threshold explicit, formalizing constraint resolution into required vs elicitable categories, embedding the source approval bar directly in the agent, adding a blocker-report template to the output format, and mandating all required output sections.
+The following improvements were applied to `.github/agents/researcher.agent.md`:
 
-## Key Changes Made
+1. **Mandatory constraint elicitation gate** — Added a "Required Inputs — Resolve Before Searching" section listing all six required inputs. Replaced the conditional "If any of these materially affect source selection and are missing, ask first" phrasing with a mandatory gate: elicit missing inputs, and stop with a blocker report if the caller cannot or does not provide them.
 
-1. **`run_agent_skill` threshold**: The MCP Execution Contract now explicitly says to check for `scripts/run_research.py` in the skill directory and call `run_agent_skill` only when it is present; otherwise use the loaded skill instructions as the active operating contract.
-2. **Constraint Resolution section**: Added a dedicated section distinguishing required inputs (task boundary, scoring rule, prompt placeholders — must ask if missing) from elicitable ones (domain, language, recency — ask only when materially affecting source selection).
-3. **Source Approval Bar section**: Embedded five approval bar criteria directly in the agent contract so the model does not depend solely on the loaded skill contract for gating decisions. Added an explicit prohibition on "partially approved" classifications.
-4. **Blocker-report template**: Added to the output format with required content: failed criteria, missing evidence, and a stop recommendation.
-5. **Required sections mandate**: Output format now explicitly marks all six sections as required.
+2. **Explicit stop path when constraints are unresolvable** — The new gate explicitly states: "stop and name the unresolved constraint in a blocker report rather than guessing or proceeding with an assumed value."
 
-## Adversary Assessment
+3. **Strengthened MCP routing prohibition** — Added "Do not begin source search or propose source candidates before `researcher-research` is loaded. Free-form research is not a fallback when MCP is available." to the MCP Execution Contract. Also added constraint #2 in the numbered list.
 
-Three exploit attempts were made: vague `run_agent_skill` threshold, advisory approval bar, and vague constraint resolution. None exceeded the student candidate's predicted score. The approval-bar advisory language (exploit 2) was the strongest attack surface but failed eval rows 3 and 4.
+4. **Consolidated and numbered constraints** — Converted the `DO NOT` bullet groups into a numbered list of 6 constraints, adding explicit prohibitions for free-form research and eval-row authoring.
 
-## Validation
+5. **Tightened Approach steps** — MCP activation is now step 1; constraint resolution gate is step 3 with a clear stop path.
 
-`python -m pytest -q` — **856 passed, 0 failed**.
+6. **Scope clarification** — Added "Stop at mapping notes. Do not author eval rows or hand off to other agents." to the Scope section.
 
-## Target File
+## Validation Result
 
-`.github/agents/researcher.agent.md`
+856 tests passed, 0 failed (`python -m pytest -q`).
 
-## Workspace
+## Optimize Mode
 
-`.github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/`
+`manual_followup` — no external model available. Candidate produced by @trainer agent from returned `model_prompt`.
 
-## Iteration
+## Artifacts
 
-`iteration-1`, judge_mode: `llm_judge`, 8 eval cases (6 train, 2 val).
+- `iterations/iteration-1/research/research-brief.json`
+- `iterations/iteration-1/synthesize/evals/evals.json` (5 eval cases)
+- `iterations/iteration-1/synthesize/datasets/train.jsonl` (8 rows, llm_judge)
+- `iterations/iteration-1/synthesize/datasets/val.jsonl` (4 rows, llm_judge)
+- `iterations/iteration-1/optimize/manual-followup-report.json`
+- `iterations/iteration-1/optimize/optimized-prompt.md`
+- `iterations/iteration-1/optimize/operator-followup.md`
+- `iterations/iteration-1/candidates/candidates.json`
+- `iterations/iteration-1/steering/teacher/turn-1/STEERING.md`
+- `iterations/iteration-1/validation/pytest.txt`

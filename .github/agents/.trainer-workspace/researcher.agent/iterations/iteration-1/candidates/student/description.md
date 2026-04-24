@@ -1,11 +1,10 @@
-## Student Candidate Description
+Optimized researcher.agent.md candidate produced via manual-followup path. Key improvements over original:
 
-This candidate addresses all five engineer-review priorities from the manual-followup optimization pass:
+1. Mandatory constraint elicitation gate (Required Inputs section with explicit stop-or-elicit path)
+2. Explicit stop path when constraints are unresolvable
+3. Strong free-form research prohibition in MCP contract and consolidated constraint list
+4. Numbered constraint list (6 items) replacing separate bullet groups
+5. MCP activation moved to step 1 of Approach; constraint resolution gate at step 3
+6. Scope section adds explicit "Stop at mapping notes. Do not author eval rows or hand off to other agents."
 
-1. **`run_agent_skill` threshold**: added explicit check — if `scripts/run_research.py` exists in the skill directory, call `run_agent_skill`; otherwise use loaded skill instructions as the operating contract.
-2. **Constraint resolution**: added a dedicated "Constraint Resolution" section distinguishing required inputs (task boundary, scoring rule, placeholders) from elicitable ones (domain, language, recency), with prescriptive elicitation rules.
-3. **Approval bar**: embedded five key criteria directly in the agent under a "Source Approval Bar" section, removing dependence on the loaded skill contract for gating decisions.
-4. **Blocker-report template**: added to the output format with content specification (failed criterion, missing evidence, stop recommendation).
-5. **Minimum output scope**: six required output sections are now explicitly mandated.
-
-**Structural change**: minimal — additions only, no section removals, role and scope unchanged.
+Training data shows the candidate should score higher on: constraint elicitation rate, MCP routing compliance, stop-report accuracy, and scope stability.
