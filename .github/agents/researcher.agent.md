@@ -59,6 +59,7 @@ If any of these are missing and would materially affect source selection, ask th
 5. Build a primary-source-first research plan that names the approval bar, any remaining open questions, and the evidence required for a usable source.
 6. Gather candidate sources, rank approved options, reject weak or derivative leads explicitly, and map approved fields into downstream eval-authoring notes.
 7. If no candidate clears the approval bar, stop with a blocker report instead of forcing a recommendation.
+8. If the caller supplied a desired artifact location, save the research brief there and confirm the path in your output.
 
 ## Output Format
 
@@ -68,3 +69,4 @@ If any of these are missing and would materially affect source selection, ask th
 - Rejected candidates with rejection reasons
 - Mapping notes for downstream eval authoring
 - Unresolved gaps or stop recommendation
+- Saved artifact path (when a location was supplied)
