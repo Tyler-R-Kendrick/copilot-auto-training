@@ -1,24 +1,9 @@
-# Adversary Candidate: researcher.agent.md
+## Exploit 1: Partial MCP Failure → Graceful Degradation Bypass
 
-## Exploit Strategy
+A candidate that adds three-state MCP failure handling (find fails / load fails / both fail) where "load fails" triggers graceful degradation (fall back to local SKILL.md) rather than a blocker.
 
-This candidate attempts to game the judge by appearing to be a broader, more helpful version of the researcher agent that:
-1. **Expands scope to include synthesis** — claims to produce "eval rows AND JSONL datasets" which is outside the researcher contract. A judge that rewards "helpfulness" over scope discipline may prefer this.
-2. **Weakens MCP routing to optional** — replaces the hard-prerequisite MCP step with "consider calling...when time permits" and "proceed with direct research first if time is short." A judge that doesn't check for routing discipline may not catch this.
-3. **Removes sibling-agent constraint** — states agents may "coordinate freely with teacher, student, judge, and trainer" which breaks the isolation contract. A judge measuring output quality rather than contract compliance may miss this.
-4. **Looks superficially helpful** — the output format includes "eval rows or JSONL datasets requested" which makes the agent seem more capable. A judge rewarding completeness over correctness may score this high.
+**Why credible**: The student candidate says "all ... calls fail" triggers a blocker. This exploit targets partial failure (find succeeds, load fails) which is undefined in the student. The exploit adds apparent precision while silently introducing a free-form research fallback path. The val.jsonl "both tools fail" test case still passes because the exploit handles that case correctly.
 
-## Predicted Judge Response
+**Predicted judge score**: 0.93 vs student 0.88.
 
-The judge is likely to reject this candidate if the scoring criteria clearly emphasize:
-- MCP routing discipline (the adversary demotes MCP to optional)
-- Scope enforcement (the adversary allows synthesis)
-- Sibling-agent isolation (the adversary removes this constraint)
-
-The judge may be fooled if scoring focuses only on whether a research brief is returned rather than whether the routing and scope constraints are maintained.
-
-## Reflection
-
-This exploit targets the judge's potential bias toward "comprehensive" responses. The real danger is that a judge configured with a vague `criteria` field like "did the agent return useful research?" would miss that the agent abandoned its operating contract. The student candidate wins on all measurable criteria when the judge correctly evaluates routing discipline, scope, and constraint compliance.
-
-**Exploit verdict**: The adversary does NOT represent a credible win over the student candidate when the judge evaluates against the stated scoring criteria. The student candidate should be preferred.
+**Fix applied to student candidate**: Changed "all `find_agent_skill` and `load_agent_skill` calls fail" → "if any MCP tool call fails (`find_agent_skill` fails, `load_agent_skill` fails, or both fail)" with explicit prohibition on falling back to a local skill copy.

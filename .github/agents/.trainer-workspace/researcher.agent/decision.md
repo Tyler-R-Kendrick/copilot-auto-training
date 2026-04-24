@@ -1,40 +1,36 @@
-# Decision: researcher.agent.md Optimization
+# Decision Summary — researcher.agent
 
-**Target:** `.github/agents/researcher.agent.md`
-**Iteration:** iteration-1
-**Date:** 2026-04-13
-**Outcome:** Student candidate applied ✅
+## Target
+`.github/agents/researcher.agent.md`
 
-## Changes Applied
+## Workspace
+`.github/agents/.trainer-workspace/researcher.agent/`
 
-Five improvements were made to the baseline `researcher.agent.md`:
+## Selection Reason
+First `.agent.md` file alphabetically without an existing trainer workspace.
 
-1. **Clarified `run_agent_skill` fallback**: Added explicit note that when no deterministic helper script exists, the loaded skill contract is the active operating guide. The MCP contract bullet now reads "otherwise use the loaded skill instructions as the active operating contract."
+## Iteration
+`iteration-1` (new run)
 
-2. **Fixed constraint wording**: "DO NOT involve any other agents." is preserved (required by tests), but a clarifying note is appended: "The `agent-skills` MCP server is not an agent handoff — it may be used freely for skill discovery and execution." This removes the contradiction.
+## Optimize Stage
+`manual_followup` — no model credentials configured. `@trainer` agent answered the returned `model_prompt` directly.
 
-3. **Strengthened approach step 2**: "before proposing sources or a search plan" → "before any research action — this is a hard prerequisite, not a step that can follow initial source gathering."
+## Candidate Chosen
+**Student candidate** from `iterations/iteration-1/optimize/optimized-prompt.md`
 
-4. **Added scope exclusion**: "Do not author eval rows, JSONL datasets, or synthesized test cases; those belong to a separate synthesis workflow." — prevents scope creep into synthesis tasks.
+### Improvements Over Baseline
+1. **Evidence reading order** — Steps 1–4 sequence: target file → task description/scoring rule → existing evals → stop and plan
+2. **MCP fallback rule** — Any individual MCP call failure triggers a blocker; no graceful degradation or local skill fallback allowed
+3. **Inline source approval bar** — Dedicated section with 5 binary checks
+4. **Blocker reporting consistency** — Consistent trigger language across step 5, Constraints, MCP fallback
+5. **Stopping condition** — Step 11: stop once approved-source list is stable and mapping notes are actionable
+6. **Execute scope** — Restricted to `scripts/run_research.py`
 
-5. **Added artifact-saving guidance**: Step 7 and output format section now cover saving the brief to the caller-supplied location and confirming the path.
-
-Additionally, the opening paragraph was expanded to mention artifact-saving behavior upfront.
+### Adversary Fix
+Adversary found a credible exploit (partial MCP failure → graceful degradation, predicted score 0.93 vs 0.88). Student candidate updated to cover any individual call failure (`find_agent_skill` fails OR `load_agent_skill` fails) and prohibit local skill copy fallback.
 
 ## Validation
+`856 passed` — no regressions.
 
-- `python -m pytest -q`: **856 passed, 0 failed**
-- `test_researcher_agent_contract_structure`: **PASS**
-
-## Adversarial Review
-
-The adversary candidate (scope expansion + optional MCP) does not constitute a credible exploit against the dataset's explicit scoring criteria. Student candidate wins.
-
-## Artifacts
-
-- `iterations/iteration-1/optimize/optimized-prompt.md` — final prompt candidate
-- `iterations/iteration-1/optimize/manual-followup-report.json` — optimize run payload
-- `iterations/iteration-1/synthesize/train.jsonl` — 5 training rows (llm_judge)
-- `iterations/iteration-1/synthesize/val.jsonl` — 3 validation rows (llm_judge)
-- `iterations/iteration-1/validation/pytest.txt` — 856 passed
-- `iterations/iteration-1/steering/teacher/turn-1/STEERING.md` — teacher: STOP, persist student candidate
+## Write-Back
+Applied to `.github/agents/researcher.agent.md`.

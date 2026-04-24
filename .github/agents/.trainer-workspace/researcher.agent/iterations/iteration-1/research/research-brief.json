@@ -1,59 +1,53 @@
 {
-  "target": "researcher.agent.md — grounded public-source discovery agent for prompt-optimization and eval-authoring workflows",
-  "task_description": "Optimize the researcher agent prompt for operational reliability: fixed evidence reading order, MCP activation before free-form search, structured research-brief output, workspace-aware artifact paths, MCP fallback handling, and clean stopping behavior when no source clears the approval bar.",
-  "research_plan": {
-    "approval_bar": "Sources must be primary or directly authoritative (official benchmarks, official documentation, published peer-reviewed work, or well-known widely-adopted open datasets). Derivative, aggregated, or paraphrased sources require the originating primary source to be identified.",
-    "search_focus": [
-      "Published grounded research workflows for prompt engineering and LLM evaluation",
-      "Official benchmark dataset documentation (e.g., HuggingFace datasets, BIG-Bench, MMLU)",
-      "Authoritative guidance on evidence-reading patterns for LLM agents",
-      "Structured research-brief formats used in LLM annotation workflows"
+  "target_file": ".github/agents/researcher.agent.md",
+  "target_layout": {
+    "eval_path": ".github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/evals/evals.json",
+    "dataset_dir": ".github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/",
+    "workspace_dir": ".github/agents/.trainer-workspace/researcher.agent/"
+  },
+  "task_description": "Evaluate and improve the researcher agent's discipline: constraint elicitation before searching, MCP skill routing compliance, stop-report accuracy when no source clears the approval bar, and approval bar adherence.",
+  "scoring_rule": "llm_judge — open-ended agent quality; rows provide reference behavior and criteria for judgment.",
+  "sources": {
+    "approved": [
+      {
+        "name": "skills/researcher-research/SKILL.md (repo canonical)",
+        "authority": "Internal primary source — defines the expected researcher behavior and approval bar that the agent must implement.",
+        "provenance": "Checked-in skill contract in this repository.",
+        "license": "MIT (internal repo)",
+        "fit": "Defines the exact MCP routing contract, approval bar, constraint elicitation requirements, and output format the agent is expected to follow.",
+        "version": "Current HEAD",
+        "risk": "None — internal, stable."
+      },
+      {
+        "name": "skills/researcher-research/evals/evals.json (repo canonical)",
+        "authority": "Internal primary source — official authored evals for the researcher-research skill.",
+        "provenance": "Checked-in eval manifest in this repository.",
+        "license": "MIT (internal repo)",
+        "fit": "Provides three ground-truth examples of correct researcher behavior: query-plan derivation, primary-source selection with rejection, and stop-or-proceed decisions.",
+        "version": "Current HEAD",
+        "risk": "None — internal, stable."
+      },
+      {
+        "name": ".github/agents/researcher.agent.md (current source)",
+        "authority": "Internal primary source — the file being optimized.",
+        "provenance": "Checked-in agent contract in this repository.",
+        "license": "MIT (internal repo)",
+        "fit": "Defines the agent interface and current weaknesses identified in engineer-prompt/review.md.",
+        "version": "Current HEAD",
+        "risk": "None — internal, stable."
+      }
     ],
-    "missing_constraints": "No domain-specific jurisdiction, recency, or privacy constraints were provided. Research covers general-purpose eval authoring workflows."
+    "rejected": [
+      {
+        "name": "Public research-agent benchmarks (e.g., KGQA, WebArena, AgentBench)",
+        "reason": "These test agent tool-use for web browsing or knowledge-graph tasks, not the repo-specific MCP routing contract, constraint elicitation, or source approval bar defined in researcher-research."
+      },
+      {
+        "name": "arXiv papers on LLM research agents",
+        "reason": "Too general; the task is evaluating adherence to this repository's specific researcher contract, not general research capability."
+      }
+    ]
   },
-  "approved_sources": [
-    {
-      "source": "HuggingFace Datasets documentation (huggingface.co/docs/datasets)",
-      "evidence": "Primary source for structured dataset schema, licensing metadata, and field descriptions. Directly supports field-mapping guidance (input, reference, label, split).",
-      "field_mapping_notes": "HF dataset cards expose 'train'/'validation'/'test' splits, feature schemas, license fields, and citation blocks. These map to: input→feature column, reference→label column, criteria→annotation guidelines, scoring→metric documented in model card.",
-      "license": "Apache 2.0 (documentation itself); individual datasets vary — licensing check required per dataset.",
-      "status": "approved"
-    },
-    {
-      "source": "BIG-Bench (Beyond the Imitation Game Benchmark) — github.com/google/BIG-bench",
-      "evidence": "Authoritative benchmark with task descriptions, eval criteria, and example inputs/outputs for diverse NLP tasks. Supports research-brief format for task boundary and scoring rule documentation.",
-      "field_mapping_notes": "BIG-Bench task files expose 'examples' (input/target pairs), 'metrics', and 'canary_string'. Maps to: input→examples[].input, reference→examples[].target, criteria→metrics list, scoring→preferred_score.",
-      "license": "Apache 2.0",
-      "status": "approved"
-    },
-    {
-      "source": "MMLU (Massive Multitask Language Understanding) — github.com/hendrycks/test",
-      "evidence": "Well-known benchmark for knowledge-coverage evaluation. Provides structured multiple-choice examples with subject-domain labels. Useful for understanding how to document subject constraints in a research brief.",
-      "field_mapping_notes": "MMLU CSV rows: question, A, B, C, D, answer. Maps to: input→question+choices, reference→answer, criteria→subject accuracy, scoring→exact_match.",
-      "license": "MIT",
-      "status": "approved"
-    }
-  ],
-  "rejected_candidates": [
-    {
-      "source": "Random HuggingFace community dataset uploads without official maintainer",
-      "rejection_reason": "Derivative or uncurated; annotation quality and licensing provenance are unverified. Requires primary source identification before use."
-    },
-    {
-      "source": "Blog posts or tutorial content describing dataset workflows",
-      "rejection_reason": "Derivative and non-authoritative. Paraphrases primary documentation without adding verifiable new evidence."
-    }
-  ],
-  "field_mapping": {
-    "input": "The user-facing prompt or question text. For grounded sources, this maps to the primary input field in the dataset (e.g., 'question', 'sentence', 'context').",
-    "reference": "The expected correct output or gold-standard answer. Maps to the label or target field (e.g., 'answer', 'label', 'target').",
-    "criteria": "The scoring criteria or rubric for evaluating the response. Maps to benchmark-provided metric descriptions or annotation guidelines.",
-    "scoring": "The scoring rule: 'deterministic' for exact-match tasks (MMLU, BIG-Bench exact), 'llm_judge' for open-ended tasks requiring rubric-based evaluation, 'custom' for schema-validated or normalization-based tasks."
-  },
-  "unresolved_gaps": [
-    "No grounded public source for 'evidence reading order' patterns specific to LLM research agents — this guidance must be derived from repo conventions rather than external primary sources.",
-    "No authoritative public source for 'MCP fallback handling' in multi-agent prompt workflows — this is repo-specific guidance."
-  ],
-  "stop_recommendation": null,
-  "synthesis_ready": true
+  "mapping_notes": "Training rows should test: (1) mandatory constraint elicitation when inputs are missing, (2) MCP routing compliance (find_agent_skill + load_agent_skill before proposing sources), (3) stop-report generation when no source clears the approval bar, (4) correct research brief structure with approval bar evidence, (5) scope discipline — staying in research mode without authoring eval rows. Reference answers describe expected behavior; criteria list objectively observable predicates. Use scoring: llm_judge for all rows.",
+  "unresolved_gaps": "None. All required source material is available from internal canonical sources. Synthesis can proceed."
 }

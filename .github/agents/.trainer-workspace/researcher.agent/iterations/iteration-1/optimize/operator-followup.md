@@ -1,34 +1,33 @@
-# Operator Followup: researcher.agent.md
+# Optimize Stage: Manual Follow-up Handoff
 
 ## Blocker
 
-The external model was not available (no COPILOT_MODEL credential configured):
-> Session error: Execution failed: Error: Session was not created with authentication info or custom provider
+The `trainer-optimize` runtime returned `mode=manual_followup` because no external model credentials (`.env` with `COPILOT_MODEL`) are configured in this repository. The optimizer completed all deterministic preparation steps (dataset validation, placeholder extraction, judge-mode inference) but could not execute the APO beam rounds.
 
 ## Agent Handoff Summary
 
-The `trainer-optimize` runtime completed all deterministic preparation steps (placeholder extraction, dataset validation, judge-mode selection), then returned `mode=manual_followup` with a `model_prompt` payload.
+The current `@trainer` agent answered the returned `model_prompt` directly, applying the improvements identified in `engineer-prompt/review.md`:
 
-The current `@trainer` agent answered the `model_prompt` directly, applying the identified improvements from `engineer-prompt/review.md`:
-1. Clarified `run_agent_skill` condition: use loaded skill contract as operating guide when no scripts exist
-2. Fixed constraint wording: "DO NOT hand off to or coordinate with sibling agents" (previously "DO NOT involve any other agents")
-3. Strengthened approach step 2: MCP discovery/load is now a hard prerequisite before any research action
-4. Added scope clause explicitly excluding eval row authoring
-5. Added step 7: save artifact to caller-supplied location and confirm path
+1. **Explicit evidence reading order** — target file → task description → scoring rule → existing evals → constraints → then plan
+2. **MCP fallback rule** — report a blocker immediately when MCP tools are unavailable; do not substitute free-form research
+3. **Inline source approval bar** — five-point checklist embedded in the agent contract so no runtime dependency on the full skill contract
+4. **Blocker reporting specificity** — write a structured blocker report and stop when required constraints are missing
+5. **Stopping condition** — deliver the brief once the approved-source list is stable; do not continue searching indefinitely
+6. **Execute tool clarification** — use `execute` only for `scripts/run_research.py` deterministic scaffold, not as a general search tool
 
-The result was saved as `optimized-prompt.md` and is used as the optimize-stage candidate for the rest of the workflow.
+The generated candidate is saved at:
+`iterations/iteration-1/optimize/optimized-prompt.md`
 
 ## Rerun Command
 
+When model credentials are available, rerun the automated APO pass with:
+
 ```bash
-python skills/trainer-optimize/scripts/run_optimize.py \
+python .agents/skills/trainer-optimize/scripts/run_optimize.py \
   --prompt-file .github/agents/researcher.agent.md \
-  --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/train.jsonl \
-  --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/val.jsonl \
-  --output-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/optimize/optimized-prompt.md \
-  --report-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/optimize/optimize-report.json \
+  --train-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/train.jsonl \
+  --val-file .github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/datasets/val.jsonl \
   --iterations 3 \
+  --algorithm apo \
   --judge-mode llm_judge
 ```
-
-Run this command after configuring COPILOT_MODEL in the `.env` file for a fully automated model-backed optimization pass.
