@@ -1,20 +1,13 @@
-# Original Candidate: researcher.agent.md
+## Original Candidate
 
-**Source:** `.github/agents/researcher.agent.md` (unmodified baseline)
+The baseline `researcher.agent.md` as it existed before optimization.
 
-## Description
-
-The original agent contract defines the researcher agent with:
-- MCP routing through `find_agent_skill` → `load_agent_skill` → conditional `run_agent_skill`
-- Constraint: "DO NOT involve any other agents"
-- Approach: MCP activation step tied to "before proposing sources or a search plan"
-- No explicit artifact-saving guidance
-- No explicit scope exclusion for eval authoring
-
-## Known Weaknesses
-
-1. `run_agent_skill` condition ambiguous: agents may skip MCP when no scripts exist
-2. "DO NOT involve any other agents" could block legitimate MCP tool calls
-3. MCP activation tied to "proposing" (too late in the workflow)
-4. No guidance on saving the artifact to the caller-supplied path
-5. Scope boundary unclear: eval authoring not explicitly excluded
+**Key characteristics:**
+- Correctly scopes role to source discovery, triage, and provenance review.
+- States MCP execution contract (find → load → run).
+- Has a 6-item output format section.
+- Approach says to "read target file, task description, scoring rule, constraints first" but does not enforce order.
+- No approval bar defined in the agent itself.
+- No explicit elicitation step before searching.
+- No blocker-report format.
+- `argument-hint` lists all inputs without distinguishing required from optional.

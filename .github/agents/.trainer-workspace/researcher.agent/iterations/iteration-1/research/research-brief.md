@@ -1,68 +1,51 @@
 # Research Brief: researcher.agent.md Optimization
 
-**Target:** `.github/agents/researcher.agent.md`
-**Task:** Optimize the agent contract for correctness, clarity, and MCP-routing discipline
+## Target and Task Summary
 
-## Target Layout
+**Target file:** `.github/agents/researcher.agent.md`
+**Task:** Optimize the researcher agent for grounded public-source research workflows with emphasis on evidence discipline, source-triage rigor, and research-brief completeness.
+**Workspace:** `.github/agents/.trainer-workspace/researcher.agent/`
 
-- **Eval manifest:** `skills/researcher-research/evals/evals.json` (reusable as proxy for agent behavior)
-- **Agent-level eval files:** `evals/files/` (shared with skill evals)
-- **Train dataset:** `.github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/train.jsonl`
-- **Val dataset:** `.github/agents/.trainer-workspace/researcher.agent/iterations/iteration-1/synthesize/val.jsonl`
+## Research Plan and Approval Bar
 
-## Observed Interface
+The researcher agent is a repo-internal orchestration contract, not a public dataset consumer. Its eval cases must test the behavioral contract defined by this repo's trainer loop:
 
-The `researcher.agent.md` contract has:
-- **Frontmatter**: `name`, `description`, `tools`, `argument-hint`, `user-invocable`, `disable-model-invocation`
-- **Placeholders**: None explicit — this is a system agent contract, not a data-driven prompt template
-- **Inputs (via argument-hint)**: target file path, task description, scoring rule, constraints, desired artifact location
+- Correct MCP skill activation order (`find_agent_skill` → `load_agent_skill` → `run_agent_skill`)
+- Production of complete 6-section research briefs (target layout, query plan, approved sources, rejected candidates, mapping notes, unresolved gaps)
+- Elicitation of missing constraints before searching
+- Clean blocker-report output when no source clears the approval bar
 
-## Research Questions
+**Source requirement:** No public dataset is needed. Eval cases are grounded in the repo's own skill contracts (`researcher-research/SKILL.md`), the trainer loop contract, and the engineer-prompt review.
 
-1. What behaviors should the researcher agent reliably exhibit?
-2. What failure modes does the current contract allow?
-3. What scoring criteria distinguish a strong vs. weak research handoff?
-4. What existing examples from researcher-research evals can inform the agent-level test cases?
-
-## Approval Bar
-
-A dataset row is approved when it:
-1. Contains a realistic user request that would trigger the researcher agent
-2. Has clear criteria for evaluating the quality of the research response
-3. Distinguishes between correct MCP-routing behavior vs. free-form guessing
-4. Covers at least one of the identified failure modes
+**Approval bar for synthetic eval cases:**
+- Cases must reflect realistic caller requests, not labels
+- Each case must exercise exactly one behavioral rule from the agent contract
+- Expected outputs must be verifiable against the agent's stated constraints
 
 ## Approved Sources
 
-### 1. researcher-research evals.json (existing)
-- **Authority**: Repo-owned, authored by maintainer
-- **Fit**: High — the 3 existing cases (support ticket, bug extraction, grounded QA) test the skill that the agent routes to
-- **Provenance**: Internal, no licensing issues
-- **Reuse**: Can be adapted to agent-level cases by adding routing and behavior assertions
-
-### 2. Agent contract failure mode analysis (internal)
-- **Authority**: Derived from engineer-prompt/review.md analysis
-- **Fit**: High — directly derived from the target file's identified failure modes
-- **Provenance**: Internal analysis, no licensing issues
+1. **`skills/researcher-research/SKILL.md`** — Primary source for approval bar, source hierarchy, elicitation rules, and output format. Authority: repo-owned canonical skill contract. Licensing: MIT. Version: 0.1.0.
+2. **`.github/agents/researcher.agent.md`** — Primary source for MCP execution contract, constraints, approach, and output format. Authority: repo-owned agent contract.
+3. **`.github/agents/.trainer-workspace/researcher.agent/engineer-prompt/review.md`** — Primary source for optimization hypotheses and suggested metrics. Authority: repo-owned review artifact.
 
 ## Rejected Candidates
 
-- Public NLP research datasets (e.g., BEIR, MS MARCO): Not relevant — agent behavior testing requires request-response pairs about research routing, not NLP benchmark tasks
-- OpenAI Evals datasets: Not applicable to agent contract testing
+- **External NLP datasets (HuggingFace, Kaggle, etc.):** Not applicable. The task is to test agent behavioral compliance, not NLP quality.
+- **Web-scraped research methodology sources:** Derivative and unverifiable. Repo skill contracts are the authoritative source.
 
 ## Mapping Notes
 
-Use the 3 existing researcher-research eval cases as seeds for agent-level cases:
-- Convert skill evals into agent-invocation scenarios
-- Add routing assertions (expect MCP tool use to be referenced)
-- Add failure mode cases (no acceptable source → blocker report)
-- Add scope boundary cases (synthesis request → redirect)
+Eval cases map from the following agent contract rules:
 
-For `judge_mode=llm_judge`:
-- Each row needs `reference` (expected behavior description) and `criteria` (quality rubric)
-- Row-level `scoring: "llm_judge"` marks these explicitly
+| Rule | Eval Case Type |
+|------|----------------|
+| MCP contract: call `find_agent_skill` before researching | Activation compliance |
+| Output format: produce all 6 sections | Brief completeness |
+| Constraints: do not fabricate source authority | Anti-hallucination |
+| Approach: elicit missing constraints first | Elicitation compliance |
+| Fallback: use skill instructions when no script | Fallback correctness |
+| Blocker: stop when no source clears bar | Blocker report shape |
 
 ## Unresolved Gaps
 
-None blocking synthesis. The existing researcher-research evals provide sufficient seeds.
-Internal failure-mode analysis from review.md covers the remainder.
+None. The source material is complete and self-contained in the repository. Synthesis can proceed immediately.
