@@ -1,0 +1,58 @@
+{
+  "approved": [
+    {
+      "source": "engineer-prompt/review.md",
+      "authority": "repo-owned optimization target assessment",
+      "fit": "primary",
+      "supports": ["constraint-resolution cases", "approval-bar embedding cases", "blocker-report template cases", "run_agent_skill threshold cases"]
+    },
+    {
+      "source": ".github/agents/researcher.agent.md",
+      "authority": "repo-owned agent instruction file",
+      "fit": "primary",
+      "supports": ["preserving scope while tightening contracts", "MCP activation cases"]
+    },
+    {
+      "source": "skills/researcher-research/SKILL.md",
+      "authority": "repo-owned skill contract",
+      "fit": "primary",
+      "supports": ["run_agent_skill deterministic-helper threshold", "approval bar content to embed", "elicitation scope"]
+    },
+    {
+      "source": "tests/test_customizations.py",
+      "authority": "repo test suite",
+      "fit": "primary",
+      "supports": ["hard language requirements", "MCP routing cases", "authored eval separation"]
+    },
+    {
+      "source": ".github/instructions/prompt-optimization.instructions.md",
+      "authority": "repo-owned instructions",
+      "fit": "primary",
+      "supports": ["dataset/manifest distinction cases", "research brief completeness"]
+    },
+    {
+      "source": ".github/agents/.trainer-workspace/conservator.agent/",
+      "authority": "established repo pattern workspace",
+      "fit": "secondary",
+      "supports": ["agent.md placeholder-gap pattern", "optimize-blocker artifact format"]
+    }
+  ],
+  "rejected": [
+    {
+      "source": "MSMARCO / TREC / NQ / TriviaQA",
+      "reason": "Retrieval benchmarks; do not test MCP activation, constraint elicitation, or approval-bar enforcement"
+    },
+    {
+      "source": "CRAAP test / SIFT academic rubrics",
+      "reason": "Public source-evaluation frameworks; do not align with repo-specific approval bar or MCP contract"
+    },
+    {
+      "source": "Generic prompt-quality datasets",
+      "reason": "Derivative; unmoored from researcher-agent MCP execution and blocker behaviors"
+    },
+    {
+      "source": "Blog posts on research agent prompts",
+      "reason": "Tertiary sources without accountable maintainers or traceable schemas"
+    }
+  ]
+}

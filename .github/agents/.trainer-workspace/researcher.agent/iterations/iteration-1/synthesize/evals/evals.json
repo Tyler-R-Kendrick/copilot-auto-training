@@ -1,0 +1,57 @@
+{
+  "skill_name": "researcher-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Research grounded public datasets for a support-ticket triage prompt that classifies tickets into billing, bug, access, or cancellation. I need a primary-source shortlist, license notes, rejected weak sources, and mapping guidance into eval rows.",
+      "expected_output": "The agent should activate find_agent_skill and load_agent_skill for researcher-research before any search, resolve the prompt task boundary from the file, state an approval bar, return ranked approved sources with provenance and licensing notes, reject weak candidates explicitly, and map approved source fields into eval-authoring notes. All six output sections should be present and non-trivial.",
+      "assertions": [
+        "Response includes an explicit approval bar before evaluating sources.",
+        "Response provides approved sources with authority, provenance, and licensing notes.",
+        "Response explicitly rejects at least one weak or derivative source with a reason.",
+        "Response includes mapping notes from source fields into eval rows.",
+        "Response includes all six required output sections."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent activates the researcher-research skill contract, states an approval bar, provides a ranked source shortlist, rejects weak sources explicitly, and produces mapping notes. All six output sections are present with non-trivial content."
+    },
+    {
+      "id": 2,
+      "prompt": "Research benchmark-quality public sources for a named-entity extraction prompt for software bug reports. I need annotation quality discussion, explicit rejection reasons, and field-mapping notes for downstream eval authoring.",
+      "expected_output": "The agent should discover and load researcher-research before proposing sources, discuss annotation quality and schema for each approved source, explicitly reject derivative summaries or secondary sources, and produce field-mapping notes. The response should stop at mapping notes and not attempt to author eval rows directly.",
+      "assertions": [
+        "Response discusses annotation quality or schema for approved sources.",
+        "Response explicitly rejects at least one weak or secondary source.",
+        "Response provides field-mapping notes for downstream eval authoring.",
+        "Response stays at research and mapping rather than authoring final eval rows."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent produces a research brief that discusses annotation quality, rejects weak sources, provides mapping notes, and stays within the research scope without authoring eval rows."
+    },
+    {
+      "id": 3,
+      "prompt": "For a citation-grounded question-answering prompt, find primary-source datasets or benchmarks. Call out licensing, provenance, and contamination risks. If no source looks clean enough, say so instead of forcing a recommendation.",
+      "expected_output": "The agent should activate researcher-research via MCP, surface licensing and contamination concerns for each candidate, make the approval bar or stop condition explicit, produce a ranked shortlist with fit notes, and include mapping notes or unresolved gaps. If no source clears the approval bar, the response should issue a stop recommendation rather than forcing an approval.",
+      "assertions": [
+        "Response calls out licensing, provenance, or contamination risk.",
+        "Response makes the approval bar or stop condition explicit.",
+        "Response includes a ranked shortlist or a stop recommendation.",
+        "Response includes mapping notes or unresolved gaps for synthesis."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent surfaces licensing and contamination concerns, states the approval bar, and either provides a clean shortlist or issues an explicit stop recommendation. It does not force a source approval when the bar is not cleared."
+    },
+    {
+      "id": 4,
+      "prompt": "Research sources for a prompt that classifies news articles by topic. The task description is incomplete and the scoring rule is missing. Proceed with research.",
+      "expected_output": "The agent should surface the missing scoring rule as a blocker before proceeding with research, ask for clarification or report the gap explicitly, and not guess the missing scoring constraint. It should not skip directly into source recommendations.",
+      "assertions": [
+        "Response identifies the missing scoring rule as a blocker.",
+        "Response asks for clarification or reports the gap explicitly rather than guessing.",
+        "Response does not skip ahead to source recommendations without resolving the missing constraint."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The agent identifies the missing scoring rule as a material gap, surfaces it as a blocker, and does not proceed into source research without clarification."
+    }
+  ]
+}
