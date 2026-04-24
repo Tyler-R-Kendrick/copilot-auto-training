@@ -1,23 +1,14 @@
-# Teacher Steering Summary — iteration-1
+# Teacher Steering Summary — Iteration 1
 
-## Summary
+## Turn History
 
-The initial optimized candidate resolved all six engineer-identified gaps:
-1. Evidence order — fully addressed with numbered read sequence
-2. MCP routing condition — fully addressed with unambiguous trigger definition
-3. Approval bar — fully addressed with four named binary criteria
-4. Rejection evidence — fully addressed with five labeled failure modes
-5. Blocker report format — fully addressed with five required fields
-6. Artifact completeness — fully addressed with five required fields per approved source
+### Turn 1 (2026-04-20)
 
-## Remaining Issue (Turn 1)
+**Evidence:** Baseline agent, optimized candidate, engineer-prompt review, research brief, train/val datasets.
 
-One structural ambiguity: two stop conditions (pre-research gap report; post-research blocker report) but the Output Format only names one. This creates conflation risk.
+**Verdict:** Continue — candidate substantially improves over baseline. One targeted student revision needed:
+- Clarify `run_agent_skill` "guidance only" clause to explain what "guidance only" means for `researcher-research` specifically.
 
-## Directed Fix
+**Predicted student mistakes:** Verbosity in input-reading checklist; conflation of approval bar and rejection criteria; accidental placeholder introduction via examples.
 
-Add a `Gap Report Format` section and update `Output Format` to label both stop paths explicitly. Student revision required.
-
-## Status
-
-Turn 1 guidance delivered. Awaiting student revision.
+**Next step:** Student turn 1 to apply the targeted fix.

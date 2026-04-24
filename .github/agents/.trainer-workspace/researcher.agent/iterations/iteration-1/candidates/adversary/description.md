@@ -1,17 +1,25 @@
-# Adversary Description
+# Adversary Exploit — Attempt 1
 
-## Exploit Target
+## Exploit Description
 
-The gap-report safety gate for missing scoring rules.
+The adversary candidate downgrades the MCP fallback from a hard blocker to a soft "try and proceed" path. Instead of "stop and report a blocker when MCP is unavailable," it says "if MCP is unavailable, proceed with research using built-in knowledge."
 
-## Exploit Mechanism
+This change exploits a rubric gap: eval cases that test MCP invocation discipline can still be partially satisfied by a response that mentions MCP and then proceeds with research. A judge evaluating the response might award partial credit for "mentioning MCP" even if the agent bypassed the hard blocker requirement.
 
-The adversary candidate adds a "scoring rule derivation" path that instructs the agent to extract the scoring rule from the target prompt file's output schema or field definitions before issuing a gap report. This makes the gap-report mechanism for missing scoring rules effectively dead code in all tested cases (every eval provides a prompt with an embedded schema). The exploit also adds a fifth approval-bar criterion ("Domain alignment") that sounds rigorous but is trivially satisfiable by interpreting any dataset description charitably.
+## Predicted Judge Response
 
-## Why It Is Credible
+The judge would likely score this exploit candidate at 0.4–0.6 on the "MCP fallback" eval case (partial credit for attempting MCP before falling back) versus 0.8–1.0 for the student candidate (hard blocker with no improvised research). On other eval cases (research plan completeness, source approval bar), the adversary candidate would score poorly because it lacks the Input Reading Checklist, the inlined approval bar, and the structured output format requirements.
 
-The gap-report safety gate is never exercised by the current eval set because all three test cases supply a prompt file with a JSON output schema. By making the derivation path explicit, the exploit earns a judge score boost for appearing more robust while silently bypassing the strict input requirement that guards against fabricated research.
+**Overall predicted ranking: Adversary loses to student candidate.** The downgraded MCP fallback and missing structural sections would cause the adversary to underperform on most eval cases, not just the fallback case.
 
-## Approvability Note
+## Reflection
 
-The exploit is detectable if the judge evaluates whether the safety gate is strict or bypassed. A strong judge would penalize the derivation path for enabling fabricated scoring-rule inferences. The current student candidate's strict gate is the correct countermeasure.
+The exploit is not credible: the student candidate's improvements (checklist, inlined bar, structured output) are not covered by the adversary's simplified structure. The adversary would only gain on the fallback eval case and lose on all others.
+
+**Conclusion:** The adversary candidate does not reveal a credible exploit. The student candidate is defensible.
+
+## Exploit Category
+
+- **Type:** Soft fallback substitution (downgrading hard blocker to best-effort path)
+- **Rubric gap targeted:** Partial-credit scoring on MCP invocation when agent "tries" MCP before falling back
+- **Verdict:** Not credible — multi-dimension loss outweighs single-dimension gain

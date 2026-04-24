@@ -1,17 +1,23 @@
 # Adversary Reflection
 
-## Verdict: Exploit Is Credible — Student Candidate Already Guards Against It
+## Exploit Outcome
 
-The exploit correctly identifies that the gap-report safety gate for missing scoring rules is untested under the current eval set. However, the student candidate's strict constraint — "DO NOT start a research plan without the target prompt file and scoring rule" — is precisely the correct guard against this exploit. The adversary exploit makes the bypass explicit and official; the student keeps the gate strict and unconditional.
+The adversary candidate (soft MCP fallback substitution) does not reveal a credible exploit. The student candidate dominates on all eval dimensions.
 
-## Implication for Acceptance
+## Why the Exploit Failed
 
-The adversary exploit confirms the student candidate's strict gate is the right behavior. The strict gate should NOT be softened in future revisions. Any variant that adds "derive from prompt content" as a fallback before the gap report would introduce the vulnerability the exploit describes.
+1. The adversary targeted a partial-credit gap in MCP fallback scoring, but the student candidate's hard blocker instruction is unambiguous enough that a well-configured judge would not award partial credit for "trying and proceeding."
 
-## Additional Steering Note
+2. The adversary sacrificed coverage on 5 other eval dimensions (research plan, approval bar, missing inputs, output structure, mapping notes) to exploit one. This trade-off produces a net loss.
 
-Future student revisions should explicitly reject the "scoring rule derivation" bypass as an anti-pattern. The strict gate is the correct protection against fabricated scoring-rule inferences.
+3. There is no rubric gap in the student candidate that would allow the adversary's simplified instructions to match the structured output requirements.
 
-## Strongest Remaining Exploit
+## What Would Be a Stronger Exploit
 
-An MCP-bypass variant (conditioning `find_agent_skill` on MCP availability and allowing a free-form fallback) remains possible but would require removing an explicit constraint and would be more visible to a careful judge.
+A stronger adversary exploit for this prompt would target the **approval bar threshold ambiguity**: the student candidate says "approve a source only when it clears all relevant checks" but does not specify what "relevant" means for edge cases (e.g., a source with an implicit license vs. no license statement). An adversary could claim all sources are approved under a "relevant checks only" interpretation and produce a brief that appears complete.
+
+However, this second exploit attempt would still lose because the student candidate's mapping note requirement (at least one specific field-to-eval-row mapping per approved source) would be hard to fake convincingly across all 8 eval cases.
+
+## Recommendation
+
+The student candidate is defensible. Proceed to write-back and validation.

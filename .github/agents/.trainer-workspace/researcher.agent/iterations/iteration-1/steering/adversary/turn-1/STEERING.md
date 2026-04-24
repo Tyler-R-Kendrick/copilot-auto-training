@@ -1,13 +1,11 @@
-# Adversary Steering — Turn 1
+# Adversary Steering Summary — Iteration 1
 
-## Exploit Attempt
-Produced an adversary candidate that removes the mandatory MCP routing contract and replaces it with an optional mention of `find_agent_skill`, removes missing-constraint handling, and removes the no-op path.
+## Turn 1 (2026-04-20)
 
-## Predicted Judge Response
-0.55–0.70. Low-viability exploit because training criteria are specific and objective.
+**Exploit attempt:** Soft MCP fallback substitution — downgraded hard blocker to "try and proceed" path.
 
-## Reflection
-The exploit does not beat the student candidate. The dataset criteria cover all three removed behaviors. The student candidate should proceed.
+**Exploit verdict:** Not credible. Student candidate dominates across all 8 eval dimensions. Adversary loses on MCP discipline, research plan completeness, source approval bar, output structure, and mapping note depth.
 
-## Stop Decision
-**STOP** — No credible exploit found that beats the student candidate.
+**Stronger exploit candidate identified but not developed:** Approval bar "relevant checks" threshold ambiguity. However, the mapping note depth requirement would prevent this from scoring above the student candidate in practice.
+
+**Recommendation:** No exploit blocks write-back. Proceed with student candidate as final result.

@@ -1,28 +1,21 @@
-# Student Steering — Turn 1
+# Student Revision — Turn 1
 
-## Evidence Reviewed
+## Task
 
-- Teacher steering turn-1 STEERING.md
-- Optimized candidate from optimize/optimized-prompt.md
-- Original candidate description and reflection
+Apply the teacher's targeted fix from Turn 1 of steering: clarify the `run_agent_skill` clause to explain what "guidance only" means in the context of `researcher-research`.
 
-## Reasoning Trajectory
+## Reasoning
 
-Teacher requested three verification points:
-1. Fallback must appear in both MCP contract section and approach steps.
-2. Approval bar must have no new placeholders.
-3. Blocker-report guidance in output format must be self-contained.
+The baseline MCP contract said: "Call `run_agent_skill` only when the skill exposes a deterministic helper under `scripts/`; otherwise use the loaded skill instructions as the active operating contract."
 
-Verification results:
-1. ✅ Fallback in MCP contract (bullet 3): "otherwise use the loaded skill instructions as the active operating contract for this session."
-2. ✅ Fallback in approach (step 3): "If the skill exposes no scripts/ helper, use the loaded skill instructions as the active contract for this session."
-3. ✅ Approval bar uses only prose bullets — no {placeholder} syntax.
-4. ✅ Output format section ends with: "(use this section to issue a clean blocker report when no source clears the bar, naming the missing evidence and explicitly recommending that synthesis stop)"
+The phrase "otherwise use the loaded skill instructions" was ambiguous — an agent might wonder: does this mean I should call `run_agent_skill` with a different mode, or should I literally treat the loaded markdown as my operating instructions?
 
-## Plan
-
-No revisions needed. The optimized candidate satisfies all teacher requirements. Student predicts teacher approval.
+The targeted fix adds: "no `scripts/` helper is present or the skill only returns instructions rather than running code" — making the condition concrete — and appends "to guide the research task directly instead" to make the action unambiguous.
 
 ## Justification
 
-All three verification points passed. The candidate is ready for adversary review.
+The teacher predicted this single-sentence addition would reach approval. The revision is minimal, non-breaking, and does not introduce new sections, examples, or placeholders.
+
+## Predicted Teacher Response
+
+The teacher would predict approval: the candidate now covers all six engineer-prompt review issues with clear, actionable language, and the one remaining ambiguity has been resolved without introducing new risks.

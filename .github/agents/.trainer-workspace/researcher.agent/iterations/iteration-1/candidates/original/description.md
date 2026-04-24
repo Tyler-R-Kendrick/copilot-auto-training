@@ -1,16 +1,12 @@
-# Original Candidate
+## Original Candidate
 
-The baseline `researcher.agent.md` as it existed before this optimization run.
+The baseline `researcher.agent.md` before any optimization.
 
-## Key Properties
-- Strong MCP routing contract with `find_agent_skill` / `load_agent_skill` / conditional `run_agent_skill`
-- Clear scope bounded to grounded discovery
-- Explicit fabrication prohibition
-- Stop condition when no source clears the bar
+### Key Limitations
 
-## Known Gaps
-- No explicit no-op path for already-satisfied tasks
-- Missing-constraint handling says "ask or report" but does not specify when to ask vs. proceed
-- No MCP fallback for server unavailability
-- "DO NOT involve any other agents" constraint is ambiguous about agent-skills MCP tools
-- No inline vs. saved artifact guidance in output format
+1. No input-reading checklist or evidence order before MCP invocation.
+2. No MCP fallback path when `find_agent_skill` or `load_agent_skill` fails.
+3. Source approval bar not inlined — agent relies entirely on the loaded skill for standards.
+4. No explicit stopping criteria distinguishing hard-stop missing inputs from soft-gap ones.
+5. Output format underspecified — "Mapping notes" has no structure requirement.
+6. `run_agent_skill` condition for "guidance only" skill not clarified.
