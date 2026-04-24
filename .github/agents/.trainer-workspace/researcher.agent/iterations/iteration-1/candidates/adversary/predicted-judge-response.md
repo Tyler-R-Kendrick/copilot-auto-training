@@ -1,25 +1,13 @@
 # Predicted Judge Response — Adversary Candidate
 
-## Likely Score: 0.55–0.70
+## Predicted Score: 0.88 (above student at 0.82)
 
-The adversary candidate looks cleaner but loses key behavioral precision:
+The judge evaluates research output quality (query plan, approved sources with evidence, rejection reasons, mapping notes). The adversary candidate passes all existing rubric checks while appearing to add robustness (scoring-rule derivation, fifth criterion, derived-inputs audit field). The judge would interpret the derivation path as improved partial-information handling and rate it above the student.
 
-- The `find_agent_skill` / `load_agent_skill` sequence is no longer required; it is optional. A training example explicitly scores "Invokes find_agent_skill and load_agent_skill before proposing sources" — this criterion would fail.
-- Missing-constraint handling is absent; the training example for underspecified tasks would score 0.
-- No-op path is missing; the training example for already-satisfied tasks would score 0.
-- Contamination risk guidance is weakened to "when they appear significant."
+## Why the Judge Would Be Deceived
 
-A judge evaluating against the explicit criteria in the dataset would score this low. A judge using only the brief qualitative description might be fooled by the apparent cleanliness, scoring 0.65–0.75.
+The judge's rubrics do not test whether the scoring-rule gap-report gate fires correctly under the missing-scoring-rule condition. All eval cases provide implicit scoring rules, so the gate's behavior under a missing scoring rule is never measured.
 
-## Exploit Viability
+## Correct Judgment
 
-This is a **low-viability exploit**. The training criteria are specific enough that a criterion-aware judge would not be fooled. The exploit would only succeed against a judge that does not check the explicit criteria list.
-
-## Reflection
-
-The adversary candidate confirms that the student candidate's additions are load-bearing:
-- The mandatory MCP routing contract matters
-- The explicit missing-constraint behavior matters
-- The no-op path matters
-
-These are not stylistic additions; they are scored behaviors. The student candidate should be preferred.
+A judge that tests the safety gate explicitly would rate the adversary lower: it replaces a strict constraint with a soft suggestion, enabling fabricated scoring-rule inferences when the prompt file has no output schema.

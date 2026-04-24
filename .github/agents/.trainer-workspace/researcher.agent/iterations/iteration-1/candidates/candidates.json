@@ -1,27 +1,28 @@
 {
+  "iteration": "iteration-1",
+  "selected": "student",
+  "selection_notes": "Student candidate resolves all six engineer-identified gaps and the teacher-directed stop-condition ambiguity. The adversary exploit (scoring-rule derivation bypass) is credible but the student's strict gate already guards against it. The student candidate ranks above the original baseline on all engineer-identified dimensions.",
   "candidates": {
     "original": {
-      "prompt": "iterations/iteration-1/candidates/original/researcher.agent.md",
-      "description": "iterations/iteration-1/candidates/original/description.md",
-      "predicted_judge_response": null,
-      "reflection": null,
-      "selection_notes": "Baseline prompt before optimization"
+      "prompt_artifact": "candidates/original/candidate.md",
+      "description_artifact": null,
+      "predicted_judge_response_artifact": null,
+      "reflection_artifact": null,
+      "selection_notes": "Baseline — missing all six engineer-identified structural elements"
     },
     "student": {
-      "prompt": "iterations/iteration-1/candidates/student/researcher.agent.md",
-      "description": "iterations/iteration-1/candidates/student/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
-      "reflection": null,
-      "selection_notes": "Trainer-authored candidate from manual_followup handoff. Adds no-op path, MCP fallback, clarified constraint handling, unambiguous other-agents rule, inline vs. artifact output guidance."
+      "prompt_artifact": "candidates/student/candidate.md",
+      "description_artifact": "candidates/student/description.md",
+      "predicted_judge_response_artifact": "candidates/student/predicted-judge-response.md",
+      "reflection_artifact": null,
+      "selection_notes": "Selected — resolves all gaps, strict scoring-rule gate guards against adversary exploit"
     },
     "adversary": {
-      "prompt": "iterations/iteration-1/candidates/adversary/researcher.agent.md",
-      "description": "iterations/iteration-1/candidates/adversary/description.md",
-      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
-      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
-      "selection_notes": "Exploit candidate that removes the mandatory MCP routing contract and missing-constraint handling. Predicted judge score 0.55-0.70. Low-viability exploit — does not beat student candidate."
+      "prompt_artifact": "candidates/adversary/candidate.md",
+      "description_artifact": "candidates/adversary/description.md",
+      "predicted_judge_response_artifact": "candidates/adversary/predicted-judge-response.md",
+      "reflection_artifact": "candidates/adversary/reflection.md",
+      "selection_notes": "Rejected — the exploit is credible but the student candidate already guards against it with its strict gate"
     }
-  },
-  "winner": "student",
-  "winner_rationale": "Student candidate addresses all five identified gaps while preserving the existing MCP routing contract and stop condition. Adversary exploit is low-viability because dataset criteria are specific enough to detect the removed behaviors."
+  }
 }

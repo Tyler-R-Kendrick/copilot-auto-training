@@ -1,18 +1,23 @@
 # Predicted Judge Response — Student Candidate
 
-## Likely Score: 0.85–0.95
+## Predicted Score: Strong Approve
 
-The student candidate addresses all five gaps identified in the engineer-prompt review:
-- No-op path covers the already-satisfied task case (eval row 5 in train set)
-- MCP routing discipline is preserved and extended with fallback
-- Missing-constraint handling is more precise
-- "Other agents" constraint is unambiguous
-- Output format includes inline vs. saved artifact guidance
+The student candidate directly addresses the primary failure mode of the baseline: undefined approval bar, missing rejection evidence taxonomy, absent artifact completeness requirements, and conflated stop conditions. The two stop-path sections (Gap Report Format, Blocker Report Format) are clearly distinct with separate trigger conditions and field lists. The Output Format labels both paths with the teacher's exact phrasing and cross-references each to its format section.
 
-The judge would likely score it high on:
-- MCP routing compliance (all training examples require find_agent_skill/load_agent_skill first)
-- Blocker accuracy (stop condition still intact)
-- No-op precision (new explicit path handles the "already satisfied" case)
-- Output completeness (all required sections present)
+## Predicted Strengths (judge perspective)
 
-Minor risk: the approach section now has 8 steps vs 6, which slightly increases verbosity. The judge may dock a small amount for that if the scoring criteria weight conciseness. However, since the training examples emphasize functional coverage over brevity, this risk is low.
+- Six concrete structural improvements, each directly tied to an identified failure mode
+- Approval bar is now a testable binary checklist
+- Rejection evidence now uses a labeled taxonomy (`license_failure`, etc.)
+- Artifact completeness has a downstream gate ("must not be used")
+- The two stop conditions are distinct and output-format-labeled
+
+## Predicted Weaknesses (judge perspective)
+
+- Minor: preamble trigger and MCP contract have slight overlap (noted by teacher, not fixed — acceptable)
+- Minor: Evidence Order step 4 (prior research brief conflict) still has no conflict-resolution rule
+- Neither weakness is structural; both are low-severity omissions rather than correctness issues
+
+## Prediction Confidence
+
+High. The candidate resolves all six engineer-identified gaps and the teacher-directed stop-condition fix without introducing new contradictions or scope creep.

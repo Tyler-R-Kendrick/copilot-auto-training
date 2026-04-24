@@ -1,23 +1,51 @@
 # Teacher Steering — Turn 1
 
-## Evidence Inspected
-- `engineer-prompt/review.md`: identified 5 gaps (no-op path, missing-constraint handling, MCP fallback, ambiguous agent constraint, inline/artifact output guidance)
-- `inputs/source/researcher.agent.md`: baseline prompt
-- `iterations/iteration-1/synthesize/datasets/train.jsonl`: 5 training rows with explicit criteria
-- `iterations/iteration-1/optimize/manual-followup-report.json`: runtime had no model credentials; trainer authored candidate
+## Target
 
-## Predicted Response
-The student candidate (optimized-prompt.md) addresses all 5 identified gaps with minimal changes. The adversary confirms those additions are load-bearing. The judge would prefer the student candidate over the original and the adversary.
+`.github/agents/researcher.agent.md`
 
-## Requested Revision
-No further revision requested. The student candidate is defensible.
+## Evidence Used
+
+- Original baseline prompt
+- Optimized candidate (`iterations/iteration-1/optimize/optimized-prompt.md`)
+- Engineer-prompt review (`engineer-prompt/review.md`)
+
+## Gap Assessment
+
+| Gap | Status |
+|-----|--------|
+| No evidence order | Fully addressed |
+| MCP routing condition under-specified | Fully addressed |
+| No approval bar definition | Fully addressed |
+| Rejection evidence is weak | Fully addressed |
+| Stop condition (blocker report) undefined | Fully addressed |
+| No artifact completeness contract | Fully addressed |
+
+All six engineer-identified gaps are resolved.
+
+## Predicted Student Mistakes
+
+Without explicit steering, the student is most likely to merge both stop conditions into a single section (calling it "Gap or Blocker Report") rather than keeping them as distinct output paths triggered at different stages.
+
+## Required Revision
+
+One structural ambiguity remains: the candidate defines two stop conditions (pre-research gap report; post-research blocker report) but the Output Format only names one of them, creating conflation risk.
+
+**Required fix:**
+1. Add a `Gap Report Format` section that specifies required fields when inputs (target file, scoring rule) are missing before research begins.
+2. Update the `Output Format` section to list both stop paths explicitly:
+   - "Gap report — if target file or scoring rule is missing (stop before research)"
+   - "Blocker report — if no source clears the approval bar (stop after evaluation)"
+
+## Secondary Notes (do not block on these)
+
+- Preamble trigger condition and MCP contract section are slightly redundant; a one-line cross-reference would unify them but is not required for approval.
+- "Evidence Order" step 4 (prior research briefs) has no conflict-resolution rule; note the gap but do not require a fix this turn.
 
 ## Stop / Continue Decision
-**STOP** — The student candidate covers all identified gaps. The adversary exploit is low-viability. Teacher approves proceed-to-write-back.
 
-## Judge Notes
-- MCP routing compliance: fully preserved and extended with fallback
-- No-op precision: new explicit section handles already-satisfied tasks
-- Blocker accuracy: stop condition intact
-- Fabrication resistance: unchanged (constraints still explicit)
-- Output completeness: all required sections plus inline/artifact guidance
+**Continue** — apply the two-stop-condition fix via student, then approve.
+
+## Approval Prediction
+
+Very likely approved if the two-stop-condition fix is clean and distinct. Merge or inline fix risks another review cycle.
