@@ -1,0 +1,27 @@
+{
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/candidate.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "notes": "Baseline pre-optimization prompt. Used as comparison reference."
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/candidate.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/student/predicted-judge-response.md",
+      "reflection": null,
+      "notes": "Agent-authored candidate from manual_followup optimize stage. Addresses all 7 failure modes from engineer-prompt review."
+    },
+    "adversary": {
+      "prompt": "iterations/iteration-1/candidates/adversary/candidate.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/description.md",
+      "notes": "Exploit attempt using front-loaded quality claims and redundant constraints. Predicted to score lower against criterion-anchored judge."
+    }
+  },
+  "winner": "student",
+  "selection_reason": "Student candidate addresses all 7 failure modes with bounded, surgical changes. Adversary exploit is not credible against criterion-anchored scoring (fails criterion b — bounded revision). Original baseline has all 7 documented weaknesses."
+}
