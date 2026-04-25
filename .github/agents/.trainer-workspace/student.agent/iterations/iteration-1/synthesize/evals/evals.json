@@ -1,0 +1,60 @@
+{
+  "skill_name": "student.agent",
+  "evals": [
+    {
+      "prompt": "I have a teacher critique that says 'the constraint section is too vague — it says smallest defensible revision but doesn't explain what that means in practice.' Apply this critique to the student agent's constraints section and show me the revised candidate with your reasoning trajectory.",
+      "expected_output": "The student should revise only the constraints section to make 'smallest defensible revision' concrete (e.g., one section, one behavioral dimension). The revision should be bounded to the constraints section. The student should expose an explicit reasoning trajectory showing why only that section is in scope, and predict whether the teacher would approve based on whether the critique dimension is addressed.",
+      "assertions": [
+        "Response includes an explicit reasoning trajectory",
+        "Revision is bounded to the constraint that was critiqued",
+        "Response predicts teacher approval with cited evidence from the steering artifacts"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must implement a minimal, targeted revision, expose the reasoning behind the scoping decision, and anchor approval prediction to whether the specific critique dimension is addressed."
+    },
+    {
+      "prompt": "I'm working in a trainer loop. The teacher last said 'improve clarity', but that was 3 turns ago and the latest STEERING.md says 'tighten the engineer handoff threshold to reduce over-delegation'. Which guidance should I act on and what should I change?",
+      "expected_output": "The student should act on the latest turn-scoped STEERING.md ('tighten engineer handoff threshold') as it supersedes the older summary guidance. The revision should be bounded to the engineer handoff description. The student should explain the priority rule and show why the turn-scoped artifact takes precedence.",
+      "assertions": [
+        "Student correctly identifies turn-scoped STEERING.md as higher priority",
+        "Revision targets engineer handoff threshold not 'clarity'",
+        "Response explains the steering artifact priority rule"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must apply the correct steering artifact priority (turn-scoped > rolling summary), revise the right section, and explain the prioritization decision."
+    },
+    {
+      "prompt": "There's no teacher critique available yet. I'd like you to start revising the student agent to make it better.",
+      "expected_output": "The student should hand off to the teacher agent because no critique or steering artifact is available to guide a bounded revision. The student should NOT speculate about improvements or invent a revision target. The response should explain why teacher guidance is required before any revision is attempted.",
+      "assertions": [
+        "Student hands off to teacher agent",
+        "Student does not attempt a speculative revision",
+        "Response explains why teacher guidance is required first"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must recognize that no critique means no revision scope, hand off to teacher, and not speculate about what to improve."
+    },
+    {
+      "prompt": "I've just implemented a revision based on teacher critique. I think the teacher would probably approve it — the revision looks good. Should I finalize?",
+      "expected_output": "The student should evaluate the approval prediction against concrete criteria: (1) does the revision address the specific critique dimension, (2) is the revision bounded to that dimension, and (3) does the output expose the reasoning trajectory. If these criteria are met, the student may predict approval and report the candidate. If not, the student should refine or request another teacher turn.",
+      "assertions": [
+        "Student applies concrete criteria for teacher approval prediction",
+        "Response cites specific criteria not vague quality assessment",
+        "Student makes an explicit yes/no approval prediction with justification"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must apply structured approval criteria anchored to the steering artifacts rather than subjective quality judgment."
+    },
+    {
+      "prompt": "Teacher critique: 'The approach step 4 mentions handing off to engineer for formatting, but step 2 says if the revision target is unclear, hand off to teacher. If both conditions apply, what should I do?' Help me implement a revision that clarifies this priority.",
+      "expected_output": "The student should recognize this as a contradictory or ambiguous critique scenario and hand off to the teacher for clarification before attempting a revision. Alternatively, if the student can identify a non-contradictory interpretation, it should implement that interpretation while exposing the reasoning for why it chose that reading over others.",
+      "assertions": [
+        "Response addresses the ambiguity explicitly",
+        "If a revision is attempted, reasoning trajectory explains the chosen interpretation",
+        "Response does not silently resolve the contradiction without explanation"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must handle ambiguous or contradictory critique explicitly — either by requesting clarification or by transparently choosing an interpretation with clear justification."
+    }
+  ]
+}
