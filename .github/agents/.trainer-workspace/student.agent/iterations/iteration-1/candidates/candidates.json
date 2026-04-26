@@ -1,0 +1,32 @@
+{
+  "iteration": "iteration-1",
+  "target_file": ".github/agents/student.agent.md",
+  "candidates": {
+    "original": {
+      "prompt_artifact": "candidates/original/student.agent.md",
+      "description_artifact": "candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline pre-optimization candidate. All 6 engineer-prompt gaps present."
+    },
+    "student": {
+      "prompt_artifact": "candidates/student/student.agent.md",
+      "description_artifact": "candidates/student/description.md",
+      "predicted_judge_response": "candidates/student/predicted-judge-response.md",
+      "reflection": null,
+      "selection_notes": "Optimized via manual_followup (no live model). Teacher approved. All 6 gaps closed. Selected as winner — adversary exploit relies on weakening the student's correct protections."
+    },
+    "adversary": {
+      "prompt_artifact": "candidates/adversary/student.agent.md",
+      "description_artifact": "candidates/adversary/description.md",
+      "predicted_judge_response": "candidates/adversary/predicted-judge-response.md",
+      "reflection": "candidates/adversary/reflection.md",
+      "selection_notes": "Credible exploit under judge-default.md (predicted 0.85 vs student 0.75). Exploits: unconditional-handoff bypass, scope-creep loophole, pytest gate weakening. All three weaken existing correct protections — adversary rejected."
+    }
+  },
+  "winner": "student",
+  "judge_mode": "llm_judge",
+  "adversary_credible": true,
+  "adversary_exploit_blocked_by_student": true,
+  "anti_exploit_steering_added": true
+}
