@@ -1,0 +1,93 @@
+{
+  "skill_name": "student.agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The current candidate prompt is missing an explicit evidence reading order before the agent acts. The latest STEERING.md (iteration-1/steering/teacher/turn-1/STEERING.md) says: 'Add a numbered evidence reading order: (1) teacher goal, (2) latest teacher critique, (3) STEERING.md, (4) summary.md, (5) workspace evidence — before the agent takes any action.' No other open critiques. Return the student revision and reasoning.",
+      "expected_output": "The student should make only the targeted addition of a numbered evidence reading order as specified in the STEERING.md, expose an explicit reasoning trajectory explaining why this is the right change and why nothing else should change, and predict that the teacher would approve because the revision directly addresses the only open critique.",
+      "assertions": [
+        "The response adds a numbered evidence reading order matching the STEERING.md criteria.",
+        "The response exposes a reasoning trajectory (not just the revision).",
+        "The response predicts teacher approval with a rationale.",
+        "The response does not change anything beyond the targeted evidence reading order."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The latest STEERING.md says: 'Add a stopping condition: deliver the revision once the primary critique is addressed; do not continue refining unrelated aspects.' Review the current candidate: it already includes step 7 which states 'Run the relevant validation or measurement step and report what changed,' and step 6 already says 'do at most one extra self-check only if the draft still looks unsupported.' The candidate already satisfies the stopping-condition critique. Return the student's response.",
+      "expected_output": "The student should report a justified no-op, explicitly citing the two existing steps that already satisfy the stopping-condition critique, explain why making no change is the most defensible outcome, and predict teacher approval of the no-op because the evidence shows the criterion is already met.",
+      "assertions": [
+        "The response reports a justified no-op rather than an unnecessary change.",
+        "The response cites specific existing steps that satisfy the critique.",
+        "The response predicts teacher approval of the no-op.",
+        "The response does not make any cosmetic or unrelated change."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "No STEERING.md exists in the active iteration. The steering/teacher/summary.md says: 'Focus on clarifying the engineer handoff condition. The current text is too permissive and leads to over-invocation. Make it stricter.' Return the student revision and reasoning.",
+      "expected_output": "The student should acknowledge the missing STEERING.md, state that it is falling back to the per-agent summary.md as the steering source, then make a targeted revision that tightens the engineer handoff condition based on the summary guidance. The reasoning trajectory should explain the fallback logic and justify the specific tightening applied.",
+      "assertions": [
+        "The response acknowledges the missing STEERING.md and explicitly falls back to summary.md.",
+        "The revision tightens the engineer handoff condition rather than broadening or ignoring it.",
+        "The reasoning trajectory explains the fallback logic.",
+        "The response predicts teacher approval or flags remaining uncertainty."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The STEERING.md lists three improvements: (A) add evidence fallback for missing STEERING.md, (B) clarify no-op conditions, (C) fix a typo in step 3. Identify which improvement to address first and implement only that one. Return the student revision and reasoning.",
+      "expected_output": "The student should address improvement (A) as the highest-impact primary critique because it adds a structural fallback that affects reliability across all scenarios, explain why (A) is primary over (B) and (C) using explicit impact reasoning, make only that one targeted change, and predict teacher approval conditioned on the teacher agreeing that (A) has highest priority.",
+      "assertions": [
+        "The response addresses only one improvement, not all three.",
+        "The response explains why it chose that improvement over the others.",
+        "The reasoning trajectory shows explicit comparative reasoning.",
+        "The response predicts teacher approval with a conditional note about priority alignment."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The STEERING.md says: 'Improve clarity.' No further specifics. The summary.md also contains only: 'General quality improvements needed.' Return the student response.",
+      "expected_output": "The student should identify that the revision target is unclear (no specific criterion, no actionable instruction), explicitly state this as the reason for handing off to teacher rather than guessing, and request a more specific critique before editing. The response should not make any change and should not pretend a specific revision target exists.",
+      "assertions": [
+        "The response identifies the vague critique as the blocker for revision.",
+        "The response hands off to teacher rather than guessing a revision.",
+        "The response does not make any change to the candidate.",
+        "The response states what specific information is needed from the teacher."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "The latest steering turn artifact is from iteration-0 (two iterations ago). The current iteration summary.md does not have any entries. No newer STEERING.md exists. Return the student response.",
+      "expected_output": "The student should identify that the available steering is stale (from a prior iteration with no current follow-up), state this as the reason for handing off to teacher for refreshed guidance, and not apply the stale steering. The response should explain why stale guidance from a previous iteration is insufficient and what the teacher should provide.",
+      "assertions": [
+        "The response identifies the steering as stale from a prior iteration.",
+        "The response hands off to teacher rather than applying stale guidance.",
+        "The response explains why stale steering is insufficient.",
+        "The response does not make any change based on the stale steering."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "The STEERING.md says: 'Restructure the approach section into a decision tree: first check whether STEERING.md exists, then whether it is current, then whether the critique is specific, before choosing to revise or hand off.' The student needs to implement this restructuring and also produce a teacher-ready explanation of the revised reasoning flow. Return the student revision.",
+      "expected_output": "The student should implement the decision-tree restructuring, use the engineer handoff to help format the teacher-ready explanation of the new reasoning flow (since this is a structurally complex reformatting task), and keep the revision itself minimal while ensuring the explanation is clear. The response should state that the engineer handoff improved the formatting of the reasoning trajectory, not the revision content itself.",
+      "assertions": [
+        "The revision restructures the approach section into a decision-tree format.",
+        "The response uses the engineer handoff for formatting the teacher-ready explanation.",
+        "The response clarifies that engineer improved formatting, not the revision content.",
+        "The revision does not change scope beyond the decision-tree restructuring."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "The STEERING.md says: 'Add a validation step that explicitly states the agent should run `python -m pytest -q` from the repo root after any revision touching the prompt interface.' Apply this change to the current candidate and report the outcome.",
+      "expected_output": "The student should add the validation step as specified, then run `python -m pytest -q` from the repo root to validate the change, report the test outcome (number of tests passed/failed), and predict teacher approval. The validation result should be reported concretely, not hypothetically.",
+      "assertions": [
+        "The revision adds the specified validation step.",
+        "The response reports a concrete validation result from running the tests.",
+        "The response does not describe the test outcome hypothetically.",
+        "The response predicts teacher approval conditioned on the test passing."
+      ]
+    }
+  ]
+}
