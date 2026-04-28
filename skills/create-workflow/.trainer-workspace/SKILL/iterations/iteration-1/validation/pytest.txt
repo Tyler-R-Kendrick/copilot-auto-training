@@ -1,0 +1,2 @@
+856 passed in 8.82s
+All 856 tests passed — no regressions from SKILL.md update.
