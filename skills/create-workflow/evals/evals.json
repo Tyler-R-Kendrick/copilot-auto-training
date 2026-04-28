@@ -1,0 +1,110 @@
+{
+  "skill_name": "create-workflow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a scheduled workflow that runs every Monday morning and posts a weekly repository health issue summarizing open issues, stale PRs, and any failing CI. The issue should be created automatically.",
+      "expected_output": "The skill should create `.github/workflows/weekly-repo-health.md` with `on: schedule: cron:` trigger, `safe-outputs: issues: create` in frontmatter, `permissions: issues: write`, a structured markdown body with numbered steps and output template, run `gh aw compile weekly-repo-health`, and confirm the response contract: file changed, trigger/behavior/tools summary, compile status, and any prerequisites.",
+      "assertions": [
+        "Response includes `safe-outputs` frontmatter configuration for issue creation",
+        "Response runs or recommends `gh aw compile` after authoring the frontmatter",
+        "Response names the created workflow file with a kebab-case name",
+        "Response does not model the write operation as a direct agent action without safe-outputs"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly configure safe-outputs for issue creation in frontmatter and state that compilation ran after authoring. Compilation awareness and safe-output correctness are both required."
+    },
+    {
+      "id": 2,
+      "prompt": "I have an existing triage workflow at `.github/workflows/issue-triage.md`. Add a Notion MCP server to it so the agent can search our Notion knowledge base when labeling issues. Restrict it to search tools only, don't give it write access.",
+      "expected_output": "The skill should add a `mcp-servers:` block in frontmatter using the correct HTTP transport form (`url:` + `headers:` with `Authorization: Bearer ${{ secrets.NOTION_TOKEN }}`), set `allowed:` to a scoped list of search-only tools rather than `[\"*\"]`, add `network: allowed:` for the Notion API domain if needed, run `gh aw compile issue-triage` because frontmatter changed, and call out the `NOTION_TOKEN` secret prerequisite in the response.",
+      "assertions": [
+        "Response uses scoped `allowed:` list for Notion tools, not `[\"*\"]`",
+        "Response runs `gh aw compile issue-triage` because frontmatter changed",
+        "Response uses the HTTP transport form with `url:` and `headers:` for the Notion server",
+        "Response calls out the `NOTION_TOKEN` secret as a prerequisite",
+        "Response includes a `network: allowed:` domain entry for the Notion API domain in frontmatter"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "MCP configuration accuracy and compilation awareness. The response must use the correct HTTP server transport form, scope the allowed-tools list, and recompile after the frontmatter change."
+    },
+    {
+      "id": 3,
+      "prompt": "I just want to see what a PR review workflow would look like. I'm not ready to set up the repo yet — just give me a draft file I can look at.",
+      "expected_output": "The skill should produce a well-structured `.md` draft file with correct frontmatter and a useful markdown body, explicitly state that compilation and execution will not work until `gh aw init` is run and secrets are configured, NOT attempt to compile (which would fail), and NOT claim the workflow is ready to run.",
+      "assertions": [
+        "Response produces a draft `.md` workflow file with frontmatter and markdown body",
+        "Response explicitly states that compilation requires `gh aw init` first",
+        "Response does not attempt to run `gh aw compile` or report a compile error",
+        "Response does not claim the workflow is ready to execute"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly handle a draft-only request by deferring compilation and clearly communicating the initialization prerequisite without refusing to produce a useful draft."
+    },
+    {
+      "id": 4,
+      "prompt": "I updated my issue-triage workflow to add `discussions` as a second trigger. I edited the frontmatter `on:` block but haven't done anything else. Do I need to recompile?",
+      "expected_output": "The skill should clearly state YES, frontmatter changes require recompilation, provide the exact command `gh aw compile issue-triage`, and explain the rule: markdown body changes do NOT require recompile but frontmatter changes DO.",
+      "assertions": [
+        "Response states that frontmatter changes require recompilation",
+        "Response provides the exact `gh aw compile issue-triage` command",
+        "Response explains the frontmatter-vs-body compilation rule",
+        "Response does not say the change takes effect automatically without recompilation"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "Compilation awareness. The response must correctly distinguish frontmatter changes from markdown body changes and provide the exact recompile command."
+    },
+    {
+      "id": 5,
+      "prompt": "I just updated the instructions in my `code-review-helper.md` workflow to be more specific about what feedback tone to use. Should I recompile?",
+      "expected_output": "The skill should clearly state NO — markdown body changes do not require recompilation, explain that the body is the runtime instruction set loaded on each run, and confirm the user only needs to commit the updated `.md` file. It should NOT recommend running `gh aw compile` unnecessarily.",
+      "assertions": [
+        "Response states that markdown body changes do not require recompilation",
+        "Response explains that body changes take effect on the next run without recompile",
+        "Response does not recommend running `gh aw compile` for a body-only change",
+        "Response mentions that the updated `.md` file should still be committed"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "Compilation awareness. The response must correctly identify this as a body-only change requiring no recompilation and not recommend unnecessary compile steps."
+    },
+    {
+      "id": 6,
+      "prompt": "My workflow won't compile. I ran `gh aw compile issue-triage` and got a YAML parse error but no useful detail. The frontmatter has an MCP server block I added manually.",
+      "expected_output": "The skill should recommend `gh aw compile issue-triage --verbose` to surface detailed error output, guide checking YAML syntax in the MCP block (indentation, colon spacing, array syntax), recommend `gh aw validate issue-triage --strict` to run the full lint stack, and describe how to read the known-good MCP server patterns (stdio, container, HTTP, registry) to diagnose the malformed block.",
+      "assertions": [
+        "Response recommends `gh aw compile --verbose` as the first diagnostic step",
+        "Response identifies YAML indentation or syntax as the most likely cause in MCP blocks",
+        "Response mentions `gh aw validate --strict` as a complementary check",
+        "Response does not recommend rewriting the entire workflow without attempting targeted diagnosis"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly diagnose a YAML parse error using `--verbose` first, then guide systematic MCP block syntax checking. It should not overreact with a full rewrite."
+    },
+    {
+      "id": 7,
+      "prompt": "My workflow compiled fine and the MCP server is configured, but at runtime the agent says it can't find the `search_docs` tool. What should I check?",
+      "expected_output": "The skill should recommend `gh aw mcp list-tools <server> <workflow-name>` to confirm what tools the MCP server exposes, `gh aw mcp inspect <workflow-name>` to check the overall MCP configuration, verify the `allowed:` list includes `search_docs` or `[\"*\"]`, check that the markdown body instructions invoke the tool (tool must be referenced in instructions, not just configured in frontmatter), and use `gh aw audit <run-id>` to compare requested vs. configured tools.",
+      "assertions": [
+        "Response recommends `gh aw mcp list-tools` to check exposed tools",
+        "Response checks whether `search_docs` is included in the `allowed:` list",
+        "Response checks whether the markdown body instructions actually invoke the tool",
+        "Response does not recommend recompiling as the primary first step"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must correctly diagnose a runtime tool-not-found failure by checking MCP tool exposure and the allowed-list, not by treating it as a compilation issue."
+    },
+    {
+      "id": 8,
+      "prompt": "I want my workflow to label issues as 'triaged' and post a comment with the triage summary. How do I set this up so it actually works?",
+      "expected_output": "The skill should explain the `safe-outputs` requirement for write-back operations, add a `safe-outputs:` block to frontmatter for both issue labels and issue comments, confirm `permissions: issues: write` is set, write the markdown body so it produces structured output that the safe-output layer can consume, compile after the frontmatter change, and state in the response contract that safe-output types are configured.",
+      "assertions": [
+        "Response configures `safe-outputs:` in frontmatter for both issue labels and issue comments",
+        "Response includes `permissions: issues: write` in frontmatter",
+        "Response explains that write operations must go through `safe-outputs`, not as direct agent actions",
+        "Response compiles after adding `safe-outputs` to frontmatter"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "Safe-output correctness and compilation awareness. The response must configure safe-outputs for both write types, set permissions correctly, and recompile after the frontmatter change."
+    }
+  ]
+}

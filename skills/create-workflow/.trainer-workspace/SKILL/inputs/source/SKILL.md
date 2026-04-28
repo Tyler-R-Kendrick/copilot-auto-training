@@ -27,8 +27,6 @@ Use [the starter template](./assets/workflow-template.md) when you need a clean 
 - `gh aw trial ./path/to/workflow.md --host-repo .` is the local-file path for exercising a `workflow_dispatch` workflow against the current repository.
 - `gh aw list` is a quick readiness check; if it reports `no .github/workflows directory found`, the repository has not been set up for workflow authoring yet.
 
-**Compilation rule:** Frontmatter changes always require recompilation (`gh aw compile <workflow-name>`). Markdown body-only changes do not require recompilation.
-
 ## When to use
 
 - The user wants to create a new GitHub Agentic Workflow.
@@ -59,7 +57,7 @@ Check whether the repository has already been initialized for GitHub Agentic Wor
 - `gh aw init` is interactive by default and sets up the dispatcher agent, `.gitattributes`, and Copilot MCP wiring unless `--no-mcp` is passed.
 - Use `gh aw list` or inspect `.github/workflows/` as a quick readiness check before assuming the repo is already set up.
 - Initialization is required for the full authoring experience because it installs the dispatcher agent and MCP configuration used during workflow authoring.
-- If the user only wants a draft file and is not ready to initialize: create the markdown workflow, skip compilation entirely, and state explicitly that the draft is not runnable. List what still needs to happen before it can run: `gh aw init`, any required secrets, and a compile pass once initialization is complete.
+- If the user only wants a draft file and is not ready to initialize, you may still create the markdown workflow, but state that compilation and execution may not work until initialization and secrets are configured.
 
 ## 2. Gather the workflow contract
 
@@ -100,8 +98,6 @@ When writing the markdown body:
 - give concrete repository context and constraints instead of generic advice
 
 Treat the workflow body like instructions for a new teammate. Be specific enough that the agent can act consistently without guessing.
-
-Before finishing the file, check whether the workflow body describes any write operations (creating issues, posting comments, adding labels, updating PRs). If it does, flag that `safe-outputs` must be configured in frontmatter (see section 4) and that the frontmatter change will require recompilation.
 
 ## 4. Add MCP servers or safe outputs if required
 
@@ -146,8 +142,8 @@ Use this validation loop:
 
 Important rule:
 
-- frontmatter changes require recompilation — always run `gh aw compile <workflow-name>` after any frontmatter edit
 - markdown body only changes do not require recompilation
+- frontmatter changes do require recompilation
 
 ## 6. Debug failures
 
@@ -155,9 +151,9 @@ Use the shortest path that matches the failure mode.
 
 ### Compilation failures
 
-- run `gh aw compile --verbose` first to get the full error message before trying to diagnose manually
 - check YAML indentation, colons, arrays, and field names
 - verify required fields like `on:` are present
+- run `gh aw compile --verbose`
 - use `gh aw validate --strict` to isolate schema, lint, and security issues without rewriting lock files
 - use `gh aw compile --purge` if stale lock files are causing confusion
 
@@ -203,7 +199,7 @@ When you create or update a workflow for the user:
 
 1. state which workflow file you changed
 2. summarize the trigger, main behavior, and configured tools
-3. state whether the edit touched frontmatter or the markdown body (or both), and whether you ran compilation — if you compiled, name the exact command used; if you skipped compilation, explain why (body-only change or draft-only mode)
+3. state whether you recompiled and which validation commands you ran
 4. call out any remaining prerequisites such as missing secrets or required initialization
 
 ## Example request shapes
