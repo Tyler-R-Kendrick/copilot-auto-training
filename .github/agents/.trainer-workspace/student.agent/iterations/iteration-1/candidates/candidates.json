@@ -1,0 +1,23 @@
+{
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/prompt.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "source": "baseline .github/agents/student.agent.md"
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/prompt.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "source": "optimizer manual_followup + adversary refinements",
+      "teacher_verdict": "APPROVE (turn-1)"
+    },
+    "adversary": {
+      "brief": "iterations/iteration-1/candidates/adversary/adversary-brief.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "strongest_exploit": "Exploit 2 — scope creep hidden by reasoning verbosity (predicted score 0.90)",
+      "judge_steering_blocks": "iterations/iteration-1/steering/judge-exploit-blocks.md"
+    }
+  },
+  "selected": "student",
+  "selection_reason": "Teacher approved after turn-1 review; adversary refinements applied to address three judge-evasion patterns; all 856 tests pass"
+}
