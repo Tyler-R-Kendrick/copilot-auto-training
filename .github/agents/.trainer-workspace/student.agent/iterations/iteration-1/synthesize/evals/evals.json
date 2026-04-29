@@ -1,0 +1,93 @@
+{
+  "skill_name": "student.agent",
+  "evals": [
+    {
+      "prompt": "You are the student agent. Teacher critique (from iterations/iteration-1/steering/teacher/turn-1/STEERING.md): 'The opening paragraph uses passive voice and is vague about what the agent actually does. Change the opening sentence to an active-voice statement of purpose.' The per-agent summary says: 'Previous turns asked for clarity on scope.' The current prompt is: 'Assistance is provided for prompt revision tasks.' Apply the smallest defensible revision.",
+      "expected_output": "The student should change only the opening sentence to active voice (e.g., 'This agent revises prompt candidates based on teacher critique.'), leave all other lines unchanged, predict teacher approval with the criterion that the sentence is now active-voice and specific, run `python -m pytest -q` and report the result.",
+      "assertions": [
+        "Response changes only the sentence identified in the critique",
+        "Response predicts teacher approval with an explicit criterion",
+        "Response reports a validation result from pytest or a named validation step"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the smallest revision that addresses the active-voice critique without changing any other lines, state an explicit approval prediction criterion, and include a validation step result."
+    },
+    {
+      "prompt": "You are the student agent. The latest STEERING.md (turn-3) says: 'Remove the word CRITICAL from the constraint header.' The per-agent summary (written after turn-2) says: 'Focus on rewriting the entire constraint section for clarity.' Apply the correct revision.",
+      "expected_output": "The student should read the latest STEERING.md turn-3 artifact as canonical, apply only the turn-3 instruction (remove 'CRITICAL' from the header), and note in the output that the turn-3 artifact overrides the older summary guidance. The student should not rewrite the entire constraint section.",
+      "assertions": [
+        "Response treats the latest STEERING.md turn as canonical over the summary",
+        "Response changes only the header word as instructed in turn-3",
+        "Response notes the discrepancy between turn-3 and the summary"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must prioritize the latest STEERING.md turn artifact over an older summary artifact when they conflict, apply only the change specified in the turn artifact, and acknowledge the discrepancy."
+    },
+    {
+      "prompt": "You are the student agent. Teacher critique: 'The output format section is missing a line for the validation result.' The current prompt ends with: '- State the predicted teacher approval outcome.' Apply the smallest defensible revision and predict whether the teacher would approve.",
+      "expected_output": "The student should add exactly one line ('- State the validation or measurement result.') to the output format section, leave all other lines unchanged, state an explicit approval prediction with the criterion that the format section now includes a validation line, and run the validation step.",
+      "assertions": [
+        "Response adds exactly one line to the output format section",
+        "Response states an explicit approval prediction criterion",
+        "Response includes a validation step result"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must add the minimal change (one missing line), explicitly predict teacher approval with a stated criterion, and report a validation result."
+    },
+    {
+      "prompt": "You are the student agent. Teacher critique: 'The constraints section should reference the current iteration number.' The current constraints include: 'Do not take over orchestration.' There is no iteration number in the constraints section. The optimization target is a general-purpose prompt that should work across iterations. Should you add the iteration number?",
+      "expected_output": "The student should report a justified no-op: adding a specific iteration number to a general-purpose prompt would couple it to a single iteration and regress its reusability. The student should explain the tradeoff, predict that the teacher would approve a no-op if shown this reasoning, and suggest requesting a teacher turn to clarify intent if the teacher expected a specific change.",
+      "assertions": [
+        "Response reports a no-op with explicit justification",
+        "Response states the tradeoff between specificity and reusability",
+        "Response predicts teacher approval or requests clarification"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must report a justified no-op when a revision would regress the prompt's general applicability, with an explicit tradeoff analysis and a stated approval prediction or clarification request."
+    },
+    {
+      "prompt": "You are the student agent. Teacher critique: 'The approach section is unclear and contradicts the constraints.' The summary says 'focus on the approach section.' However, you are unsure which specific part of the approach section is unclear or which constraint it contradicts. What do you do?",
+      "expected_output": "The student should hand off to the teacher for refreshed guidance because the critique is incomplete — it identifies a section but not the specific sentence or constraint violation. The student should not guess which part to change. The handoff prompt should ask the teacher to identify the specific sentence and the constraint it violates.",
+      "assertions": [
+        "Response hands off to teacher rather than guessing",
+        "Response identifies the critique as incomplete (no specific sentence identified)",
+        "Response does not attempt to rewrite the approach section without a specific target"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must recognize incomplete critique and hand off to the teacher for clarification rather than guessing which lines to change."
+    },
+    {
+      "prompt": "You are the student agent. You have completed three revision turns in the current iteration. The teacher critique after turn-3 says: 'The prompt is now clear and well-structured. No further revisions needed.' Should you propose another revision?",
+      "expected_output": "The student should exit the loop. The teacher has explicitly stated no further revisions are needed, which satisfies the loop exit criterion: teacher predicts no further supported improvement. The student should summarize the iteration outcome and report the validation result.",
+      "assertions": [
+        "Response exits the loop without proposing another revision",
+        "Response cites the teacher's explicit approval as the exit criterion",
+        "Response summarizes the iteration outcome"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must recognize the teacher's explicit approval as a loop exit criterion and stop without requesting another revision or teacher turn."
+    },
+    {
+      "prompt": "You are the student agent. Teacher critique: 'Add an explicit note that the engineer handoff should only be used for formatting, not for delegating the revision itself.' The current constraint already says: 'Do not invoke engineer skills directly yourself.' Should you revise?",
+      "expected_output": "The student should apply a minimal revision that adds the specific clarification about formatting-only use of the engineer handoff, while noting that the existing constraint already prohibits direct skill invocation — the new line would address the formatting-delegation distinction more explicitly. The student should predict teacher approval since the revision adds the missing distinction without duplicating the existing constraint.",
+      "assertions": [
+        "Response applies a targeted revision to clarify the engineer handoff scope",
+        "Response notes that the existing constraint is partially related but does not cover the same gap",
+        "Response predicts teacher approval with an explicit reasoning"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must distinguish between an existing constraint and a missing one, apply a minimal revision that closes the gap, and justify the approval prediction."
+    },
+    {
+      "prompt": "You are the student agent. Teacher critique asks you to add a sentence about reading evidence in priority order. You draft: 'Read evidence in this order: (1) latest STEERING.md turn artifact, (2) per-agent summary, (3) workspace evidence; discard older summary guidance that contradicts the latest turn artifact.' Is this revision predicted to be teacher-approved?",
+      "expected_output": "The student should predict teacher approval because the revision directly addresses the evidence reading priority gap identified in the critique, uses a numbered list for clarity, and includes a conflict resolution rule (discard contradicting older guidance). The student should validate with pytest and report the result.",
+      "assertions": [
+        "Response predicts teacher approval with the criterion that the revision addresses the evidence priority gap",
+        "Response notes the numbered list format as satisfying the clarity requirement",
+        "Response includes a validation step result"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student must predict teacher approval with an explicit stated criterion that maps back to the critique, and include a validation step."
+    }
+  ]
+}
