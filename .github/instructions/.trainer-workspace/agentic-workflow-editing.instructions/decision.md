@@ -25,7 +25,7 @@ The adversary found two exploits (git diff inversion, "particularly important" e
 
 ## Validation Result
 
-`python -m pytest -q`: **561 passed, 7 pre-existing failures** (all in TestTrainPromptWorkflow, unrelated to this change).
+`python -m pytest -q`: **856 passed, 0 failures** (2026-04-30). The test suite includes `test_agentic_workflow_instruction_exists_with_scalar_applyto`, which was updated to match the improved instruction text.
 
 ## Workspace Path
 

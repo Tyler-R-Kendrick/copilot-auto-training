@@ -777,9 +777,9 @@ class TestInstructionCustomization:
         text = _read(instructions_path)
 
         assert 'applyTo: ".github/workflows/*.md"' in text
-        assert 'run `gh aw compile <workflow-name>` before finishing' in text
+        assert 'run `gh aw compile <workflow-name>`' in text
         assert '`agentic-workflow-validation` hook' in text
-        assert 'Do not rely on the stop hook as the primary mechanism' in text
+        assert 'Do not rely on the `agentic-workflow-validation` hook as the primary mechanism' in text
 
     def test_evals_dataset_instruction_exists(self):
         instructions_path = REPO_ROOT / ".github" / "instructions" / "evals-dataset.instructions.md"
