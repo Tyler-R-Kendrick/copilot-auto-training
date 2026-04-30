@@ -4,7 +4,7 @@
   "workspace_parent": ".github/instructions",
   "prompt_name": "agentic-workflow-editing.instructions",
   "workflow_state": "complete",
-  "updated_at": "2026-04-04T02:23:58Z",
+  "updated_at": "2026-04-30T21:01:46Z",
   "required_artifacts": {
     "engineer_prompt_review": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/engineer-prompt/review.md",
     "source_snapshot": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/inputs/source/agentic-workflow-editing.instructions.md",
@@ -12,7 +12,7 @@
     "train_dataset": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/synthesize/train.jsonl",
     "val_dataset": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/synthesize/val.jsonl",
     "eval_manifest": null,
-    "optimize_report": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/optimize/optimize-report.json",
+    "optimize_report": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/optimize/manual-followup-report.json",
     "candidate_dir": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/candidates",
     "candidate_manifest": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/candidates/candidates.json",
     "latest_steering_turn": ".github/instructions/.trainer-workspace/agentic-workflow-editing.instructions/iterations/iteration-1/steering/teacher/turn-1/STEERING.md",
