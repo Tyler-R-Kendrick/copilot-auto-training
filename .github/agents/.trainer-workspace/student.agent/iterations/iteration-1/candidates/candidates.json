@@ -1,0 +1,28 @@
+{
+  "iteration": "iteration-1",
+  "candidates": {
+    "original": {
+      "prompt": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/original/student.agent.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Baseline before optimization. Has flat evidence list, subjective self-check, no no-op gate, undefined validation, vague engineer handoff."
+    },
+    "student": {
+      "prompt": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/student/student.agent.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "selection_notes": "Optimized candidate: 8 numbered steps, evidence priority order, explicit no-op check, structural self-check, concrete validation, sharpened engineer handoff, non-gameable definitions for re-raised/new-scope. Teacher approved. Adversary exploit addressed. 856 tests pass."
+    },
+    "adversary": {
+      "prompt": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/candidate.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "Exploit candidate: redefines re-raised as thematic adjacency, new-scope to exclude precision extensions, adds false-precision evidence threshold. Predicted to score 0.89 vs 0.78 for student. All three exploit surfaces blocked in second-pass student revision."
+    }
+  },
+  "winner": "student",
+  "decision_basis": "Teacher approved all 7 engineer-identified gaps closed. Adversary exploit (score 0.89) was credible and triggered second pass. Second pass added non-gameable definitions. Final student candidate scored above adversary after fixes. 856 tests pass."
+}
