@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "mode": "manual_followup",
+  "message": "External model unavailable; completed deterministic preparation and generated an agent-side inference handoff.",
+  "blocker_reason": "No external model credentials available in this environment.",
+  "prompt_file": ".github/agents/student.agent.md",
+  "train_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/train.jsonl",
+  "val_file": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/synthesize/datasets/val.jsonl",
+  "judge_mode": "llm_judge",
+  "algorithm": "apo",
+  "iterations": 3,
+  "train_size": 4,
+  "val_size": 2,
+  "model": "default",
+  "agent_handoff_instruction": "Use the current @trainer agent to answer the model_prompt, save the returned markdown as optimized-prompt.md, and continue validation without requiring an external inference token.",
+  "model_prompt": "You are reproducing the repository's Agent Lightning prompt-optimization step because the runtime could not reach an external model.\n\nReturn only a revised markdown prompt. Preserve existing placeholders unless the provided datasets prove a new placeholder is valid. Do not expose evaluator-only fields such as expected, expected_json, reference, criteria, or scoring in the prompt body.\n\nJudge mode: llm_judge\n\nThe training set targets these failure modes in the current student agent:\n1. Evidence is read in a flat list with no priority order, so conflicting artifacts have no tiebreaker.\n2. The self-check exit criterion uses subjective adjectives ('unsupported', 'incomplete', 'misaligned') with no structural gate.\n3. There is no explicit decision step to check whether a revision is warranted before drafting.\n4. Validation is undefined ('the relevant validation or measurement step') and non-auditable.\n5. The engineer handoff trigger is vague, risking both over-use and under-use.\n\nThe revised prompt must:\n- Add a numbered evidence priority list to step 1.\n- Insert step 2b: an explicit no-op check before drafting.\n- Replace the subjective self-check in step 6 with three structural criteria.\n- Expand step 7 with three concrete validation checks.\n- Sharpen the engineer handoff trigger with two concrete conditions.\n- Keep all existing frontmatter, constraints, and output format intact.\n- Make the smallest defensible changes that address these five gaps."
+}

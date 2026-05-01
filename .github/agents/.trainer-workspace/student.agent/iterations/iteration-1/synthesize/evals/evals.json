@@ -1,0 +1,83 @@
+{
+  "skill_name": "student-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The teacher's current STEERING.md says: 'The approach section has no evidence reading order. Add a prioritized list: (1) current STEERING.md, (2) per-agent summary, (3) optimize report, (4) engineer-prompt review, (5) source snapshot. When items conflict, the most recent STEERING.md wins.' The older per-agent summary says: 'Focus on reducing output verbosity.' The current candidate prompt is a student agent that reads evidence in a flat list. Produce the candidate revision, reasoning trajectory, and teacher approval prediction.",
+      "expected_output": "The student should revise only the evidence reading order in the approach section (current STEERING.md critique), not the verbosity concern from the older summary. The revision should add a numbered priority list. The reasoning should explain why the flat list is the active blocker and why addressing only the STEERING.md item is the smallest defensible change. The approval prediction should be positive if the priority list is complete and verbosity is deferred.",
+      "assertions": [
+        "Revision addresses the evidence reading order from the current STEERING.md.",
+        "Revision does not introduce verbosity changes from the older summary.",
+        "Reasoning trajectory explains why only the current STEERING.md item is in scope.",
+        "Approval prediction is explicitly stated with a positive or conditional verdict."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly scopes the revision to the current STEERING.md item, produces a clear reasoning trajectory that distinguishes current vs older critique, and predicts teacher approval accurately."
+    },
+    {
+      "id": 2,
+      "prompt": "The teacher's current STEERING.md says: 'The self-check exit criteria are subjective. Replace step 6 with a structural check: the self-check passes when (a) every critique item from the current STEERING.md is addressed, (b) no new scope was introduced, and (c) the approval prediction is positive.' The current student agent prompt has step 6 as: 'do at most one extra self-check only if the draft still looks unsupported, incomplete, or misaligned.' Produce the candidate revision and reasoning trajectory.",
+      "expected_output": "The student should rewrite step 6 to use the three structural checks (a), (b), (c) from the STEERING.md. The reasoning should explain why the current subjective wording creates ambiguity in self-check behavior, why the structural check is the smallest defensible replacement, and confirm no other steps were changed. The approval prediction should be positive if all three criteria are correctly incorporated.",
+      "assertions": [
+        "Revision rewrites step 6 with the three structural checks (a), (b), (c).",
+        "No other steps in the approach section are changed.",
+        "Reasoning explains why structural vs subjective exit criteria matters.",
+        "Approval prediction is stated with justification."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student applies a precise targeted rewrite of step 6 matching the STEERING.md specification, without widening scope, and with a clear reasoning trajectory."
+    },
+    {
+      "id": 3,
+      "prompt": "The teacher's current STEERING.md says: 'The prompt does not define what validation means for the student. Add: at minimum, check that all placeholder tokens are preserved, no constraints were removed without justification, and the revised candidate can be applied without syntax errors.' The current candidate has step 7 as: 'Run the relevant validation or measurement step and report what changed.' Produce the revision, reasoning trajectory, and predict teacher approval.",
+      "expected_output": "The student should expand step 7 to include the three validation checks from the STEERING.md. The reasoning should explain that 'relevant validation' is undefined, making the student's output non-auditable, and that the STEERING.md provides the missing definition. The approval prediction should be positive if all three checks are added without expanding the student's role beyond prompt-candidate revision.",
+      "assertions": [
+        "Revision expands step 7 with the three concrete validation checks.",
+        "No new scope or orchestration responsibilities are added.",
+        "Reasoning explains why 'relevant validation' was underspecified.",
+        "Approval prediction is stated explicitly."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student adds the correct validation definition from the STEERING.md to step 7 without role creep, with coherent reasoning."
+    },
+    {
+      "id": 4,
+      "prompt": "The teacher's current STEERING.md is empty — there is no critique for this turn. The per-agent summary says revisions from previous turns addressed evidence reading order and self-check criteria. The current workspace shows no new optimize report and no new validation failure. Produce the student response.",
+      "expected_output": "The student should report a justified no-op: no active critique in the current STEERING.md, no new evidence to act on, and no revision warranted. The response should reference the empty STEERING.md as the reason, note that prior items are already addressed per the summary, and predict teacher approval of the no-op decision. The student should not invent new revisions from the older summary items.",
+      "assertions": [
+        "Response declares a justified no-op rather than inventing a revision.",
+        "No-op is grounded in the empty current STEERING.md.",
+        "Response does not re-raise already-addressed items from the summary.",
+        "Approval prediction for the no-op is stated explicitly."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly identifies the empty STEERING.md as a no-op condition and resists inventing revisions from stale evidence."
+    },
+    {
+      "id": 5,
+      "prompt": "The teacher's current STEERING.md says: 'The engineer handoff trigger is too vague. Sharpen it: use the engineer handoff when the revision requires selecting between competing prompt-engineering techniques, or when the teacher-facing explanation involves multi-step rationale that benefits from Trace-style structuring. Do not use it for minor wording changes.' The current candidate uses the handoff as: 'use when the task needs specialized prompt or Trace-oriented coaching, or if the teacher-facing explanation needs clearer structure.' Produce the revision, reasoning, and approval prediction.",
+      "expected_output": "The student should rewrite the engineer handoff description to match the STEERING.md specification precisely. The reasoning should identify the two concrete trigger conditions and contrast them with the current vague alternatives. The revision should not change any other handoff descriptions. The approval prediction should be positive if the new trigger language is concrete enough to be applied without subjective judgment.",
+      "assertions": [
+        "Revision updates the engineer handoff trigger to match the STEERING.md specification.",
+        "No other handoff descriptions are changed.",
+        "Reasoning contrasts the specific new triggers with the previous vague alternatives.",
+        "Approval prediction is stated explicitly."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student precisely rewrites the engineer handoff trigger per the STEERING.md without widening scope, with a reasoning that clearly explains the specificity improvement."
+    },
+    {
+      "id": 6,
+      "prompt": "The teacher's current STEERING.md says: 'Add a no-op check as step 2b: after reading evidence, explicitly decide whether a revision is warranted before drafting. If the evidence gap is too large, request a teacher turn instead of guessing.' The per-agent summary from an earlier turn says: 'verbosity reduction is needed.' There is no optimize report and no validation failure in the workspace. Produce the revision, reasoning trajectory, and approval prediction.",
+      "expected_output": "The student should add step 2b as specified in the STEERING.md, placed between reading evidence and drafting the revision. The reasoning should explain that without an explicit decision checkpoint, the agent drafts when it should request a teacher turn, and that verbosity concerns from the summary are deferred (lower priority). The approval prediction should be positive if step 2b is correctly placed and the summary item is correctly deferred.",
+      "assertions": [
+        "Revision adds step 2b explicitly after reading evidence.",
+        "Step 2b includes the condition for requesting a teacher turn when evidence is insufficient.",
+        "Verbosity concern from the summary is not incorporated in this revision.",
+        "Reasoning explains the deferral of the summary-only item."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly places the no-op check as step 2b with the correct trigger condition, defers lower-priority summary items, and explains the scope decision."
+    }
+  ]
+}
