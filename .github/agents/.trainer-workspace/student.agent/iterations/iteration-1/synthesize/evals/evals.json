@@ -1,0 +1,109 @@
+{
+  "skill_name": "student-agent-local",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The teacher says: 'Your candidate added three new constraint bullets, but the current iteration goal is only to clarify the evidence reading order. Remove the unrelated constraints and reorder the evidence steps explicitly.' Implement the revision.",
+      "expected_output": "The student should remove the unrelated constraint bullets, add a numbered evidence reading order, and expose a reasoning trajectory explaining why scope was restricted to the evidence ordering goal. The student should predict the teacher would approve a focused single-change revision.",
+      "assertions": [
+        "Response restricts changes to the evidence reading order goal only.",
+        "Response removes or avoids adding unrelated constraints.",
+        "Response exposes a plan and reasoning trajectory for the revision.",
+        "Response predicts teacher approval outcome."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student implements the narrowest possible revision that addresses the critique, exposes the reasoning, and accurately forecasts approval."
+    },
+    {
+      "id": 2,
+      "prompt": "The teacher says: 'The candidate prompt is missing a stopping criterion for the self-check step. Add exactly one stopping criterion that limits the student to at most one extra pass.' Implement the revision.",
+      "expected_output": "The student should add exactly one stopping criterion to the self-check step, explain why a single criterion is sufficient, expose the reasoning trajectory, and predict whether the teacher would approve without requesting further changes.",
+      "assertions": [
+        "Response adds exactly one stopping criterion for the self-check step.",
+        "Response does not add unrelated stopping criteria elsewhere.",
+        "Response exposes reasoning trajectory.",
+        "Response predicts teacher approval outcome and includes a justification."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student makes the minimal change (single stopping criterion), explains the plan, and accurately predicts teacher approval."
+    },
+    {
+      "id": 3,
+      "prompt": "The teacher says: 'The engineer handoff trigger is too vague — it says to use it when reasoning needs structure or coaching. Tighten the trigger to three specific conditions.' Implement the revision and predict teacher approval.",
+      "expected_output": "The student should replace the vague engineer handoff trigger with three specific conditions, present the reasoning for those conditions, expose tradeoffs, and predict whether the teacher would approve the new trigger.",
+      "assertions": [
+        "Response lists exactly three specific conditions for the engineer handoff trigger.",
+        "Response explains why those three conditions were chosen over alternatives.",
+        "Response exposes reasoning trajectory and tradeoffs.",
+        "Response predicts teacher approval with a clear justification."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student tightens the trigger with exactly the requested specificity, justifies the conditions, and predicts approval accurately."
+    },
+    {
+      "id": 4,
+      "prompt": "The teacher says: 'Add a contradiction exit condition: if the same contradiction persists across two consecutive teacher turns, report it as a blocker rather than looping again.' The current prompt has no contradiction handling. Implement the revision.",
+      "expected_output": "The student should add a contradiction exit condition to the approach or constraints section, explain why two turns is the right threshold, expose the reasoning trajectory, and predict whether the teacher would approve.",
+      "assertions": [
+        "Response adds a contradiction exit condition that triggers after two consecutive contradictory teacher turns.",
+        "Response explains the rationale for the two-turn threshold.",
+        "Response exposes reasoning trajectory.",
+        "Response predicts teacher approval or identifies any remaining uncertainty."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student adds the required contradiction exit, justifies the threshold, and predicts approval with reasoning."
+    },
+    {
+      "id": 5,
+      "prompt": "The teacher says: 'The current candidate looks good for the evidence reading order fix. I do not see a remaining improvement worth making in this iteration.' Is a revision warranted or is a no-op justified?",
+      "expected_output": "The student should return a justified no-op stating that the current candidate satisfies the teacher's feedback, explain why no revision is supported, expose the reasoning that led to the no-op decision, and predict teacher approval of the no-op.",
+      "assertions": [
+        "Response states a justified no-op rather than inventing a revision.",
+        "Response explains why the evidence does not support a further revision.",
+        "Response exposes reasoning trajectory.",
+        "Response predicts teacher approval of the no-op decision."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly returns a no-op when evidence does not support a revision, explains the reasoning, and predicts teacher approval accurately."
+    },
+    {
+      "id": 6,
+      "prompt": "The teacher's critique says: 'Fix the revision scope.' But the current steering STEERING.md says: 'Fix the output format clarity.' These two directives contradict each other. What should the student do?",
+      "expected_output": "The student should recognize the contradiction between the teacher critique and the STEERING.md artifact, report the contradiction as a blocker rather than guessing which directive to follow, and request a teacher handoff to resolve the conflict before implementing any revision.",
+      "assertions": [
+        "Response identifies the contradiction between the two directives.",
+        "Response does not attempt a revision that ignores one directive.",
+        "Response requests a teacher handoff to resolve the contradiction.",
+        "Response explains why proceeding without resolution would be unsafe."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly detects the contradiction, declines to guess, and requests a teacher handoff rather than looping or picking arbitrarily."
+    },
+    {
+      "id": 7,
+      "prompt": "The teacher says: 'The latest candidate prompt added a five-step evidence reading order, but the current iteration goal was to add exactly one step specifying which artifact takes precedence. Revert to one step.' Implement the revision.",
+      "expected_output": "The student should revert the five-step evidence reading order to a single precedence-specification step, justify why fewer steps better satisfies the iteration goal, expose the reasoning trajectory, and predict teacher approval.",
+      "assertions": [
+        "Response reduces the evidence reading order to exactly one precedence-specification step.",
+        "Response explains why the five-step version exceeded the iteration scope.",
+        "Response exposes reasoning trajectory.",
+        "Response predicts teacher approval with supporting reasoning."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student correctly reverts the over-scoped revision to the minimal required change and accurately predicts teacher approval."
+    },
+    {
+      "id": 8,
+      "prompt": "The teacher says: 'Your reasoning trajectory explanation is too long for me to review in one pass. Ask the engineer to help format it more concisely before you finalize.' How should the student proceed?",
+      "expected_output": "The student should invoke the engineer handoff to reformat the reasoning trajectory explanation into a more concise teacher-readable form without delegating the candidate revision itself. The student should explain why the engineer handoff is appropriate here and what the engineer should preserve.",
+      "assertions": [
+        "Response invokes the engineer handoff for formatting the reasoning trajectory.",
+        "Response does not delegate the candidate revision to the engineer.",
+        "Response explains what the engineer should preserve and what should be shortened.",
+        "Response indicates the student retains ownership of the final revision decision."
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The student uses the engineer handoff correctly as a formatting aid, not a delegation path, and keeps the revision decision with the student."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "candidates": {
+    "original": {
+      "candidate": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/original/candidate.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/original/description.md",
+      "selection_notes": "Baseline candidate — under-specified on evidence order, engineer trigger, revision definition, approval criteria, and contradiction handling."
+    },
+    "student": {
+      "candidate": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/student/candidate.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/student/description.md",
+      "selection_notes": "Winner — addresses all seven engineering review gaps. Contradiction exit condition confirmed as highest-value addition by adversary reflection."
+    },
+    "adversary": {
+      "candidate": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/candidate.md",
+      "description": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": ".github/agents/.trainer-workspace/student.agent/iterations/iteration-1/candidates/adversary/reflection.md",
+      "selection_notes": "Adversary exploit: removes contradiction exit and precedence rule, replacing with vague synthesis instruction. Credible but does not outrank student candidate."
+    }
+  },
+  "winner": "student"
+}
