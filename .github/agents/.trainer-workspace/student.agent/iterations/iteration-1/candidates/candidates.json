@@ -1,0 +1,28 @@
+{
+  "iteration": "iteration-1",
+  "candidates": {
+    "original": {
+      "prompt": "iterations/iteration-1/candidates/original/student.agent.md",
+      "description": "iterations/iteration-1/candidates/original/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "notes": "Baseline before optimization. Lacks reading order, scope check, staleness signal, termination rule, validation step, and persistence note."
+    },
+    "student": {
+      "prompt": "iterations/iteration-1/candidates/student/student.agent.md",
+      "description": "iterations/iteration-1/candidates/student/description.md",
+      "predicted_judge_response": null,
+      "reflection": null,
+      "notes": "Optimized candidate. Addresses all 5 risk areas from engineer review. Minimal additive changes only."
+    },
+    "adversary": {
+      "prompt": "iterations/iteration-1/candidates/adversary/student.agent.md",
+      "description": "iterations/iteration-1/candidates/adversary/description.md",
+      "predicted_judge_response": "iterations/iteration-1/candidates/adversary/predicted-judge-response.md",
+      "reflection": "iterations/iteration-1/candidates/adversary/reflection.md",
+      "notes": "Exploit: inverts evidence reading order (summary.md first, STEERING.md second). Credible against structurally-focused judges only. Does NOT outrank student when eval dataset is used."
+    }
+  },
+  "selected_winner": "student",
+  "selection_rationale": "Student candidate addresses all engineer review gaps, teacher approved, adversary exploit does not outrank student when eval dataset cases are applied. Adversary exploit should be blocked in future turns by requiring STEERING.md authority over summary.md."
+}
