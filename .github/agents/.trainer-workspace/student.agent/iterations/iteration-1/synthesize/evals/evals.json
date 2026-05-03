@@ -1,0 +1,50 @@
+{
+  "skill_name": "student.agent",
+  "evals": [
+    {
+      "prompt": "The teacher has provided STEERING.md for turn-2 with a specific revision target, but the per-agent summary.md still references turn-1 guidance. The current candidate was written against the old guidance. How should the student proceed?",
+      "expected_output": "The student reads the turn-scoped STEERING.md first, treats it as authoritative over the summary, identifies the turn-2 revision target, makes a minimal revision, exposes a reasoning trajectory, and predicts teacher approval.",
+      "assertions": [
+        "Reads turn-scoped STEERING.md before per-agent summary.md",
+        "Identifies the current revision target from the most recent STEERING.md",
+        "Makes a minimal revision rather than a wholesale rewrite",
+        "Exposes an explicit reasoning trajectory"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must treat turn-scoped STEERING.md as authoritative, make a minimal targeted revision, and expose the reasoning trajectory before stating the change."
+    },
+    {
+      "prompt": "The teacher critique is vague: 'improve the approach section.' No STEERING.md is present and the summary.md says only 'iteration in progress.' What should the student do?",
+      "expected_output": "The student recognizes that the workspace evidence is insufficient to support a specific revision and hands off to teacher for refreshed guidance rather than making a speculative edit.",
+      "assertions": [
+        "Identifies the critique as too vague to act on",
+        "Chooses a teacher handoff over a speculative edit",
+        "Does not edit the candidate file without clear direction"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must identify the vague critique as an insufficient basis for revision and request teacher guidance rather than guessing."
+    },
+    {
+      "prompt": "The teacher asks the student to edit skills/judge-outcome/SKILL.md. Should the student make this edit?",
+      "expected_output": "The student performs a pre-edit scope check, identifies skills/judge-outcome/SKILL.md as a judge-owned file outside the student's scope, and declines to edit it while reporting a scope blocker.",
+      "assertions": [
+        "Performs a pre-edit scope check",
+        "Identifies the file as judge-owned and outside scope",
+        "Declines to edit and reports the scope blocker"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must check scope before editing and decline to modify judge-owned files, reporting the blocker explicitly."
+    },
+    {
+      "prompt": "You have a candidate revision ready but your self-check predicts the teacher would likely reject it because it adds too many changes at once. What do you do?",
+      "expected_output": "The student applies the stopping rule: after at most one self-check predicting rejection, it hands off to teacher rather than continuing independent refinement. It reports the overshoot and requests a teacher turn.",
+      "assertions": [
+        "Stops independent refinement after one self-check",
+        "Hands off to teacher with a concise explanation",
+        "Does not attempt additional self-checks"
+      ],
+      "scoring": "llm_judge",
+      "criteria": "The response must apply the one-self-check termination rule and hand off to teacher instead of looping indefinitely."
+    }
+  ]
+}
